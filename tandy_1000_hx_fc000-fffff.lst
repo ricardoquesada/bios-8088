@@ -5309,7 +5309,7 @@ bios:E17C		  cmp	  bl, 10h
 bios:E17F		  jz	  short	loc_FE1A1
 bios:E181		  or	  bh, bh
 bios:E183		  jnz	  short	loc_FE19C
-bios:E185		  or	  byte ptr ds:p400.extra_status, 10h
+bios:E185		  or	  byte ptr ds:p400.extra_status, 10h  ;	external color video enabled
 bios:E18A		  mov	  al, cl
 bios:E18C		  out	  0A0h,	al			      ;	PIC 2  same as 0020 for	PIC 1
 bios:E18E		  xor	  al, al
@@ -5322,11 +5322,11 @@ bios:E19A		  jmp	  short	loc_FE1A1
 bios:E19C ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 bios:E19C
 bios:E19C loc_FE19C:						      ;	CODE XREF: POST_init_ints_and_more+10Aj
-bios:E19C		  or	  byte ptr ds:p400.extra_status, 20h
+bios:E19C		  or	  byte ptr ds:p400.extra_status, 20h  ;	external monochrome monitor installed
 bios:E1A1
 bios:E1A1 loc_FE1A1:						      ;	CODE XREF: POST_init_ints_and_more+106j
 bios:E1A1							      ;	POST_init_ints_and_more+121j
-bios:E1A1		  test	  word ptr ds:p400.extra_status, 10h
+bios:E1A1		  test	  word ptr ds:p400.extra_status, 10h  ;	external color video enabled?
 bios:E1A7		  jnz	  short	loc_FE1AE
 bios:E1A9		  sub	  word ptr ds:p400.base_mem_kb,	10h   ;	base memory size in Kb
 bios:E1AE
@@ -5962,39 +5962,39 @@ bios:E5BB							      ;	Feature	Control	outputs	FC0 and	FC1
 bios:E5BC		  add	  dx, 4
 bios:E5BF		  mov	  al, 0				      ;	modes 0-6: no border color, nothing
 bios:E5C1		  cmp	  byte ptr ds:p400.crt_mode, 6
-bios:E5C6		  jle	  short	s0
+bios:E5C6		  jle	  short	l1
 bios:E5C8		  mov	  al, 100b			      ;	mode >=	8: enable border color
 bios:E5CA		  cmp	  byte ptr ds:p400.crt_mode, 8
-bios:E5CF		  jnz	  short	s0
+bios:E5CF		  jnz	  short	l1
 bios:E5D1		  mov	  al, 10100b			      ;	mode 8:	enables	border color + 16 color	mode
-bios:E5D3		  jmp	  short	s2
+bios:E5D3		  jmp	  short	l3
 bios:E5D5 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 bios:E5D5
-bios:E5D5 s0:							      ;	CODE XREF: video_init_palette+6Cj
+bios:E5D5 l1:							      ;	CODE XREF: video_init_palette+6Cj
 bios:E5D5							      ;	video_init_palette+75j
 bios:E5D5		  cmp	  byte ptr ds:p400.crt_mode, 9
-bios:E5DA		  jnz	  short	s1
+bios:E5DA		  jnz	  short	l2
 bios:E5DC		  mov	  al, 10100b			      ;	mode 9:	enables	border color + 16 color	mode
-bios:E5DE		  jmp	  short	s2
+bios:E5DE		  jmp	  short	l3
 bios:E5E0 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 bios:E5E0
-bios:E5E0 s1:							      ;	CODE XREF: video_init_palette+80j
+bios:E5E0 l2:							      ;	CODE XREF: video_init_palette+80j
 bios:E5E0		  cmp	  byte ptr ds:p400.crt_mode, 0Ah
-bios:E5E5		  jnz	  short	s2
+bios:E5E5		  jnz	  short	l3
 bios:E5E7		  mov	  al, 1100b			      ;	mode a:	enables	border color + 640x200 4 color mode
 bios:E5E9
-bios:E5E9 s2:							      ;	CODE XREF: video_init_palette+79j
+bios:E5E9 l3:							      ;	CODE XREF: video_init_palette+79j
 bios:E5E9							      ;	video_init_palette+84j	...
 bios:E5E9		  out	  dx, al
 bios:E5EA		  cmp	  byte ptr ds:p400.monochrome_monitor, 0FFh ; monochrome installed?
-bios:E5EF		  jnz	  short	s3			      ;	skip if	not installed (means internal color video)
+bios:E5EF		  jnz	  short	l5			      ;	skip if	not installed (means internal color video)
 bios:E5F1		  mov	  ah, 10h			      ;	palette	registers
 bios:E5F3		  mov	  si, offset tbl_3de_mono_palette_values
 bios:E5F6		  mov	  cx, 10h
 bios:E5F9		  nop
 bios:E5FA		  mov	  dx, 3DAh
 bios:E5FD
-bios:E5FD l1:							      ;	CODE XREF: video_init_palette+B3j
+bios:E5FD l4:							      ;	CODE XREF: video_init_palette+B3j
 bios:E5FD		  mov	  al, ah
 bios:E5FF		  out	  dx, al			      ;	Video: bits 0-1	control
 bios:E5FF							      ;	Feature	Control	outputs	FC0 and	FC1
@@ -6004,9 +6004,9 @@ bios:E606		  out	  dx, al
 bios:E607		  sub	  dx, 4
 bios:E60A		  inc	  si
 bios:E60B		  inc	  ah
-bios:E60D		  loop	  l1
+bios:E60D		  loop	  l4
 bios:E60F
-bios:E60F s3:							      ;	CODE XREF: video_init_palette+95j
+bios:E60F l5:							      ;	CODE XREF: video_init_palette+95j
 bios:E60F		  mov	  dx, 3DAh
 bios:E612		  xor	  al, al
 bios:E614		  out	  dx, al			      ;	3da = 0? reset ?
@@ -6536,29 +6536,29 @@ bios:E851 int_16_00_handler proc far				      ;	CODE XREF: int_16_handler:loc_FE
 bios:E851							      ;	int_16_00_handler+26j
 bios:E851							      ;	DATA XREF: ...
 bios:E851		  cli
-bios:E852		  mov	  si, ds:1Ah
-bios:E856		  cmp	  si, ds:1Ch
-bios:E85A		  jz	  short	loc_FE871
-bios:E85C		  mov	  ax, [si]
+bios:E852		  mov	  si, ds:p400.keyb_buffer_head_ptr
+bios:E856		  cmp	  si, ds:p400.keyb_buffer_tail_ptr
+bios:E85A		  jz	  short	no_char
+bios:E85C		  mov	  ax, [si]			      ;	char is	available
 bios:E85E		  inc	  si
-bios:E85F		  inc	  si
-bios:E860		  cmp	  si, ds:82h
-bios:E864		  jb	  short	loc_FE86A
-bios:E866		  mov	  si, ds:80h
+bios:E85F		  inc	  si				      ;	pointer	to next	char/scan code
+bios:E860		  cmp	  si, ds:p400.keyb_buffer_end_offset_ptr ; end of buffer?
+bios:E864		  jb	  short	buffer_with_room
+bios:E866		  mov	  si, ds:p400.keyb_buffer_start_offset_ptr ; if	so, point to beginning
 bios:E86A
-bios:E86A loc_FE86A:						      ;	CODE XREF: int_16_00_handler+13j
-bios:E86A		  mov	  ds:1Ah, si
+bios:E86A buffer_with_room:					      ;	CODE XREF: int_16_00_handler+13j
+bios:E86A		  mov	  ds:p400.keyb_buffer_head_ptr,	si    ;	update pointer
 bios:E86E		  sti
 bios:E86F		  jmp	  short	int_16_pop_and_exit
 bios:E871 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 bios:E871
-bios:E871 loc_FE871:						      ;	CODE XREF: int_16_00_handler+9j
+bios:E871 no_char:						      ;	CODE XREF: int_16_00_handler+9j
 bios:E871		  sti
-bios:E872		  mov	  cx, 19h
+bios:E872		  mov	  cx, 19h			      ;	small delay before trying again
 bios:E875
-bios:E875 loc_FE875:						      ;	CODE XREF: int_16_00_handler:loc_FE875j
-bios:E875		  loop	  loc_FE875
-bios:E877		  jmp	  short	near ptr int_16_00_handler
+bios:E875 delay:						      ;	CODE XREF: int_16_00_handler:delayj
+bios:E875		  loop	  delay
+bios:E877		  jmp	  short	near ptr int_16_00_handler    ;	try reading buffer again until key is available
 bios:E877 int_16_00_handler endp
 bios:E877
 bios:E879
@@ -6579,22 +6579,22 @@ bios:E879
 bios:E879 int_16_01_handler proc far				      ;	CODE XREF: int_16_handler:loc_FE843j
 bios:E879							      ;	DATA XREF: int_16_handler+1Co
 bios:E879		  popf
-bios:E87A		  xor	  bx, bx
+bios:E87A		  xor	  bx, bx			      ;	bx = 0
 bios:E87C		  cli
-bios:E87D		  mov	  si, ds:1Ah
-bios:E881		  cmp	  si, ds:1Ch
+bios:E87D		  mov	  si, ds:p400.keyb_buffer_head_ptr
+bios:E881		  cmp	  si, ds:p400.keyb_buffer_tail_ptr
 bios:E885		  sti
-bios:E886		  jz	  short	loc_FE890
+bios:E886		  jz	  short	no_char
 bios:E888		  mov	  ax, [si]
-bios:E88A		  cmp	  bx, 1
-bios:E88D		  jmp	  short	loc_FE893
+bios:E88A		  cmp	  bx, 1				      ;	z flag = 1. BUG: probably not needed since Z already 1 ?
+bios:E88D		  jmp	  short	exit
 bios:E88F ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 bios:E88F		  nop
 bios:E890
-bios:E890 loc_FE890:						      ;	CODE XREF: int_16_01_handler+Dj
-bios:E890		  cmp	  bx, 0
+bios:E890 no_char:						      ;	CODE XREF: int_16_01_handler+Dj
+bios:E890		  cmp	  bx, 0				      ;	z flag = 0. BUG: probably not needed since z already 0 ?
 bios:E893
-bios:E893 loc_FE893:						      ;	CODE XREF: int_16_01_handler+14j
+bios:E893 exit:							      ;	CODE XREF: int_16_01_handler+14j
 bios:E893		  jmp	  short	int_16_exit
 bios:E893 int_16_01_handler endp
 bios:E893
@@ -6620,7 +6620,7 @@ bios:E898 int_16_pop_and_exit:					      ;	CODE XREF: int_16_handler:exitj
 bios:E898							      ;	int_16_00_handler+1Ej
 bios:E898		  popf
 bios:E899
-bios:E899 int_16_exit:						      ;	CODE XREF: int_16_01_handler:loc_FE893j
+bios:E899 int_16_exit:						      ;	CODE XREF: int_16_01_handler:exitj
 bios:E899		  pop	  ds
 bios:E89A		  assume ds:nothing
 bios:E89A		  pop	  di
@@ -7695,19 +7695,19 @@ bios:F0A4		  db 71h, 50h, 59h, 10h, 1Fh, 6, 19h, 1Ch, 2, 7, 6, 7, 4 dup(0); init
 bios:F0A4		  db 38h, 28h, 2Dh, 8, 7Fh, 6, 64h, 70h, 2, 1, 6, 7, 4 dup(0); init_modes_4_5_6_8
 bios:F0A4		  db 61h, 50h, 52h, 0Fh, 19h, 6, 2 dup(19h), 2,	0Dh, 0Bh, 0Ch, 4 dup(0); init_mode_7
 bios:F0A4		  db 71h, 50h, 59h, 10h, 3Fh, 6, 32h, 38h, 2, 3, 6, 7, 4 dup(0); init_modes_9_a
-bios:F0F4 video_init_more_tbl video_init_some_vars <0, 2Ch, 28h, 8>   ;	DATA XREF: int_10_00_handler+78r
+bios:F0F4 video_init_more_tbl video_init_some_vars <0, 101100b,	28h, 8>	; DATA XREF: int_10_00_handler+78r
 bios:F0F4							      ;	int_10_00_handler+7Dr ...
 bios:F0F4							      ;	video mode 0
-bios:F0F8		  video_init_some_vars <0, 28h,	28h, 8>	      ;	video mode 1
-bios:F0FC		  video_init_some_vars <10h, 2Dh, 50h, 10h>   ;	video mode 2
-bios:F100		  video_init_some_vars <10h, 29h, 50h, 10h>   ;	video mode 3
-bios:F104		  video_init_some_vars <20h, 2Ah, 28h, 40h>   ;	video mode 4
-bios:F108		  video_init_some_vars <20h, 2Eh, 28h, 40h>   ;	video mode 5
-bios:F10C		  video_init_some_vars <20h, 1Eh, 50h, 40h>   ;	video mode 6
-bios:F110		  video_init_some_vars <30h, 29h, 50h, 40h>   ;	video mode 7
-bios:F114		  video_init_some_vars <20h, 2Ah, 14h, 40h>   ;	video mode 8
-bios:F118		  video_init_some_vars <40h, 2Bh, 28h, 80h>   ;	video mode 9
-bios:F11C		  video_init_some_vars <40h, 3Bh, 50h, 80h>   ;	video mode a
+bios:F0F8		  video_init_some_vars <0, 101000b, 28h, 8>   ;	video mode 1
+bios:F0FC		  video_init_some_vars <10h, 101101b, 50h, 10h>	; video	mode 2
+bios:F100		  video_init_some_vars <10h, 101001b, 50h, 10h>	; video	mode 3
+bios:F104		  video_init_some_vars <20h, 101010b, 28h, 40h>	; video	mode 4
+bios:F108		  video_init_some_vars <20h, 101110b, 28h, 40h>	; video	mode 5
+bios:F10C		  video_init_some_vars <20h, 11110b, 50h, 40h> ; video mode 6
+bios:F110		  video_init_some_vars <30h, 101001b, 50h, 40h>	; video	mode 7
+bios:F114		  video_init_some_vars <20h, 101010b, 14h, 40h>	; video	mode 8
+bios:F118		  video_init_some_vars <40h, 101011b, 28h, 80h>	; video	mode 9
+bios:F11C		  video_init_some_vars <40h, 111011b, 50h, 80h>	; video	mode a
 bios:F120
 bios:F120 ; ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ S U	B R O U	T I N E	ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ
 bios:F120
@@ -7725,24 +7725,24 @@ bios:F121		  and	  al, 7Fh			      ;	filter bit 7. when 1 ->	clear screen
 bios:F123		  mov	  bx, ds:p400.installed_hardware
 bios:F127		  and	  bl, 110000b
 bios:F12A		  cmp	  bl, 110000b			      ;	is it 80x25 mono ?
-bios:F12D		  jnz	  short	s0
+bios:F12D		  jnz	  short	l0
 bios:F12F		  mov	  al, 7				      ;	set 80x25 mono video mode, which is unsupported
 bios:F131
-bios:F131 s0:							      ;	CODE XREF: int_10_00_handler+Dj
+bios:F131 l0:							      ;	CODE XREF: int_10_00_handler+Dj
 bios:F131		  test	  byte ptr ds:p400.extra_status, 100000b ; external monochrome monitor installed ?
-bios:F136		  jnz	  short	s1
+bios:F136		  jnz	  short	l1
 bios:F138		  cmp	  al, 7				      ;	monochrome text	mode? Unsupported
 bios:F13A		  jz	  short	exit
 bios:F13C
-bios:F13C s1:							      ;	CODE XREF: int_10_00_handler+16j
+bios:F13C l1:							      ;	CODE XREF: int_10_00_handler+16j
 bios:F13C		  test	  byte ptr ds:p400.extra_status, 10000b	; external color video mode enabled?
-bios:F141		  jz	  short	s2
+bios:F141		  jz	  short	l2
 bios:F143		  cmp	  al, 7				      ;	monochrome video mono? Unsupported
 bios:F145		  jbe	  short	valid_video_mode
 bios:F147		  jmp	  short	exit
 bios:F149 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 bios:F149
-bios:F149 s2:							      ;	CODE XREF: int_10_00_handler+21j
+bios:F149 l2:							      ;	CODE XREF: int_10_00_handler+21j
 bios:F149		  cmp	  al, 0Ah			      ;	video modes must be 0xa	or lower
 bios:F14B		  jbe	  short	valid_video_mode
 bios:F14D
@@ -7756,7 +7756,7 @@ bios:F151 valid_video_mode:					      ;	CODE XREF: int_10_00_handler+25j
 bios:F151							      ;	int_10_00_handler+2Bj
 bios:F151		  mov	  ds:p400.crt_mode, al		      ;	save video mode	with bit 7 off
 bios:F154		  test	  byte ptr ds:p400.extra_status, 10000b	; external color video mode?
-bios:F159		  jnz	  short	loc_FF169
+bios:F159		  jnz	  short	l3
 bios:F15B		  push	  ax
 bios:F15C		  mov	  dx, 3DAh
 bios:F15F		  mov	  al, 3
@@ -7766,7 +7766,7 @@ bios:F164		  add	  dx, 4
 bios:F167		  out	  dx, al			      ;	no border, no 16 colors, no 640x200 secondary
 bios:F168		  pop	  ax
 bios:F169
-bios:F169 loc_FF169:						      ;	CODE XREF: int_10_00_handler+39j
+bios:F169 l3:							      ;	CODE XREF: int_10_00_handler+39j
 bios:F169		  xor	  ah, ah
 bios:F16B		  mov	  dx, 3D4h			      ;	set CRT	ctrl base address
 bios:F16E		  cmp	  al, 7				      ;	monochrome video mode ?
@@ -7828,26 +7828,26 @@ bios:F1E2							      ;	  bit 0-2: CRT Page 0-2
 bios:F1E2							      ;	  bit 3-5: Processor Page 0-2
 bios:F1E2							      ;	  bit 6-7: Video Address mode  00 -> 40x25 or 80x25 alpha
 bios:F1E4		  cmp	  byte ptr ds:p400.crt_mode, 9
-bios:F1E9		  jb	  short	s3
+bios:F1E9		  jb	  short	l4
 bios:F1EB		  mov	  al, 11110110b			      ;	page register values:
 bios:F1EB							      ;	  bit 0-2: CRT Page 0-2
 bios:F1EB							      ;	  bit 3-5: Processor Page 0-2
 bios:F1EB							      ;	  bit 6-7: Video Address mode  11 -> 320x200x16	or 640x200x4
 bios:F1ED
-bios:F1ED s3:							      ;	CODE XREF: int_10_00_handler+C9j
+bios:F1ED l4:							      ;	CODE XREF: int_10_00_handler+C9j
 bios:F1ED		  mov	  dx, 3DFh			      ;	CRT/CPU	page register
 bios:F1F0		  out	  dx, al
 bios:F1F1		  mov	  ds:p400.video_page_data, al
 bios:F1F4		  mov	  al, 0				      ;	CRT and	CPU Page addresses = 0
 bios:F1F6		  cmp	  word ptr ds:p400.IO_channel_RAM_size,	384 ; 384k RAM?
-bios:F1FC		  jz	  short	s4
+bios:F1FC		  jz	  short	l5
 bios:F1FE		  cmp	  word ptr ds:p400.IO_channel_RAM_size,	640 ; 640k RAM?
-bios:F204		  jz	  short	s4
+bios:F204		  jz	  short	l5
 bios:F206		  mov	  al, 101000b			      ;	CRT Video Page address "17" = 1
 bios:F206							      ;	CPU Page Address "17" =	1
-bios:F206							      ;	Only when RAM is 384 or	above
+bios:F206							      ;	Only when RAM is < 384
 bios:F208
-bios:F208 s4:							      ;	CODE XREF: int_10_00_handler+DCj
+bios:F208 l5:							      ;	CODE XREF: int_10_00_handler+DCj
 bios:F208							      ;	int_10_00_handler+E4j
 bios:F208		  mov	  dx, 3DDh			      ;	extended RAM page register
 bios:F20B		  out	  dx, al
@@ -7875,7 +7875,7 @@ bios:F232							      ;	int_10_00_handler+107j
 bios:F232		  xor	  bh, bh
 bios:F234		  xor	  cx, cx
 bios:F236
-bios:F236 l0:							      ;	CODE XREF: int_10_00_handler+128j
+bios:F236 l6:							      ;	CODE XREF: int_10_00_handler+128j
 bios:F236		  mov	  dx, ds:p400.addr_6845		      ;	CRT ctrl base address: color=3d4, mono=3b4
 bios:F23A		  mov	  al, cl			      ;	init the 16 registers of 3d4/3d5 pointed by es:di
 bios:F23C		  out	  dx, al			      ;	prepare	value to by out	(3d4)
@@ -7885,7 +7885,7 @@ bios:F240		  mov	  al, es:[bx+di]
 bios:F243		  out	  dx, al			      ;	send value (0x3d5)
 bios:F244		  inc	  cx
 bios:F245		  cmp	  cx, 10h			      ;	init 16	registers
-bios:F248		  jl	  short	l0
+bios:F248		  jl	  short	l6
 bios:F24A		  mov	  word ptr ds:p400.cursor_row_column, 607h ; cursor size: start	line=06, end line=07
 bios:F250		  mov	  word ptr ds:p400.crt_current_page_offset, 0
 bios:F256		  mov	  byte ptr ds:p400.active_display_page,	0 ; active page	= 0
@@ -7898,24 +7898,24 @@ bios:F265		  jnz	  short	skip_clear_screen
 bios:F267		  mov	  ax, 0B800h			      ;	video base address for color
 bios:F26A		  mov	  cx, 2000h			      ;	0x2000 words (16k to clear)
 bios:F26D		  cmp	  byte ptr ds:p400.crt_mode, 9
-bios:F272		  jb	  short	s5
+bios:F272		  jb	  short	l7
 bios:F274		  mov	  cx, 4000h			      ;	0x4000 words (32k to clear)
 bios:F277
-bios:F277 s5:							      ;	CODE XREF: int_10_00_handler+152j
+bios:F277 l7:							      ;	CODE XREF: int_10_00_handler+152j
 bios:F277		  mov	  bx, 720h
 bios:F27A		  cmp	  byte ptr ds:p400.crt_mode, 7
-bios:F27F		  jnz	  short	s6
+bios:F27F		  jnz	  short	l8
 bios:F281		  mov	  ax, 0B000h			      ;	video base address for monochrome
 bios:F284		  mov	  cx, 800h			      ;	0x800 words (4k	to clear)
-bios:F287		  jmp	  short	s7
+bios:F287		  jmp	  short	l9
 bios:F289 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 bios:F289
-bios:F289 s6:							      ;	CODE XREF: int_10_00_handler+15Fj
+bios:F289 l8:							      ;	CODE XREF: int_10_00_handler+15Fj
 bios:F289		  cmp	  byte ptr ds:p400.crt_mode, 4
-bios:F28E		  jl	  short	s7
+bios:F28E		  jl	  short	l9
 bios:F290		  xor	  bx, bx
 bios:F292
-bios:F292 s7:							      ;	CODE XREF: int_10_00_handler+167j
+bios:F292 l9:							      ;	CODE XREF: int_10_00_handler+167j
 bios:F292							      ;	int_10_00_handler+16Ej
 bios:F292		  mov	  es, ax
 bios:F294		  assume es:nothing
