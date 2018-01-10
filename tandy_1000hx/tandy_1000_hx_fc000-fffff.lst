@@ -14,13 +14,13 @@ bios:C000
 bios:C000		  .8086
 bios:C000		  .model flat
 bios:C000
+bios:C000		  include mama.inc
+bios:C000
 bios:C000 ; ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ
 bios:C000
 bios:C000 ; Segment type: Pure code
 bios:C000 bios		  segment byte public 'CODE'
-bios:C000		  assume cs:bios
 bios:C000		  ;org 0C000h
-bios:C000		  assume es:nothing, ss:nothing, ds:nothing
 bios:C000 aBiosRomVersion db '!BIOS ROM version 02.00.00',0Dh,0Ah     ; DATA XREF: POST_init_ints_and_more+3D4o
 bios:C000		  db 'Compatibility Software',0Dh,0Ah
 bios:C000		  db 'Copyright (C) 1984,1985,1986,1987',0Dh,0Ah
@@ -166,7 +166,6 @@ bios:C4F4		  out	  dx, al			      ;	Video: light pen latch reset.
 bios:C4F4							      ;	Any OUT	clears the latch.
 bios:C4F5		  mov	  ax, 0BBE8h
 bios:C4F8		  mov	  ds, ax			      ;	ds = 0xbbe8
-bios:C4FA		  assume ss:nothing, ds:nothing
 bios:C4FA		  mov	  ds:pbbe80.shadow_reset_flag, si     ;	post reset flag
 bios:C4FE		  mov	  ds:pbbe80.shadow_caps_numlock, di   ;	keyboard ctlr +	numlock	flag
 bios:C502		  mov	  al, 0
@@ -216,7 +215,6 @@ bios:C54C		  out	  dx, al			      ;	Video: bits 0-1	control
 bios:C54C							      ;	Feature	Control	outputs	FC0 and	FC1
 bios:C54D		  mov	  ax, 0B800h
 bios:C550		  mov	  es, ax
-bios:C552		  assume es:nothing
 bios:C552		  mov	  dx, 3D4h			      ;	6845 index register
 bios:C555		  mov	  si, offset video_6845_init_tbl_d    ;	values for ports 3d4 - 3d5 (index 0 to 0xf)
 bios:C558		  mov	  di, offset ret_address0	      ;	return address
@@ -247,12 +245,10 @@ bios:C575		  out	  dx, al			      ;	Printer	Data Latch:
 bios:C575							      ;	send byte to printer
 bios:C576		  xor	  ax, ax
 bios:C578		  mov	  ss, ax
-bios:C57A		  assume ss:nothing
 bios:C57A		  mov	  dx, 5A5Ah
 bios:C57D		  xor	  bx, bx
 bios:C57F		  mov	  ax, 0B000h			      ;	Monochrome video address
 bios:C582		  mov	  es, ax			      ;	es = b000
-bios:C584		  assume es:nothing
 bios:C584		  mov	  es:[bx], dx
 bios:C587		  jmp	  short	$+2
 bios:C589		  mov	  cx, es:[bx]
@@ -260,12 +256,10 @@ bios:C58C		  cmp	  cx, dx			      ;	is Monochrome ?
 bios:C58E		  jnz	  short	loc_FC595
 bios:C590		  mov	  ax, 2
 bios:C593		  mov	  ss, ax			      ;	if monochrome ss = 2 (used ahead)
-bios:C595		  assume ss:nothing
 bios:C595
 bios:C595 loc_FC595:						      ;	CODE XREF: POST_main+E6j
 bios:C595		  mov	  ax, 0B800h
 bios:C598		  mov	  es, ax			      ;	es = b800
-bios:C59A		  assume es:nothing
 bios:C59A		  mov	  es:[bx], dx
 bios:C59D		  jmp	  short	$+2
 bios:C59F		  mov	  cx, es:[bx]
@@ -274,7 +268,6 @@ bios:C5A4		  jnz	  short	loc_FC5AD
 bios:C5A6		  mov	  ax, ss
 bios:C5A8		  or	  ax, 1
 bios:C5AB		  mov	  ss, ax			      ;	if so, ss = ss | 1 (used ahead)
-bios:C5AD		  assume ss:nothing
 bios:C5AD
 bios:C5AD loc_FC5AD:						      ;	CODE XREF: POST_main+FCj
 bios:C5AD		  mov	  ax, ss
@@ -282,7 +275,6 @@ bios:C5AF		  test	  al, 2
 bios:C5B1		  jz	  short	loc_FC5CA
 bios:C5B3		  mov	  ax, 0B000h
 bios:C5B6		  mov	  es, ax
-bios:C5B8		  assume es:nothing
 bios:C5B8		  mov	  dx, 3B4h			      ;	6845 index register (Hercules)
 bios:C5BB		  mov	  si, offset video_6845_init_tbl_d.init_mode_7 ; BROKEN	OFFSET.	probably because this code never gets executed
 bios:C5BE		  mov	  di, offset ret_address1	      ;	return address
@@ -317,7 +309,6 @@ bios:C5E6
 bios:C5E6 loc_FC5E6:						      ;	CODE XREF: POST_main+139j
 bios:C5E6		  mov	  ax, 0B800h
 bios:C5E9		  mov	  es, ax			      ;	default: color mode. es	= b800h
-bios:C5EB		  assume es:nothing
 bios:C5EB		  mov	  dx, 3D4h			      ;	6845 Index Register (Color)
 bios:C5EE		  mov	  di, offset ret_address2	      ;	return address
 bios:C5F1		  jmp	  init_video
@@ -359,7 +350,6 @@ bios:C60F		  test	  al, 1000000b
 bios:C611		  jz	  short	loc_FC618		      ;	color monitor?
 bios:C613		  mov	  ax, 0B000h			      ;	it is monochrome
 bios:C616		  mov	  es, ax			      ;	es = b000h
-bios:C618		  assume es:nothing
 bios:C618
 bios:C618 loc_FC618:						      ;	CODE XREF: POST_main+163j
 bios:C618							      ;	POST_main+169j
@@ -399,11 +389,9 @@ bios:C65D ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 bios:C65D
 bios:C65D video_error:						      ;	CODE XREF: POST_main+19Aj
 bios:C65D		  mov	  ss, ax
-bios:C65F		  assume ss:nothing
 bios:C65F		  mov	  sp, dx
 bios:C661		  mov	  ax, di
 bios:C663		  mov	  ds, ax
-bios:C665		  assume ds:nothing
 bios:C665		  mov	  si, offset aVidAddrBaseBbe	      ;	"Vid Addr:   Base:BBE80h Off:  xxxxh"
 bios:C668		  mov	  di, 370h
 bios:C66B
@@ -465,13 +453,11 @@ bios:C6F1
 bios:C6F1 POST_test_port_0378 proc far				      ;	CODE XREF: POST_main+1B2j
 bios:C6F1		  mov	  ax, 0BBE8h
 bios:C6F4		  mov	  ds, ax			      ;	ds = bbe8
-bios:C6F6		  assume ds:nothing
 bios:C6F6		  mov	  ax, ss
 bios:C6F8		  mov	  ds:pbbe80.tmp_reg6_byte, al
 bios:C6FB		  mov	  word ptr ds:pbbe80.tmp_es, es
 bios:C6FF		  mov	  ax, 0BBF0h			      ;	use video memory as stack segment
 bios:C702		  mov	  ss, ax			      ;	ss = bbf0
-bios:C704		  assume ss:nothing
 bios:C704		  mov	  sp, 0FEh ; 'þ'                      ; stack: bbf0:00fe
 bios:C707		  mov	  dx, 378h
 bios:C70A		  in	  al, dx			      ;	Printer	Data Latch:
@@ -684,7 +670,6 @@ bios:C80F		  jmp	  short	$+2
 bios:C811		  out	  42h, al			      ;	Timer 8253-5 (AT: 8254.2).
 bios:C813		  mov	  ax, 0
 bios:C816		  mov	  es, ax			      ;	es = 0
-bios:C818		  assume es:nothing
 bios:C818		  xor	  si, si
 bios:C81A
 bios:C81A loc_FC81A:						      ;	CODE XREF: POST_test_pic_8253+10Aj
@@ -710,7 +695,6 @@ bios:C83B loc_FC83B:						      ;	CODE XREF: POST_test_pic_8253+122j
 bios:C83B		  mov	  bx, es
 bios:C83D		  add	  bx, 1000h			      ;	es += 1000h (+64k)
 bios:C841		  mov	  es, bx
-bios:C843		  assume es:nothing
 bios:C843		  cmp	  bx, 6000h
 bios:C847		  jz	  short	loc_FC863
 bios:C849		  jmp	  short	loc_FC81A
@@ -751,15 +735,12 @@ bios:C87D		  xor	  si, si
 bios:C87F		  xor	  di, di
 bios:C881		  mov	  ax, 7C00h
 bios:C884		  mov	  es, ax			      ;	es = 7c00h (dst)
-bios:C886		  assume es:nothing
 bios:C886		  mov	  ax, 9C00h
 bios:C889		  mov	  ds, ax			      ;	ds = 9c00h (src)
-bios:C88B		  assume ds:nothing
 bios:C88B		  mov	  cx, 4000h
 bios:C88E		  rep movsb				      ;	copy 4k	from 9c00:0000h	to 7c00:0000h
 bios:C890		  mov	  ax, 0BBE8h
 bios:C893		  mov	  ds, ax			      ;	ds = bbe8h (restore value)
-bios:C895		  assume ds:nothing
 bios:C895		  or	  bl, bl
 bios:C897		  jz	  short	loc_FC89E
 bios:C899		  cmp	  bl, 40h ; '@'
@@ -779,7 +760,6 @@ bios:C8A7		  out	  dx, al
 bios:C8A8		  mov	  al, bh
 bios:C8AA		  out	  0A0h,	al			      ;	PIC 2  same as 0020 for	PIC 1
 bios:C8AC		  mov	  es, word ptr ds:pbbe80.tmp_es
-bios:C8B0		  assume es:nothing
 bios:C8B0		  mov	  si, offset aMemorySizeK	      ;	"Memory	Size =	  k"
 bios:C8B3		  mov	  di, 4
 bios:C8B6		  call	  print_asciiz
@@ -1093,7 +1073,6 @@ bios:CA8B		  mov	  ax, es
 bios:CA8D		  add	  ax, 1000h			      ;	next 64k
 bios:CA90		  cmp	  ax, bp			      ;	already	filled 192k?
 bios:CA92		  mov	  es, ax
-bios:CA94		  assume es:nothing
 bios:CA94		  jz	  short	loc_FCA9A
 bios:CA96		  jnb	  short	loc_FCAA9
 bios:CA98		  jmp	  short	loc_FCA82
@@ -1130,7 +1109,6 @@ bios:CAE6
 bios:CAE6
 bios:CAE6 print_memory_error proc near				      ;	CODE XREF: POST_test_8259+10Ap
 bios:CAE6		  mov	  es, word ptr ds:pbbe80.tmp_es
-bios:CAEA		  assume es:nothing
 bios:CAEA		  mov	  ds:pbbe80.tmp_reg3, si
 bios:CAEE		  mov	  si, di
 bios:CAF0		  push	  si
@@ -2301,7 +2279,6 @@ bios:D009		  and	  byte ptr ds:p400.diskette_recalibrate_status,	7Fh
 bios:D00E		  popf
 bios:D00F		  pop	  es
 bios:D010		  pop	  ds
-bios:D011		  assume ds:nothing
 bios:D011		  pop	  bp
 bios:D012		  pop	  di
 bios:D013		  pop	  si
@@ -2321,13 +2298,11 @@ bios:D01B		  push	  dx
 bios:D01C		  push	  ds
 bios:D01D		  mov	  ax, 40h ; '@'
 bios:D020		  mov	  ds, ax
-bios:D022		  assume ds:nothing
 bios:D022		  or	  byte ptr ds:p400.diskette_recalibrate_status,	80h
 bios:D027		  mov	  al, 20h ; ' '
 bios:D029		  mov	  dx, 20h ; ' '
 bios:D02C		  out	  dx, al			      ;	Interrupt controller, 8259A.
 bios:D02D		  pop	  ds
-bios:D02E		  assume ds:nothing
 bios:D02E		  pop	  dx
 bios:D02F		  pop	  ax
 bios:D030		  iret
@@ -3063,7 +3038,6 @@ bios:D360 arg_row_top	  = byte ptr  13h
 bios:D360 arg_color	  = byte ptr  15h
 bios:D360
 bios:D360		  mov	  es, cs:value_b000		      ;	es = 0xb000 (graphics segment)
-bios:D365		  assume es:nothing
 bios:D365		  cmp	  word ptr [bp+0], 0		      ;	0=scroll up, 1=	scroll down
 bios:D369		  jz	  short	s0
 bios:D36B		  mov	  dh, ch
@@ -3164,7 +3138,6 @@ bios:D40B		  mov	  dh, ds:p400.crt_mode
 bios:D40F		  push	  ax
 bios:D410		  mov	  ax, es
 bios:D412		  mov	  ds, ax
-bios:D414		  assume ds:nothing
 bios:D414		  pop	  ax
 bios:D415		  mov	  dl, 4
 bios:D417		  cmp	  dh, 9
@@ -3221,7 +3194,6 @@ bios:D47D s13:							      ;	CODE XREF: scroll_graphics_up_or_down+117j
 bios:D47D		  dec	  dl
 bios:D47F		  jnz	  short	s11
 bios:D481		  pop	  ds
-bios:D482		  assume ds:nothing
 bios:D482		  cmp	  si, [bp+0]
 bios:D485		  jz	  short	s14
 bios:D487		  pop	  di
@@ -3462,7 +3434,6 @@ bios:D5EF
 bios:D5EF loc_FD5EF:						      ;	CODE XREF: gfx_get_ascii_value_for_row_col+67j
 bios:D5EF							      ;	gfx_get_ascii_value_for_row_col+B4j ...
 bios:D5EF		  pop	  es
-bios:D5F0		  assume es:nothing
 bios:D5F0		  cmp	  byte ptr ds:p400.crt_mode, 9
 bios:D5F5		  jb	  short	loc_FD603
 bios:D5F7		  cmp	  cx, 5
@@ -3510,7 +3481,6 @@ bios:D634		  xor	  cx, cx
 bios:D636		  push	  ds
 bios:D637		  mov	  ax, ss
 bios:D639		  mov	  ds, ax
-bios:D63B		  assume ds:nothing
 bios:D63B		  xor	  ax, ax
 bios:D63D		  jmp	  short	loc_FD645
 bios:D63F ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
@@ -3576,7 +3546,6 @@ bios:D694 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 bios:D694
 bios:D694 loc_FD694:						      ;	CODE XREF: gfx_get_ascii_value_for_row_col+165j
 bios:D694		  pop	  ds
-bios:D695		  assume ds:nothing
 bios:D695		  xor	  ax, ax
 bios:D697		  jmp	  short	loc_FD69D
 bios:D699 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
@@ -3725,7 +3694,6 @@ bios:D76F
 bios:D76F do_video_mode_6:					      ;	CODE XREF: gfx_print_char+B1j
 bios:D76F		  push	  es
 bios:D770		  mov	  es, cs:value_b000
-bios:D775		  assume es:nothing
 bios:D775		  push	  ax
 bios:D776		  xchg	  ax, dx
 bios:D777		  mov	  di, [bp+0]
@@ -3761,7 +3729,6 @@ bios:D7A0 loc_FD7A0:						      ;	CODE XREF: gfx_print_char+EDj
 bios:D7A0							      ;	gfx_print_char+F0j ...
 bios:D7A0		  pop	  ax
 bios:D7A1		  pop	  es
-bios:D7A2		  assume es:nothing
 bios:D7A2		  test	  cx, 1
 bios:D7A6		  jnz	  short	loc_FD7AD
 bios:D7A8		  add	  bh, 20h ; ' '
@@ -3799,7 +3766,6 @@ bios:D7C5		  mov	  al, dl
 bios:D7C7		  push	  es
 bios:D7C8		  push	  bx
 bios:D7C9		  mov	  es, cs:value_b000
-bios:D7CE		  assume es:nothing
 bios:D7CE		  mov	  di, [bp+0]
 bios:D7D1		  add	  di, bx
 bios:D7D3		  cmp	  byte ptr ds:p400.crt_mode, 0Ah
@@ -3863,7 +3829,6 @@ bios:D81E
 bios:D81E loc_FD81E:						      ;	CODE XREF: gfx_print_char+158j
 bios:D81E		  pop	  bx
 bios:D81F		  pop	  es
-bios:D820		  assume es:nothing
 bios:D820		  pop	  cx
 bios:D821		  cmp	  byte ptr ds:p400.crt_mode, 8
 bios:D826		  jnz	  short	loc_FD83D
@@ -3962,14 +3927,12 @@ bios:D882
 bios:D882 is_mono:						      ;	CODE XREF: get_screen_offset+Dj
 bios:D882		  xor	  bh, bh			      ;	active page = 0	?
 bios:D884		  mov	  es, ax			      ;	es = 0xb000
-bios:D886		  assume es:nothing
 bios:D886		  jmp	  short	s0
 bios:D888 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 bios:D888
 bios:D888 is_color:						      ;	CODE XREF: get_screen_offset+14j
 bios:D888		  add	  ah, 8				      ;	ax = 0xb800
 bios:D88B		  mov	  es, ax			      ;	es = 0xb800 (segment for color)
-bios:D88D		  assume es:nothing
 bios:D88D		  cmp	  byte ptr ds:p400.crt_mode, 4	      ;	text modes ? (0-3)
 bios:D892		  jl	  short	s0
 bios:D894		  xor	  bh, bh			      ;	active page = 0
@@ -4420,7 +4383,6 @@ bios:DA9A
 bios:DA9A int_1a_main	  proc far				      ;	CODE XREF: bios:int_1a_handlerj
 bios:DA9A		  push	  ds
 bios:DA9B		  mov	  ds, cs:segment_40		      ;	ds = 040h
-bios:DAA0		  assume ds:nothing
 bios:DAA0		  or	  ah, ah
 bios:DAA2		  jz	  short	int_1a_00_handler
 bios:DAA4		  dec	  ah
@@ -4445,7 +4407,6 @@ bios:DACB
 bios:DACB exit:							      ;	CODE XREF: int_1a_main+Ej
 bios:DACB							      ;	int_1a_main+20j
 bios:DACB		  pop	  ds
-bios:DACC		  assume ds:nothing
 bios:DACC		  iret
 bios:DACC int_1a_main	  endp
 bios:DACC
@@ -4480,7 +4441,6 @@ bios:DACE		  push	  dx
 bios:DACF		  push	  ds
 bios:DAD0		  xor	  dx, dx
 bios:DAD2		  mov	  ds, cs:segment_40		      ;	ds = 40h
-bios:DAD7		  assume ds:nothing
 bios:DAD7		  inc	  word ptr ds:p400.timer_ticks_since_midnight
 bios:DADB		  jnz	  short	loc_FDAE1
 bios:DADD		  inc	  word ptr ds:p400.timer_ticks_since_midnight+2
@@ -4513,7 +4473,6 @@ bios:DB0D		  int	  1Ch				      ;	CLOCK TICK
 bios:DB0F		  mov	  al, 20h ; ' '
 bios:DB11		  out	  20h, al			      ;	Interrupt controller, 8259A.
 bios:DB13		  pop	  ds
-bios:DB14		  assume ds:nothing
 bios:DB14		  pop	  dx
 bios:DB15		  pop	  ax
 bios:DB16		  iret
@@ -4544,7 +4503,6 @@ bios:DB25		  lds	  di, cs:value_0040_00b0	      ;	address	0040:00b0 == 04b0
 bios:DB2A		  lds	  di, [di]			      ;	load ds:di with	intl_support address
 bios:DB2C		  push	  ds
 bios:DB2D		  pop	  es
-bios:DB2E		  assume es:nothing
 bios:DB2E		  mov	  al, ds:25h
 bios:DB31		  mov	  ah, al
 bios:DB33		  mov	  dx, cx
@@ -4740,10 +4698,8 @@ bios:DC42		  jz	  short	exit
 bios:DC44		  jl	  short	loc_FDC69
 bios:DC46		  push	  cs
 bios:DC47		  pop	  ds
-bios:DC48		  assume ds:nothing
 bios:DC48		  push	  cs
 bios:DC49		  pop	  es
-bios:DC4A		  assume es:nothing
 bios:DC4A		  cmp	  ah, 47h ; 'G'
 bios:DC4D		  jl	  short	loc_FDC6D
 bios:DC4F		  cmp	  ah, 57h ; 'W'
@@ -5125,7 +5081,6 @@ bios:E05B POST_entry:						      ;	CODE XREF: POST_init_ints_and_more+40Fj
 bios:E05B							      ;	bios:reset_vectorJ
 bios:E05B		  mov	  ax, 40h ; '@'
 bios:E05E		  mov	  ds, ax			      ;	ds = 40h
-bios:E060		  assume es:nothing, ds:nothing
 bios:E060		  xor	  di, di
 bios:E062		  cmp	  word ptr ds:p400.POST_reset_flag, 1234h ; requested by Ctrl+Alt+Del?
 bios:E068		  jnz	  short	loc_FE072
@@ -5145,7 +5100,6 @@ bios:E079		  mov	  ax, 40h ; '@'
 bios:E07C		  mov	  ds, ax			      ;	ds = 40h
 bios:E07E		  mov	  ax, 0BBE8h
 bios:E081		  mov	  es, ax			      ;	es = bbe8h
-bios:E083		  assume es:nothing
 bios:E083		  cmp	  word ptr es:pbbe80.shadow_reset_flag,	1234h ;	bbe8:0008 = bbe88: somewhere video in addr
 bios:E08A		  jnz	  short	loc_FE093
 bios:E08C		  mov	  ax, es:pbbe80.shadow_caps_numlock
@@ -5176,15 +5130,12 @@ bios:E0B5		  mov	  al, 5
 bios:E0B7		  out	  42h, al			      ;	Timer 8253-5 (AT: 8254.2).
 bios:E0B9		  xor	  ax, ax			      ;	es:si =	zero page
 bios:E0BB		  mov	  es, ax			      ;	es = 0
-bios:E0BD		  assume es:nothing
 bios:E0BD		  mov	  ax, 30h ; '0'
 bios:E0C0		  mov	  ss, ax
-bios:E0C2		  assume ss:nothing
 bios:E0C2		  mov	  ax, 100h			      ;	setup stack tmp	at 0100:0000 (0x1000)
 bios:E0C5		  mov	  sp, ax
 bios:E0C7		  mov	  ax, cs			      ;	setup interrupt	table
 bios:E0C9		  mov	  ds, ax
-bios:E0CB		  assume ds:nothing
 bios:E0CB		  mov	  si, offset int_00_07_table
 bios:E0CE		  xor	  di, di			      ;	ptr to Int 0 vector table
 bios:E0D0		  mov	  cx, 8				      ;	copy first 8 interrupts
@@ -5199,10 +5150,8 @@ bios:E0E8		  mov	  cx, 1
 bios:E0EB		  call	  copy_to_vector_tbl
 bios:E0EE		  mov	  ax, 0BBE8h
 bios:E0F1		  mov	  es, ax			      ;	es = bbe8h
-bios:E0F3		  assume es:nothing
 bios:E0F3		  mov	  ax, 40h ; '@'
 bios:E0F6		  mov	  ds, ax			      ;	ds = 40h
-bios:E0F8		  assume ds:nothing
 bios:E0F8		  mov	  al, 0FFh
 bios:E0FA		  out	  21h, al			      ;	Interrupt controller, 8259A.
 bios:E0FC		  in	  al, 61h			      ;	PC/XT PPI port B bits:
@@ -5286,13 +5235,10 @@ bios:E15B		  push	  ds
 bios:E15C		  push	  es
 bios:E15D		  mov	  ax, 0C000h			      ;	ROM cartridge at c000h ?
 bios:E160		  mov	  ds, ax			      ;	ds = c000h
-bios:E162		  assume ds:nothing
 bios:E162		  mov	  cx, 10h
 bios:E165		  call	  run_boot_sector_if_valid
 bios:E168		  pop	  es
-bios:E169		  assume es:nothing
 bios:E169		  pop	  ds
-bios:E16A		  assume ds:nothing
 bios:E16A		  test	  byte ptr ds:p400.extra_status, 10h
 bios:E16F		  jnz	  short	loc_FE175
 bios:E171		  pop	  ax
@@ -5532,7 +5478,6 @@ bios:E2FF
 bios:E2FF loc_FE2FF:						      ;	CODE XREF: POST_init_ints_and_more+27Fj
 bios:E2FF		  mov	  ax, 0C800h			      ;	ROM cartridge at c800h ?
 bios:E302		  mov	  ds, ax			      ;	ds = c800h
-bios:E304		  assume ds:nothing
 bios:E304		  mov	  cx, 58h ; 'X'
 bios:E307		  call	  run_boot_sector_if_valid
 bios:E30A		  mov	  ah, 8
@@ -5548,7 +5493,6 @@ bios:E314		  xor	  ch, ch
 bios:E316		  jcxz	  short	loc_FE332
 bios:E318		  push	  cs
 bios:E319		  pop	  es
-bios:E31A		  assume es:nothing
 bios:E31A		  mov	  bx, 0C000h
 bios:E31D
 bios:E31D loc_FE31D:						      ;	CODE XREF: POST_init_ints_and_more+2B7j
@@ -5571,7 +5515,6 @@ bios:E332 loc_FE332:						      ;	CODE XREF: POST_init_ints_and_more+297j
 bios:E332							      ;	POST_init_ints_and_more+29Dj
 bios:E332		  mov	  ax, 40h ; '@'
 bios:E335		  mov	  ds, ax
-bios:E337		  assume ds:nothing
 bios:E337		  mov	  ax, 7000h
 bios:E33A		  mov	  bl, 1
 bios:E33C		  int	  15h				      ;	read EEPROM
@@ -5586,7 +5529,6 @@ bios:E34D		  and	  byte ptr ds:p400.installed_hardware, 11001111b ; turn	off vid
 bios:E352		  or	  byte ptr ds:p400.installed_hardware, 10000b ;	initial	video mode = 40x25 color
 bios:E357		  xor	  ax, ax
 bios:E359		  mov	  es, ax			      ;	es = 0
-bios:E35B		  assume es:nothing
 bios:E35B		  mov	  word ptr es:74h, offset video_6845_init_tbl_e	; int 1d
 bios:E362		  mov	  word ptr es:76h, cs
 bios:E367
@@ -5844,7 +5786,6 @@ bios:E50F
 bios:E50F l1:							      ;	CODE XREF: int_unexpected_handler+1Dj
 bios:E50F		  mov	  ds:p400.POST_last_unexpected_int, ah
 bios:E513		  pop	  ds
-bios:E514		  assume ds:nothing
 bios:E514		  pop	  ax
 bios:E515		  iret
 bios:E515 int_unexpected_handler endp
@@ -5872,7 +5813,6 @@ bios:E52D		  or	  al, al
 bios:E52F		  jnz	  short	l1
 bios:E531		  mov	  ax, 40h ; '@'
 bios:E534		  mov	  es, ax			      ;	es = 40h
-bios:E536		  assume es:nothing
 bios:E536		  mov	  word ptr es:p400.POST_entry_point_offset, 3 ;	POST re-entry after certain resets
 bios:E53D		  mov	  word ptr es:p400.POST_entry_point_seg, ds ; c800 / c000 : 0003: ROM cartridge	address
 bios:E542		  push	  ds
@@ -5886,7 +5826,6 @@ bios:E54A l2:							      ;	CODE XREF: run_boot_sector_if_valid+6j
 bios:E54A		  mov	  ax, ds
 bios:E54C		  add	  ax, 80h ; '€'
 bios:E54F		  mov	  ds, ax			      ;	ds += 80h (go to next block of 0x8000)
-bios:E551		  assume ds:nothing
 bios:E551		  loop	  run_boot_sector_if_valid
 bios:E553		  retn
 bios:E553 run_boot_sector_if_valid endp
@@ -6112,7 +6051,6 @@ bios:E653							      ;	int_10_0d_handlerp
 bios:E653		  push	  ax
 bios:E654		  mov	  ax, 0B000h
 bios:E657		  mov	  es, ax			      ;	es = b000h (mono segment)
-bios:E659		  assume es:nothing
 bios:E659		  pop	  ax
 bios:E65A		  cmp	  dx, 199			      ;	vertical position of the pixel
 bios:E65E		  ja	  short	error
@@ -6207,7 +6145,6 @@ bios:E6FE		  int	  13h				      ;	DISK - RESET DISK SYSTEM
 bios:E6FE							      ;	DL = drive (if bit 7 is	set both hard disks and	floppy disks reset)
 bios:E700		  mov	  ax, 201h
 bios:E703		  les	  bx, cs:addr_for_booting_code	      ;	buffer in 0000:7c00
-bios:E708		  assume es:nothing
 bios:E708		  mov	  cx, 1
 bios:E70B		  xor	  dx, dx
 bios:E70D		  int	  13h				      ;	DISK - READ SECTORS INTO MEMORY
@@ -6622,7 +6559,6 @@ bios:E898		  popf
 bios:E899
 bios:E899 int_16_exit:						      ;	CODE XREF: int_16_01_handler:exitj
 bios:E899		  pop	  ds
-bios:E89A		  assume ds:nothing
 bios:E89A		  pop	  di
 bios:E89B		  pop	  si
 bios:E89C		  pop	  cx
@@ -6693,7 +6629,6 @@ bios:E987		  call	  push_regs
 bios:E98A		  push	  ax
 bios:E98B		  mov	  ax, 40h ; '@'
 bios:E98E		  mov	  ds, ax			      ;	ds = 40h
-bios:E990		  assume ds:nothing
 bios:E990		  mov	  ch, ds:p400.keyb_status_flags_1     ;	keyboard status	flags 1
 bios:E994		  mov	  cl, ds:p400.keyb_status_flags_2     ;	keyboard status	flags 2
 bios:E998		  mov	  dx, 60h ; '`'
@@ -7341,11 +7276,9 @@ bios:EDAD		  mov	  ds:p400.keyb_buffer_tail_ptr,	ax
 bios:EDB0		  push	  ds
 bios:EDB1		  mov	  ax, 40h ; '@'
 bios:EDB4		  mov	  ds, ax			      ;	ds = 40h
-bios:EDB6		  assume ss:nothing
 bios:EDB6		  mov	  bx, p400.ctrl_break_flag
 bios:EDB9		  mov	  byte ptr [bx], 10000000b	      ;	set break pressed
 bios:EDBC		  pop	  ds
-bios:EDBD		  assume ds:nothing
 bios:EDBD		  int	  1Bh				      ;	CTRL-BREAK KEY
 bios:EDBF		  xor	  ax, ax			      ;	0 in keyb buffer
 bios:EDC1		  call	  put_char_in_keyb_buffer
@@ -7438,12 +7371,10 @@ bios:EE11		  push	  ds
 bios:EE12		  push	  ax
 bios:EE13		  mov	  ax, cs
 bios:EE15		  mov	  ds, ax			      ;	ds = cs	(tables	are in BIOS segment)
-bios:EE17		  assume ds:nothing
 bios:EE17		  pop	  ax
 bios:EE18		  dec	  al				      ;	al - 1 (?)
 bios:EE1A		  xlat					      ;	al = [ds:bx+al]
 bios:EE1B		  pop	  ds
-bios:EE1C		  assume ds:nothing
 bios:EE1C		  retn
 bios:EE1C scancode_to_ascii endp
 bios:EE1C
@@ -7866,7 +7797,6 @@ bios:F224		  cmp	  ax, 0F000h			      ;	in BIOS	segment	?
 bios:F227		  jb	  short	dont_use_default_bios_video_table
 bios:F229		  mov	  ax, cs			      ;	use BIOS video table if	not modified by	user or	internal color video
 bios:F22B		  mov	  es, ax			      ;	es = 0xf000 (bios seg)
-bios:F22D		  assume es:nothing
 bios:F22D		  mov	  di, offset video_6845_init_tbl_a    ;	default	bios video table
 bios:F230		  add	  di, bx			      ;	offset to correct table	for mode
 bios:F232
@@ -7918,7 +7848,6 @@ bios:F292
 bios:F292 l9:							      ;	CODE XREF: int_10_00_handler+167j
 bios:F292							      ;	int_10_00_handler+16Ej
 bios:F292		  mov	  es, ax
-bios:F294		  assume es:nothing
 bios:F294		  xor	  di, di
 bios:F296		  mov	  ax, bx
 bios:F298		  rep stosw				      ;	and clear the screen
@@ -7926,7 +7855,6 @@ bios:F29A
 bios:F29A skip_clear_screen:					      ;	CODE XREF: int_10_00_handler+145j
 bios:F29A		  mov	  ax, ds
 bios:F29C		  mov	  es, ax			      ;	ds = es	= 0x40
-bios:F29E		  assume es:nothing
 bios:F29E		  xor	  ax, ax
 bios:F2A0		  lea	  di, ds:p400.cursor_row_col_in_pages
 bios:F2A4		  mov	  cx, 8
@@ -9613,11 +9541,9 @@ bios:FE71		  push	  bx
 bios:FE72		  push	  ds
 bios:FE73		  mov	  ax, 40h ; '@'
 bios:FE76		  mov	  ds, ax
-bios:FE78		  assume ds:nothing
 bios:FE78		  lea	  bx, ds:p400.installed_hardware
 bios:FE7C		  mov	  ax, [bx]			      ;	returns	value from 0410h. list of installed equipment
 bios:FE7E		  pop	  ds
-bios:FE7F		  assume ds:nothing
 bios:FE7F		  pop	  bx
 bios:FE80		  iret
 bios:FE80 int_11_handler  endp
@@ -9638,11 +9564,9 @@ bios:FE81		  push	  bx
 bios:FE82		  push	  ds
 bios:FE83		  mov	  ax, 40h ; '@'
 bios:FE86		  mov	  ds, ax
-bios:FE88		  assume ds:nothing
 bios:FE88		  lea	  bx, ds:p400.base_mem_kb
 bios:FE8C		  mov	  ax, [bx]			      ;	returns	base memory size in Kb
 bios:FE8E		  pop	  ds
-bios:FE8F		  assume ds:nothing
 bios:FE8F		  pop	  bx
 bios:FE90		  iret
 bios:FE90 int_12_handler  endp
@@ -9717,7 +9641,6 @@ bios:FEB8		  cmp	  ax, di
 bios:FEBA		  mov	  di, ax
 bios:FEBC		  mov	  ax, 40h ; '@'
 bios:FEBF		  mov	  ds, ax
-bios:FEC1		  assume ds:nothing
 bios:FEC1		  pop	  ax
 bios:FEC2		  jnb	  short	error
 bios:FEC4		  clc
@@ -9805,7 +9728,6 @@ bios:FF57		  push	  dx
 bios:FF58		  push	  ds
 bios:FF59		  mov	  ax, 50h ; 'P'                       ; ds = 50h (to place error code)
 bios:FF5C		  mov	  ds, ax
-bios:FF5E		  assume ds:nothing
 bios:FF5E		  xor	  bx, bx
 bios:FF60		  cmp	  byte ptr [bx], 1		      ;	print screen currently in progress?
 bios:FF63		  jz	  short	exit
@@ -9864,7 +9786,6 @@ bios:FFA5		  mov	  [bx],	cl
 bios:FFA7
 bios:FFA7 exit:							      ;	CODE XREF: int_5_handler+Fj
 bios:FFA7		  pop	  ds
-bios:FFA8		  assume ds:nothing
 bios:FFA8		  pop	  dx
 bios:FFA9		  pop	  cx
 bios:FFAA		  pop	  bx
