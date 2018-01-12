@@ -25,7 +25,7 @@ seg000:0028		    dw 0A47h
 seg000:002A		    dw 0A47h
 seg000:002C		    dw 0ABBh
 seg000:002E		    dw 0A84h
-seg000:0030 aError	    db 'ERROR'
+seg000:0030 aError	    db 'ERROR'              ; DATA XREF: e_msg+25o
 seg000:0035 aA		    db 'A'
 seg000:0036 aB		    db 'B'                  ; DATA XREF: key_scan_save+16o
 seg000:0037 aC		    db 'C'
@@ -1337,16 +1337,17 @@ seg000:0951		    xchg    dx,	bx
 seg000:0953		    in	    al,	dx
 seg000:0954		    and	    al,	8
 seg000:0956		    jz	    short f19_a
-seg000:0958		    or	    cl,	20h
-seg000:095B		    test    cl,	0C0h
+seg000:0958 ; carrier detect if	following rts-indicate serial printer attached
+seg000:0958		    or	    cl,	100000b
+seg000:095B		    test    cl,	11000000b
 seg000:095E		    jnz	    short f19_a
-seg000:0960		    or	    cl,	40h
+seg000:0960		    or	    cl,	1000000b
 seg000:0963		    mov	    word ptr ds:seg40.printer_base, 2F8h
 seg000:0969 f19_a:				    ; CODE XREF: seg000:0944j
 seg000:0969					    ; seg000:0948j
 seg000:0969					    ; seg000:0956j
 seg000:0969					    ; seg000:095Ej
-seg000:0969		    or	    ds:11h, cl
+seg000:0969		    or	    ds:seg40.equip_flag+1, cl
 seg000:096D		    xor	    dx,	dx
 seg000:096F		    test    cl,	40h
 seg000:0972		    jz	    short f19_c
@@ -1408,29 +1409,31 @@ seg000:09C0		    and	    al,	0F0h	    ; isolate bits of interest
 seg000:09C2		    jnz	    short em0
 seg000:09C4		    jmp	    mfg_out	    ; manufacturing mode (burn-in)
 seg000:09C7 em0:				    ; CODE XREF: e_msg+6j
-seg000:09C7		    cmp	    al,	10h
+seg000:09C7		    cmp	    al,	10000b
 seg000:09C9		    jnz	    short em1
 seg000:09CB		    jmp	    mfg_out	    ; mfg. mode	(system	test)
 seg000:09CE em1:				    ; CODE XREF: e_msg+Dj
-seg000:09CE		    mov	    dh,	al
-seg000:09D0		    cmp	    bh,	0Ah
-seg000:09D3		    jl	    short beeps
-seg000:09D5		    push    bx
+seg000:09CE		    mov	    dh,	al	    ; save mode
+seg000:09D0		    cmp	    bh,	0Ah	    ; error code above 0ah (crt	started	display	possible?)
+seg000:09D3		    jl	    short beeps	    ; do beep output if	below 10
+seg000:09D5		    push    bx		    ; save error and mode flags
 seg000:09D6		    push    si
 seg000:09D7		    push    dx
-seg000:09D8		    mov	    ah,	2
-seg000:09DA		    mov	    dx,	1521h
-seg000:09DD		    mov	    bh,	7
+seg000:09D8		    mov	    ah,	2	    ; set cursor
+seg000:09DA		    mov	    dx,	1521h	    ; row 21, col. 33
+seg000:09DD		    mov	    bh,	7	    ; page 7
 seg000:09DF		    int	    10h		    ; -	VIDEO -	SET CURSOR POSITION
 seg000:09DF					    ; DH,DL = row, column (0,0 = upper left)
 seg000:09DF					    ; BH = page	number
-seg000:09E1		    mov	    si,	30h ; '0'
+seg000:09E1		    mov	    si,	offset aError ;	"ERROR"
 seg000:09E4		    mov	    cx,	5
 seg000:09E7 em_0:				    ; CODE XREF: e_msg+32j
 seg000:09E7		    mov	    al,	cs:[si]
 seg000:09EA		    inc	    si
 seg000:09EB		    call    prt_hex
 seg000:09EE		    loop    em_0
+seg000:09F0 ; look for a blank space to	possibly put customer level errors (in
+seg000:09F0 ; case of multi error)
 seg000:09F0		    mov	    dh,	16h
 seg000:09F2 em_1:				    ; CODE XREF: e_msg+42j
 seg000:09F2		    mov	    ah,	2
@@ -1448,24 +1451,24 @@ seg000:09FE		    jnz	    short em_1
 seg000:0A00		    pop	    dx
 seg000:0A01		    pop	    si
 seg000:0A02		    pop	    bx
-seg000:0A03		    cmp	    dh,	20h ; ' '
+seg000:0A03		    cmp	    dh,	100000b	    ; service mode ?
 seg000:0A06		    jz	    short serv_out
-seg000:0A08		    cmp	    dh,	40h ; '@'
+seg000:0A08		    cmp	    dh,	1000000b
 seg000:0A0B		    jz	    short serv_out
-seg000:0A0D		    mov	    al,	cs:[si]
-seg000:0A10		    call    prt_hex
-seg000:0A13		    cmp	    bh,	20h ; ' '
+seg000:0A0D		    mov	    al,	cs:[si]	    ; get error	char
+seg000:0A10		    call    prt_hex	    ; display it
+seg000:0A13		    cmp	    bh,	20h ; ' '   ; error below 20? (mem trouble?)
 seg000:0A16		    jge	    short em_2
-seg000:0A18		    jmp	    totlpt0
+seg000:0A18		    jmp	    totlpt0	    ; halt system if so.
 seg000:0A1B em_2:				    ; CODE XREF: e_msg+5Aj
 seg000:0A1B		    push    ds
 seg000:0A1C		    push    ax
 seg000:0A1D		    mov	    ax,	50h ; 'P'
 seg000:0A20		    mov	    ds,	ax
-seg000:0A22		    mov	    ds:18h, bh
+seg000:0A22		    mov	    ds:seg50.post_err, bh ; set	error flag to non-zero
 seg000:0A26		    pop	    ax
 seg000:0A27		    pop	    ds
-seg000:0A28		    retn
+seg000:0A28		    retn		    ; return to	caller
 seg000:0A29 serv_out:				    ; CODE XREF: e_msg+4Aj
 seg000:0A29					    ; e_msg+4Fj
 seg000:0A29		    mov	    al,	bh
@@ -1501,23 +1504,9 @@ seg000:0A61 mfg_out:				    ; CODE XREF: e_msg+8j
 seg000:0A61					    ; e_msg+Fj
 seg000:0A61					    ; DATA XREF: seg000:01F8o
 seg000:0A61		    cli
-seg000:0A62		    in	    al,	61h	    ; PC/XT PPI	port B bits:
-seg000:0A62					    ; 0: Tmr 2 gate ЭЫЭ OR 03H=spkr ON
-seg000:0A62					    ; 1: Tmr 2 data ЭМ	AND 0fcH=spkr OFF
-seg000:0A62					    ; 3: 1=read	high switches
-seg000:0A62					    ; 4: 0=enable RAM parity checking
-seg000:0A62					    ; 5: 0=enable I/O channel check
-seg000:0A62					    ; 6: 0=hold	keyboard clock low
-seg000:0A62					    ; 7: 0=enable kbrd
+seg000:0A62		    in	    al,	61h
 seg000:0A64		    and	    al,	0FCh
-seg000:0A66		    out	    61h, al	    ; PC/XT PPI	port B bits:
-seg000:0A66					    ; 0: Tmr 2 gate ЭЫЭ OR 03H=spkr ON
-seg000:0A66					    ; 1: Tmr 2 data ЭМ	AND 0fcH=spkr OFF
-seg000:0A66					    ; 3: 1=read	high switches
-seg000:0A66					    ; 4: 0=enable RAM parity checking
-seg000:0A66					    ; 5: 0=enable I/O channel check
-seg000:0A66					    ; 6: 0=hold	keyboard clock low
-seg000:0A66					    ; 7: 0=enable kbrd
+seg000:0A66		    out	    61h, al
 seg000:0A68		    mov	    dx,	11h
 seg000:0A6B		    mov	    al,	bh
 seg000:0A6D		    out	    dx,	al
@@ -1831,7 +1820,7 @@ seg000:0BE7 ;----- check if in service/mfg modes, if so, perform refresh check
 seg000:0BE7		    mov	    dx,	201h
 seg000:0BEA		    in	    al,	dx	    ; get options bits
 seg000:0BEB		    and	    al,	0F0h
-seg000:0BED		    cmp	    al,	0F0h ; '№'  ; all bits high=normal mode
+seg000:0BED		    cmp	    al,	0F0h ; '№'  ; all bits high=normal mode (no joy buttons pressed)
 seg000:0BEF		    jz	    short p6
 seg000:0BF1		    mov	    cx,	cs
 seg000:0BF3		    mov	    bx,	ss
@@ -4020,8 +4009,8 @@ seg000:1BA5 ; ллллллллллллллл S	U B R O	U T I N	E лллллллллллллллллллллллллллллл
 seg000:1BA5 ; int 0x89
 seg000:1BA5 ; test joystick
 seg000:1BA5 ; input:
-seg000:1BA5 ;	   ah =	'6', '7' (same test)
-seg000:1BA5 ;	      =	'E' (another test)
+seg000:1BA5 ;	   ah =	'6', '7' (official test)
+seg000:1BA5 ;	      =	'E' or 0xff (mfg test)
 seg000:1BA5 ;	      =	0 (err msg)
 seg000:1BA5 ;	      =	1 (another err msg)
 seg000:1BA5 ; output:
@@ -4043,10 +4032,9 @@ seg000:1BBF		    mov	    bl,	5Ah ; 'Z'
 seg000:1BC1		    cmp	    ah,	37h ; '7'
 seg000:1BC4		    jz	    short run_test_67
 seg000:1BC6		    jmp	    locret
-seg000:1BC9 byte_F1BC9	    db 6Bh, 3, 2, 0	    ; DATA XREF: int_89_diag_joystick+99o
-seg000:1BCD byte_F1BCD	    db 28h, 0, 12h, 0, 46h, 0, 25h, 0, 6Dh, 0, 3Ch, 0, 8Dh
+seg000:1BC9 word_F1BC9	    dw 36Bh, 2		    ; DATA XREF: int_89_diag_joystick+99o
+seg000:1BCD word_F1BCD	    dw 28h, 12h, 46h, 25h, 6Dh,	3Ch, 8Dh, 4Fh
 seg000:1BCD					    ; DATA XREF: int_89_diag_joystick+4Bo
-seg000:1BCD		    db 0, 4Fh, 0
 seg000:1BDD error_and_exit0:			    ; CODE XREF: int_89_diag_joystick+4j
 seg000:1BDD		    call    diag_joy_err_msg
 seg000:1BE0		    iret
@@ -4060,15 +4048,15 @@ seg000:1BEA					    ; int_89_diag_joystick+18j
 seg000:1BEA		    push    cs
 seg000:1BEB		    pop	    ds		    ; ds = cs
 seg000:1BEC		    xor	    bx,	bx
-seg000:1BEE		    mov	    ah,	1
-seg000:1BF0		    mov	    si,	offset byte_F1BCD
+seg000:1BEE		    mov	    ah,	1	    ; wait for joy 1, horizontal movement
+seg000:1BF0		    mov	    si,	offset word_F1BCD
 seg000:1BF3 l3:					    ; CODE XREF: int_89_diag_joystick+5Cj
 seg000:1BF3		    call    diag_joy_wait_until_read
 seg000:1BF6		    call    sub_F1D59
 seg000:1BF9		    add	    si,	4
-seg000:1BFC		    rol	    ah,	1
-seg000:1BFE		    test    ah,	10h
-seg000:1C01		    jz	    short l3
+seg000:1BFC		    rol	    ah,	1	    ; and then test joy1 Y, joy2 X and finally joy2 Y
+seg000:1BFE		    test    ah,	10h	    ; tested all 4 LSB bits?
+seg000:1C01		    jz	    short l3	    ; no, keep testing then
 seg000:1C03		    mov	    dh,	bh
 seg000:1C05		    or	    dh,	bl
 seg000:1C07		    jmp	    l20
@@ -4100,16 +4088,16 @@ seg000:1C31		    jmp	    simulate_joy_test
 seg000:1C34 l6:					    ; CODE XREF: int_89_diag_joystick+8Aj
 seg000:1C34					    ; int_89_diag_joystick+139j
 seg000:1C34		    mov	    bp,	offset byte_F1DCA
-seg000:1C37		    mov	    ah,	1
+seg000:1C37		    mov	    ah,	1	    ; wait for joy 1, horizontal movement
 seg000:1C39 l7:					    ; CODE XREF: int_89_diag_joystick+A7j
 seg000:1C39					    ; int_89_diag_joystick+C9j
 seg000:1C39		    mov	    dl,	al
 seg000:1C3B		    call    diag_joy_wait_until_read
-seg000:1C3E		    mov	    si,	offset byte_F1BC9
+seg000:1C3E		    mov	    si,	offset word_F1BC9
 seg000:1C41		    call    sub_F1D59
 seg000:1C44		    call    sub_F1D22
 seg000:1C47		    rol	    ah,	1
-seg000:1C49		    test    ah,	0Ah
+seg000:1C49		    test    ah,	1010b
 seg000:1C4C		    jnz	    short l7
 seg000:1C4E		    mov	    dh,	al
 seg000:1C50		    add	    dx,	8817h
@@ -4258,6 +4246,8 @@ seg000:1D20		    pop	    dx
 seg000:1D21		    retn
 seg000:1D21 diag_joy_wait_until_read endp
 seg000:1D22 ; ллллллллллллллл S	U B R O	U T I N	E ллллллллллллллллллллллллллллллллллллллл
+seg000:1D22 ; input:
+seg000:1D22 ;	   cx =	?
 seg000:1D22 sub_F1D22	    proc near		    ; CODE XREF: int_89_diag_joystick+9Fp
 seg000:1D22		    push    bx
 seg000:1D23		    mov	    bx,	0Ah
@@ -4265,7 +4255,7 @@ seg000:1D26		    mov	    al,	0
 seg000:1D28 l0:					    ; CODE XREF: sub_F1D22+12j
 seg000:1D28		    cmp	    cx,	bx
 seg000:1D2A		    jl	    short l1
-seg000:1D2C		    cmp	    al,	0Ch
+seg000:1D2C		    cmp	    al,	12
 seg000:1D2E		    jz	    short l1
 seg000:1D30		    add	    bx,	8
 seg000:1D33		    inc	    ax
@@ -4306,6 +4296,12 @@ seg000:1D57		    pop	    bp
 seg000:1D58		    retn
 seg000:1D58 sub_F1D38	    endp
 seg000:1D59 ; ллллллллллллллл S	U B R O	U T I N	E ллллллллллллллллллллллллллллллллллллллл
+seg000:1D59 ; intput:
+seg000:1D59 ;	   al =	?
+seg000:1D59 ;	   cx =	?
+seg000:1D59 ;	   si =	pointer	to something
+seg000:1D59 ; output:
+seg000:1D59 ;	   bl =	??
 seg000:1D59 sub_F1D59	    proc near		    ; CODE XREF: int_89_diag_joystick+51p
 seg000:1D59					    ; int_89_diag_joystick+9Cp
 seg000:1D59		    push    cx
@@ -8223,7 +8219,7 @@ seg000:40FD		    jmp	    short l3
 seg000:40FD int_83_key_pressed endp
 seg000:40FF ; ллллллллллллллл S	U B R O	U T I N	E ллллллллллллллллллллллллллллллллллллллл
 seg000:40FF ; input
-seg000:40FF ;	   ax =	?
+seg000:40FF ;	   ah =	test to	run
 seg000:40FF diag_run_action proc near		    ; CODE XREF: wait_and_process_key+23j
 seg000:40FF					    ; diag_run_action_bis+28j
 seg000:40FF		    call    ds_50	    ; ds = 0x50
@@ -8300,7 +8296,10 @@ seg000:4182		    int	    10h		    ; -	VIDEO -	SET CURSOR POSITION
 seg000:4182					    ; DH,DL = row, column (0,0 = upper left)
 seg000:4182					    ; BH = page	number
 seg000:4184		    mov	    dx,	201h
-seg000:4187		    in	    al,	dx
+seg000:4187		    in	    al,	dx	    ; hi nibble	0000 = manufacturing (burn-in) mode
+seg000:4187					    ;		0001 = manufacturing (system test) mode
+seg000:4187					    ;		0010 = service mode (loop post)
+seg000:4187					    ;		0100 = service mode (system test)
 seg000:4188		    pop	    dx
 seg000:4189		    pop	    bx
 seg000:418A		    or	    dh,	dh
@@ -8374,13 +8373,13 @@ seg000:41E7		    and	    al,	0F0h
 seg000:41E9		    mov	    ah,	0
 seg000:41EB		    cmp	    al,	10000b	    ; mfg sys test mode?
 seg000:41ED		    jnz	    short l0	    ; no, jump
-seg000:41EF		    dec	    ah		    ; ah = 0xff
+seg000:41EF		    dec	    ah		    ; ah = 0xff: mfg system test
 seg000:41F1		    add	    sp,	2	    ; stack +2 (simulate pop)
 seg000:41F4		    jmp	    diag_run_action
 seg000:41F7 l0:					    ; CODE XREF: diag_run_action_bis+21j
-seg000:41F7		    cmp	    al,	1000000b    ; service system test mode?
+seg000:41F7		    cmp	    al,	1000000b    ; service mode (system test) ?
 seg000:41F9		    jnz	    short l1	    ; no, jump
-seg000:41FB		    inc	    ah		    ; ah = 1
+seg000:41FB		    inc	    ah		    ; ah = 1 (service mode - system test)
 seg000:41FD l1:					    ; CODE XREF: diag_run_action_bis+2Dj
 seg000:41FD		    mov	    cx,	64	    ; go through 64 interrupts (?)
 seg000:4200		    mov	    di,	214h	    ; from int int 0x85	to 0xc4	(?)
@@ -8661,9 +8660,12 @@ seg000:438F		    mov	    dx,	0BB80h	    ; page 7 buffer
 seg000:4392		    mov	    es,	dx
 seg000:4394		    mov	    di,	7AAh	    ; dst -> es:di (page 7)
 seg000:4397		    mov	    dx,	201h
-seg000:439A		    in	    al,	dx
+seg000:439A		    in	    al,	dx	    ; hi nibble	0000 = manufacturing (burn-in) mode
+seg000:439A					    ;		0001 = manufacturing (system test) mode
+seg000:439A					    ;		0010 = service mode (loop post)
+seg000:439A					    ;		0100 = service mode (system test)
 seg000:439B		    and	    al,	0F0h
-seg000:439D		    cmp	    al,	40h ; '@'
+seg000:439D		    cmp	    al,	1000000b
 seg000:439F		    jz	    short l7
 seg000:43A1		    mov	    al,	58h ; 'X'
 seg000:43A3		    call    diag_place_al_in_buffer
@@ -9189,7 +9191,8 @@ seg000:45BD ; ллллллллллллллл S	U B R O	U T I N	E лллллллллллллллллллллллллллллл
 seg000:45BD ; int 0x87
 seg000:45BD ; test diskette
 seg000:45BD ; intput:
-seg000:45BD ;	   ah =	'1', '2', '3', 0xff: run test
+seg000:45BD ;	   ah =	'1', '2', '3' run test
+seg000:45BD ;		 0xff: mfg system test (msg ah=0001)
 seg000:45BD ;		 0,1: show error msg?
 seg000:45BD ; output:
 seg000:45BD ;	   dl/dh: error	message
@@ -9965,7 +9968,7 @@ seg000:4BC4 ; input:
 seg000:4BC4 ;	   ah =	'4': 64k ram test
 seg000:4BC4 ;		'8': 128k ram test
 seg000:4BC4 ;		'5': light pen test
-seg000:4BC4 ;		0xff: ascii test?
+seg000:4BC4 ;		0xff: ascii test? (mfg system test: msg	ah=0001)
 seg000:4BC4 ; output:
 seg000:4BC4 ;	   dl/dh = error message
 seg000:4BC4 int_88_diag_video proc far		    ; DATA XREF: seg000:4010o
@@ -11042,6 +11045,7 @@ seg000:5294 ; int 0x8c
 seg000:5294 ; internal modem test
 seg000:5294 ; input:
 seg000:5294 ;	   ah =	'G', 0xff: activates test
+seg000:5294 ;		0,1: error msg
 seg000:5294 ; output:
 seg000:5294 ;	   dh/dl = error codes
 seg000:5294 int_8c_diag_modem proc far		    ; DATA XREF: seg000:4018o
@@ -11586,6 +11590,7 @@ seg000:5646 ; int 0x8e
 seg000:5646 ; serial printer? test
 seg000:5646 ; input:
 seg000:5646 ;	   ah =	'H' activates it
+seg000:5646 ;		0,1: error message
 seg000:5646 ; output:
 seg000:5646 ;	   dl/dh = error msg
 seg000:5646 int_8e_diag_serial_printer?	proc far    ; DATA XREF: seg000:401Co
@@ -11916,6 +11921,7 @@ seg000:584D ; ллллллллллллллл S	U B R O	U T I N	E лллллллллллллллллллллллллллллл
 seg000:584D ; int 0x8f
 seg000:584D ; input:
 seg000:584D ;	   ah =	'I' or 0xff activates it
+seg000:584D ;		1: error message
 seg000:584D ; output:
 seg000:584D ;	   dx =	?
 seg000:584D int_8f_diag_rs232 proc far		    ; DATA XREF: seg000:401Eo
