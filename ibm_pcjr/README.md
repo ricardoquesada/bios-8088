@@ -14,8 +14,14 @@ Using [IDA PRO freeware version][1]
 
 ## Hidden diagnostic modes
 
+Detailed description:
+
+*   [IBM PCjr zero-day vulnerability report][2]
+
+TL;DR;:
+
 *   Connect two joysticks
-*   Press `ctrl` + `alt` + `ins`
+*   Press `Ctrl` + `Alt` + `Insert` keys
 *   Immediately after that do:
    *   Press: Joy 1 button B, and Joy 2 buttons A & B: enters diag loop mode without the diag screen
    *   Press: Joy 1 button A, and Joy 2 buttons A & B: enters boot loop. Keeps botting
@@ -26,3 +32,4 @@ Using [IDA PRO freeware version][1]
 
 [0]: https://archive.org/details/IbmPcjrTechnicalReference
 [1]: https://www.hex-rays.com/products/ida/support/download_freeware.shtml
+[2]: https://retro.moe/2018/01/15/ibm-pcjr-zero-day-data-destroy-vulnerability/
