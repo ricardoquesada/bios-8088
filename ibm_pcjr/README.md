@@ -12,6 +12,17 @@ This is WIP. Far from complete. I do it in a _let's see how this code works_ bas
 
 Using [IDA PRO freeware version][1]
 
+## Hidden diagnostic modes
+
+*   Connect two joysticks
+*   Press `ctrl` + `alt` + `ins`
+*   Immediately after that do:
+   *   Press: Joy 1 button B, and Joy 2 buttons A & B: enters diag loop mode without the diag screen
+   *   Press: Joy 1 button A, and Joy 2 buttons A & B: enters boot loop. Keeps botting
+   *   Press: Joy 1 buttons A & B, and Joy 2 button B: all diag. screen present
+   *   Press: Joy 1 buttons A & B, and Joy 2 button A: ?
+   *   Press: Joy 1 buttons A & B, and joy 2 buttons A & B: enters boot loop with sound test
+
 
 [0]: https://archive.org/details/IbmPcjrTechnicalReference
 [1]: https://www.hex-rays.com/products/ida/support/download_freeware.shtml

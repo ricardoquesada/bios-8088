@@ -15,16 +15,16 @@ seg000:0000 ; НННННННННННННННННННННННННННННННННННННННННННННННННННННННННННННННННН
 seg000:0000 ; Segment type: Pure code
 seg000:0000 seg000	    segment byte public	'CODE'
 seg000:0000 a1504036Copr_Ibm19811 db '1504036 COPR. IBM 1981,1983'
-seg000:001B		    dw 149h
-seg000:001D		    dw 157h
-seg000:001F word_F001F	    dw 16Dh
-seg000:0021		    dw 186h
-seg000:0023		    dw 1BAh
+seg000:001B z1		    dw offset l12
+seg000:001D		    dw offset l14
+seg000:001F		    dw offset l16
+seg000:0021		    dw offset l19
+seg000:0023		    dw offset l24
 seg000:0025 aKb		    db ' KB'                ; DATA XREF: q35+36o
-seg000:0028		    dw 0A47h
-seg000:002A		    dw 0A47h
-seg000:002C		    dw 0ABBh
-seg000:002E		    dw 0A84h
+seg000:0028 ex_0	    dw offset eb0	    ; DATA XREF: e_msg+83o
+seg000:002A		    dw offset eb0
+seg000:002C		    dw offset totlpt0
+seg000:002E ex1		    dw offset mo1	    ; DATA XREF: e_msg+BFo
 seg000:0030 aError	    db 'ERROR'              ; DATA XREF: e_msg+25o
 seg000:0035 aA		    db 'A'
 seg000:0036 aB		    db 'B'                  ; DATA XREF: key_scan_save+16o
@@ -33,8 +33,8 @@ seg000:0038 aD		    db 'D'
 seg000:0039 aE		    db 'E'
 seg000:003A aF		    db 'F'
 seg000:003B aG		    db 'G'
-seg000:003C		    db 'H'
-seg000:003D		    dw 378h
+seg000:003C disk_err	    db 'H'                  ; DATA XREF: seg000:086Fo
+seg000:003D prt_src_tbl	    dw 378h		    ; DATA XREF: seg000:f15co
 seg000:003F		    dw 278h
 seg000:0041		    dw 0F7EFh
 seg000:0043 ; START OF FUNCTION	CHUNK FOR kb_int
@@ -205,37 +205,40 @@ seg000:0140		    mov	    cx,	8000h
 seg000:0143		    mov	    sp,	1Bh
 seg000:0146		    jmp	    ros_checksum
 seg000:0146 ; END OF FUNCTION CHUNK FOR	kb_int
-seg000:0149		    jz	    short loc_F0151
+seg000:0149 l12:				    ; DATA XREF: seg000:z1o
+seg000:0149		    jz	    short l13
 seg000:014B		    mov	    bx,	3
 seg000:014E		    jmp	    e_msg
-seg000:0151 loc_F0151:				    ; CODE XREF: seg000:0149j
+seg000:0151 l13:				    ; CODE XREF: seg000:l12j
 seg000:0151		    mov	    cx,	8000h
 seg000:0154		    jmp	    ros_checksum
-seg000:0157		    jz	    short loc_F015F
+seg000:0157 l14:				    ; DATA XREF: seg000:001Do
+seg000:0157		    jz	    short l15
 seg000:0159		    mov	    bx,	4
 seg000:015C		    jmp	    e_msg
-seg000:015F loc_F015F:				    ; CODE XREF: seg000:0157j
+seg000:015F l15:				    ; CODE XREF: seg000:l14j
 seg000:015F		    mov	    al,	0FBh ; 'ы'
 seg000:0161		    out	    10h, al	    ; set mfg flag = fb
 seg000:0163		    mov	    cx,	400h
 seg000:0166		    xor	    ax,	ax
 seg000:0168		    mov	    es,	ax
 seg000:016A		    jmp	    podstg
-seg000:016D		    jnz	    short loc_F0188
+seg000:016D l16:				    ; DATA XREF: seg000:001Fo
+seg000:016D		    jnz	    short l20
 seg000:016F		    mov	    al,	0FAh ; 'ъ'  ; mfg out = fa
 seg000:0171		    out	    10h, al
 seg000:0173		    mov	    cx,	400h
 seg000:0176		    in	    al,	60h	    ; AT Keyboard controller 8042.
 seg000:0178		    cmp	    al,	1Bh
 seg000:017A		    mov	    ax,	0F80h
-seg000:017D		    jz	    short loc_F0181
+seg000:017D		    jz	    short l18
 seg000:017F		    mov	    ah,	1Fh
-seg000:0181 loc_F0181:				    ; CODE XREF: seg000:017Dj
+seg000:0181 l18:				    ; CODE XREF: seg000:017Dj
 seg000:0181		    mov	    es,	ax
 seg000:0183		    jmp	    podstg
-seg000:0186		    db	74h ; t
-seg000:0187		    db	23h ; #
-seg000:0188 loc_F0188:				    ; CODE XREF: seg000:016Dj
+seg000:0186 l19:				    ; DATA XREF: seg000:0021o
+seg000:0186		    jz	    short l23
+seg000:0188 l20:				    ; CODE XREF: seg000:l16j
 seg000:0188		    mov	    bh,	4
 seg000:018A		    in	    al,	62h
 seg000:018C		    and	    al,	8
@@ -257,16 +260,18 @@ seg000:01A8					    ; seg000:019Bj
 seg000:01A8					    ; seg000:01A4j
 seg000:01A8		    jmp	    e_msg
 seg000:01AB ; retest high 2k using b8000 address path
+seg000:01AB l23:				    ; CODE XREF: seg000:l19j
 seg000:01AB		    mov	    al,	0F9h ; 'щ'  ; mfg out=f9
 seg000:01AD		    out	    10h, al
 seg000:01AF		    mov	    cx,	400h	    ; 1k words
 seg000:01B2		    mov	    ax,	0BB80h	    ; point to area just tested	with direct addressing
 seg000:01B5		    mov	    es,	ax
 seg000:01B7		    jmp	    podstg
+seg000:01BA l24:				    ; DATA XREF: seg000:0023o
 seg000:01BA		    jz	    short l25
 seg000:01BC		    mov	    bx,	5
 seg000:01BF		    jmp	    e_msg
-seg000:01C2 l25:				    ; CODE XREF: seg000:01BAj
+seg000:01C2 l25:				    ; CODE XREF: seg000:l24j
 seg000:01C2		    mov	    ax,	30h ; '0'
 seg000:01C5		    mov	    ss,	ax
 seg000:01C7		    mov	    sp,	100h
@@ -1159,124 +1164,138 @@ seg000:07FC		    add	    dx,	80h ; 'Ђ'
 seg000:0800 are_we_done:			    ; CODE XREF: seg000:07FAj
 seg000:0800		    cmp	    dx,	0F000h
 seg000:0804		    jl	    short rom_scan_1
-seg000:0806		    call    mfg_up
-seg000:0809		    call    dss
+seg000:0806 ;----------------------------------------------------
+seg000:0806 ;	  diskette attachment test
+seg000:0806 ; description:
+seg000:0806 ;	  check	if ipl diskette	drive is attached to system. if
+seg000:0806 ;	  attached, verify status of nec fdc after a reset. issue
+seg000:0806 ;	  a recal and seek cmd to fdc and check	status.	complete
+seg000:0806 ;	  system initialization	then pass control to the boot
+seg000:0806 ;	  loader program
+seg000:0806 ; mfg err codes: 2601 reset	to diskette controller cd. failed
+seg000:0806 ;		     2602 recalibrate to diskette drive	failed
+seg000:0806 ;		     2603 watchdog timer failed
+seg000:0806 ;----------------------------------------------------
+seg000:0806		    call    mfg_up	    ; mfg routine = ed
+seg000:0809		    call    dss		    ; point to data area
 seg000:080C		    mov	    al,	0FFh
-seg000:080E		    mov	    ds:seg40.track_0, al
+seg000:080E		    mov	    ds:seg40.track_0, al ; init	diskette scratchpads
 seg000:0811		    mov	    ds:seg40.track_1, al
 seg000:0814		    mov	    ds:seg40.track_2, al
-seg000:0817		    in	    al,	62h
-seg000:0819		    and	    al,	4
-seg000:081B		    jz	    short loc_F0820
-seg000:081D		    jmp	    loc_F08A3
-seg000:0820 loc_F0820:				    ; CODE XREF: seg000:081Bj
-seg000:0820		    or	    byte ptr ds:seg40.equip_flag, 1
-seg000:0825		    cmp	    word ptr ds:seg40.reset_flag, 0
-seg000:082A		    jnz	    short loc_F083A
-seg000:082C		    mov	    al,	0Ah
-seg000:082E		    out	    20h, al	    ; Interrupt	controller, 8259A.
-seg000:0830		    in	    al,	20h	    ; Interrupt	controller, 8259A.
-seg000:0832		    and	    al,	40h
-seg000:0834		    jnz	    short loc_F083A
-seg000:0836		    mov	    bl,	3
-seg000:0838		    jmp	    short loc_F086D
-seg000:083A loc_F083A:				    ; CODE XREF: seg000:082Aj
+seg000:0817		    in	    al,	62h	    ; diskette present?
+seg000:0819		    and	    al,	100b
+seg000:081B		    jz	    short f10_0
+seg000:081D		    jmp	    f15		    ; no, bypass diskette test
+seg000:0820 f10_0:				    ; CODE XREF: seg000:081Bj
+seg000:0820		    or	    byte ptr ds:seg40.equip_flag, 1 ; set ipl diskette indication in equip. flag
+seg000:0825		    cmp	    word ptr ds:seg40.reset_flag, 0 ; running from power-on state?
+seg000:082A		    jnz	    short f10	    ; bypass watchdog test
+seg000:082C		    mov	    al,	0Ah	    ; read int.	request	register cmd.
+seg000:082E		    out	    20h, al
+seg000:0830		    in	    al,	20h
+seg000:0832		    and	    al,	40h	    ; has watchdog gone	off
+seg000:0834		    jnz	    short f10	    ; proceed if it has
+seg000:0836		    mov	    bl,	3	    ; set error	code
+seg000:0838		    jmp	    short f13
+seg000:083A f10:				    ; CODE XREF: seg000:082Aj
 seg000:083A					    ; seg000:0834j
 seg000:083A		    mov	    al,	80h ; 'Ђ'
-seg000:083C		    out	    0F2h, al
-seg000:083E		    mov	    ah,	0
-seg000:0840		    mov	    dl,	ah
-seg000:0842		    int	    13h		    ; DISK - RESET DISK	SYSTEM
-seg000:0842					    ; DL = drive (if bit 7 is set both hard disks and floppy disks reset)
-seg000:0844		    test    ah,	0FFh
-seg000:0847		    mov	    bl,	1
-seg000:0849		    jnz	    short loc_F086D
-seg000:084B		    mov	    al,	81h ; 'Ѓ'
-seg000:084D		    out	    0F2h, al
+seg000:083C		    out	    0F2h, al	    ; disable watchdog timer
+seg000:083E		    mov	    ah,	0	    ; reset nec	fdc
+seg000:0840		    mov	    dl,	ah	    ; set for drive 0
+seg000:0842		    int	    13h		    ; verify status after reset
+seg000:0844		    test    ah,	0FFh	    ; status ok?
+seg000:0847		    mov	    bl,	1	    ; set up possible error code
+seg000:0849		    jnz	    short f13	    ; no - fdc failed
+seg000:084B ;----- turn	drive 0	motor on
+seg000:084B		    mov	    al,	81h ; 'Ѓ'   ; turn motor on, drive 0
+seg000:084D		    out	    0F2h, al	    ; write fdc	control	reg
 seg000:084F		    sub	    cx,	cx
-seg000:0851 loc_F0851:				    ; CODE XREF: seg000:loc_F0851j
-seg000:0851		    loop    loc_F0851
-seg000:0853 loc_F0853:				    ; CODE XREF: seg000:loc_F0853j
-seg000:0853		    loop    loc_F0853
-seg000:0855		    xor	    dx,	dx
-seg000:0857		    mov	    ch,	1
-seg000:0859		    mov	    ds:3Eh, dl
-seg000:085D		    call    seek
-seg000:0860		    mov	    bl,	2
-seg000:0862		    jb	    short loc_F086D
-seg000:0864		    mov	    ch,	22h ; '"'
-seg000:0866		    call    seek
-seg000:0869		    jnb	    short loc_F0875
+seg000:0851 f11:				    ; CODE XREF: seg000:f11j
+seg000:0851		    loop    f11		    ; wait for one second
+seg000:0853 f12:				    ; CODE XREF: seg000:f12j
+seg000:0853		    loop    f12
+seg000:0855		    xor	    dx,	dx	    ; select drive 0
+seg000:0857		    mov	    ch,	1	    ; select track 1
+seg000:0859		    mov	    ds:seg40.seek_status, dl
+seg000:085D		    call    seek	    ; recalibrate disk
+seg000:0860		    mov	    bl,	2	    ; error code
+seg000:0862		    jb	    short f13	    ; go to err	subroutine if err
+seg000:0864		    mov	    ch,	34	    ; select track 34
+seg000:0866		    call    seek	    ; seek to track 34
+seg000:0869		    jnb	    short f14	    ; ok, turn motor off
 seg000:086B		    mov	    bl,	2
-seg000:086D loc_F086D:				    ; CODE XREF: seg000:0838j
+seg000:086D f13:				    ; CODE XREF: seg000:0838j
 seg000:086D					    ; seg000:0849j
 seg000:086D					    ; seg000:0862j
-seg000:086D		    mov	    bh,	26h ; '&'
-seg000:086F		    mov	    si,	3Ch ; '<'
-seg000:0872		    call    e_msg
-seg000:0875 loc_F0875:				    ; CODE XREF: seg000:0869j
+seg000:086D		    mov	    bh,	26h ; '&'   ; dsk_err: (26xx)
+seg000:086F		    mov	    si,	offset disk_err	; get addr of msg
+seg000:0872		    call    e_msg	    ; go print error msg
+seg000:0875 f14:				    ; CODE XREF: seg000:0869j
 seg000:0875		    mov	    al,	82h ; '‚'
 seg000:0877		    out	    0F2h, al
 seg000:0879		    in	    al,	0E2h
-seg000:087B		    and	    al,	6
-seg000:087D		    cmp	    al,	2
-seg000:087F		    jnz	    short loc_F089F
+seg000:087B		    and	    al,	110b
+seg000:087D		    cmp	    al,	10b
+seg000:087F		    jnz	    short f14_1
 seg000:0881		    mov	    al,	84h ; '„'
 seg000:0883		    out	    0F2h, al
 seg000:0885		    in	    al,	0E2h
-seg000:0887		    and	    al,	6
-seg000:0889		    cmp	    al,	4
-seg000:088B		    jnz	    short loc_F089F
+seg000:0887		    and	    al,	110b
+seg000:0889		    cmp	    al,	100b
+seg000:088B		    jnz	    short f14_1
 seg000:088D		    in	    al,	0E2h
-seg000:088F		    and	    al,	30h
-seg000:0891		    jz	    short loc_F089F
-seg000:0893		    cmp	    al,	10h
+seg000:088F		    and	    al,	110000b
+seg000:0891		    jz	    short f14_1
+seg000:0893		    cmp	    al,	10000b
 seg000:0895		    mov	    ah,	40h ; '@'
-seg000:0897		    jz	    short loc_F089B
+seg000:0897		    jz	    short f14_2
 seg000:0899		    mov	    ah,	80h ; 'Ђ'
-seg000:089B loc_F089B:				    ; CODE XREF: seg000:0897j
-seg000:089B		    or	    ds:10h, ah
-seg000:089F loc_F089F:				    ; CODE XREF: seg000:087Fj
+seg000:089B f14_2:				    ; CODE XREF: seg000:0897j
+seg000:089B		    or	    ds:seg40.equip_flag, ah
+seg000:089F ;----- turn	drive 0	motor off
+seg000:089F f14_1:				    ; CODE XREF: seg000:087Fj
 seg000:089F					    ; seg000:088Bj
 seg000:089F					    ; seg000:0891j
-seg000:089F		    mov	    al,	80h ; 'Ђ'
+seg000:089F		    mov	    al,	80h ; 'Ђ'   ; turn drive 0 motor off
 seg000:08A1		    out	    0F2h, al
-seg000:08A3 loc_F08A3:				    ; CODE XREF: seg000:081Dj
-seg000:08A3		    mov	    byte ptr ds:seg40.intr_flag, 0
-seg000:08A8		    mov	    di,	78h ; 'x'
+seg000:08A3 f15:				    ; CODE XREF: seg000:081Dj
+seg000:08A3		    mov	    byte ptr ds:seg40.intr_flag, 0 ; set stray interrupt flag =	00
+seg000:08A8		    mov	    di,	78h ; 'x'   ; set default prt timeout
 seg000:08AB		    push    ds
 seg000:08AC		    pop	    es
-seg000:08AD		    mov	    ax,	1414h
+seg000:08AD		    mov	    ax,	1414h	    ; default=20
 seg000:08B0		    stosw
 seg000:08B1		    stosw
-seg000:08B2		    mov	    ax,	101h
+seg000:08B2		    mov	    ax,	101h	    ; rs232 default=01
 seg000:08B5		    stosw
 seg000:08B6		    stosw
-seg000:08B7		    in	    al,	21h	    ; Interrupt	controller, 8259A.
-seg000:08B9		    and	    al,	0FEh
-seg000:08BB		    out	    21h, al	    ; Interrupt	controller, 8259A.
+seg000:08B7		    in	    al,	21h
+seg000:08B9		    and	    al,	0FEh	    ; enable timer int.	(lvl 0)
+seg000:08BB		    out	    21h, al
 seg000:08BD		    push    ds
 seg000:08BE		    mov	    ax,	50h ; 'P'
 seg000:08C1		    mov	    ds,	ax
-seg000:08C3		    cmp	    byte ptr ds:seg40.kb_flag_1, 0
+seg000:08C3		    cmp	    byte ptr ds:seg50.post_err,	0 ; check for "post_err" non-zero
 seg000:08C8		    pop	    ds
-seg000:08C9		    jz	    short loc_F08DB
+seg000:08C9		    jz	    short f15a_0    ; continue if no error
 seg000:08CB		    mov	    dl,	2
 seg000:08CD		    call    err_beep
-seg000:08D0 loc_F08D0:				    ; CODE XREF: seg000:08D7j
+seg000:08D0 err_wait:				    ; CODE XREF: seg000:08D7j
 seg000:08D0		    mov	    ah,	0
 seg000:08D2		    int	    16h		    ; KEYBOARD - READ CHAR FROM	BUFFER,	WAIT IF	EMPTY
 seg000:08D2					    ; Return: AH = scan	code, AL = character
 seg000:08D4		    cmp	    ah,	1Ch
-seg000:08D7		    jnz	    short loc_F08D0
-seg000:08D9		    jmp	    short loc_F08E0
-seg000:08DB loc_F08DB:				    ; CODE XREF: seg000:08C9j
+seg000:08D7		    jnz	    short err_wait
+seg000:08D9		    jmp	    short f15c
+seg000:08DB f15a_0:				    ; CODE XREF: seg000:08C9j
 seg000:08DB		    mov	    dl,	1
 seg000:08DD		    call    err_beep
-seg000:08E0 loc_F08E0:				    ; CODE XREF: seg000:08D9j
-seg000:08E0		    mov	    bp,	3Dh ; '='
+seg000:08E0 ;----- setup printer and rs232 base	addresses if device attached
+seg000:08E0 f15c:				    ; CODE XREF: seg000:08D9j
+seg000:08E0		    mov	    bp,	offset prt_src_tbl
 seg000:08E3		    xor	    si,	si
-seg000:08E5 loc_F08E5:				    ; CODE XREF: seg000:08FEj
+seg000:08E5 f16:				    ; CODE XREF: seg000:08FEj
 seg000:08E5		    mov	    dx,	cs:[bp+0]
 seg000:08E9		    mov	    al,	0AAh ; 'Є'
 seg000:08EB		    out	    dx,	al
@@ -1284,24 +1303,24 @@ seg000:08EC		    push    ds
 seg000:08ED		    in	    al,	dx
 seg000:08EE		    pop	    ds
 seg000:08EF		    cmp	    al,	0AAh ; 'Є'
-seg000:08F1		    jnz	    short loc_F08F9
+seg000:08F1		    jnz	    short f17
 seg000:08F3		    mov	    [si+8], dx
 seg000:08F7		    inc	    si
 seg000:08F8		    inc	    si
-seg000:08F9 loc_F08F9:				    ; CODE XREF: seg000:08F1j
+seg000:08F9 f17:				    ; CODE XREF: seg000:08F1j
 seg000:08F9		    inc	    bp
 seg000:08FA		    inc	    bp
 seg000:08FB		    cmp	    bp,	41h ; 'A'
-seg000:08FE		    jnz	    short loc_F08E5
+seg000:08FE		    jnz	    short f16
 seg000:0900		    xor	    bx,	bx
 seg000:0902		    mov	    dx,	3FAh
 seg000:0905		    in	    al,	dx
 seg000:0906		    test    al,	0F8h
-seg000:0908		    jnz	    short loc_F0912
+seg000:0908		    jnz	    short f18
 seg000:090A		    mov	    word ptr [bx+0], 3F8h
 seg000:0910		    inc	    bx
 seg000:0911		    inc	    bx
-seg000:0912 loc_F0912:				    ; CODE XREF: seg000:0908j
+seg000:0912 f18:				    ; CODE XREF: seg000:0908j
 seg000:0912		    mov	    word ptr [bx+0], 2F8h
 seg000:0918		    inc	    bx
 seg000:0919		    inc	    bx
@@ -1483,11 +1502,13 @@ seg000:0A38		    cli
 seg000:0A39		    mov	    ax,	cs
 seg000:0A3B		    mov	    ss,	ax
 seg000:0A3D		    mov	    dl,	2
-seg000:0A3F		    mov	    sp,	28h ; '('
+seg000:0A3F		    mov	    sp,	offset ex_0 ; set dummy	return (eb0)
 seg000:0A42 eb:					    ; CODE XREF: e_msg+8Fj
 seg000:0A42		    mov	    bl,	1
 seg000:0A44		    jmp	    beep
 seg000:0A47 eb0:				    ; CODE XREF: e_msg:eb0j
+seg000:0A47					    ; DATA XREF: seg000:ex_0o
+seg000:0A47					    ; seg000:002Ao
 seg000:0A47		    loop    eb0
 seg000:0A49		    dec	    dl
 seg000:0A4B		    jnz	    short eb
@@ -1508,105 +1529,62 @@ seg000:0A62		    in	    al,	61h
 seg000:0A64		    and	    al,	0FCh
 seg000:0A66		    out	    61h, al
 seg000:0A68		    mov	    dx,	11h
-seg000:0A6B		    mov	    al,	bh
+seg000:0A6B		    mov	    al,	bh	    ; send data	to addresses 11,12
 seg000:0A6D		    out	    dx,	al
-seg000:0A6E		    inc	    dx
+seg000:0A6E		    inc	    dx		    ; send high	byte
 seg000:0A6F		    mov	    al,	bl
-seg000:0A71		    out	    dx,	al
+seg000:0A71		    out	    dx,	al	    ; send low byte
+seg000:0A72 ; init. on-board rs232 port	for communications w/mfg monitor
 seg000:0A72		    mov	    ax,	50h ; 'P'
-seg000:0A75		    mov	    ds,	ax
+seg000:0A75		    mov	    ds,	ax	    ; point to data segment containing checkpoint #
 seg000:0A77		    mov	    ax,	cs
-seg000:0A79		    mov	    ss,	ax
-seg000:0A7B		    mov	    sp,	2Eh ; '.'
-seg000:0A7E		    mov	    dx,	2FBh
-seg000:0A81		    jmp	    s8250
-seg000:0A84 mo1:
-seg000:0A84		    mov	    cx,	dx
-seg000:0A86		    mov	    dx,	2FCh
-seg000:0A89		    sub	    al,	al
-seg000:0A8B		    out	    dx,	al	    ; COM: modem control reg bits:
-seg000:0A8B					    ; 0: 1=activate -DTR (-data	termnl ready), 0=deactivate
-seg000:0A8B					    ; 1: 1=activate -RTS (-request to send), 0=deactivate
-seg000:0A8B					    ; 2: 1=activate -OUT1 (spare, user-designated output)
-seg000:0A8B					    ; 3: 1=activate -OUT2
-seg000:0A8B					    ; 4: 1=activate loopback for diagnostic testing
-seg000:0A8C		    mov	    dx,	2FEh
+seg000:0A79		    mov	    ss,	ax	    ; set stack	for rtn
+seg000:0A7B		    mov	    sp,	offset ex1  ; (points to mo1)
+seg000:0A7E		    mov	    dx,	2FBh	    ; line control reg.	address
+seg000:0A81		    jmp	    s8250	    ; go set up	for 9600, 0dd, 2 stop bits, 8 bits
+seg000:0A84 mo1:				    ; DATA XREF: seg000:ex1o
+seg000:0A84		    mov	    cx,	dx	    ; dx came back with	xmit reg address in it
+seg000:0A86		    mov	    dx,	2FCh	    ; modem control reg
+seg000:0A89		    sub	    al,	al	    ; set dtr and rts low so possible wrap plug	won't confuse things
+seg000:0A8B		    out	    dx,	al
+seg000:0A8C		    mov	    dx,	2FEh	    ; modem status reg
 seg000:0A8F mo2:				    ; CODE XREF: e_msg+D6j
-seg000:0A8F		    in	    al,	dx	    ; COM: modem status	register
-seg000:0A8F					    ; 0: 1=Delta CTS changed
-seg000:0A8F					    ; 1: 1=Delta DSR changed
-seg000:0A8F					    ; 2: 1=Trailing Edge Ring Indicator	(TERI) is active
-seg000:0A8F					    ; 3: 1=Delta DCD has changed
-seg000:0A8F					    ; 4: 1=CTS is active
-seg000:0A8F					    ; 5: 1=DSR is active
-seg000:0A8F					    ; 6: 1=Ring	Indicator (RI) is active
-seg000:0A8F					    ; 7: 1=DCD is active
-seg000:0A90		    and	    al,	10000b
-seg000:0A92		    jz	    short mo2
-seg000:0A94		    dec	    dx
-seg000:0A95		    xchg    dx,	cx
-seg000:0A97		    mov	    al,	ds:5
-seg000:0A9A		    out	    dx,	al	    ; COM: line	control	register bits:
-seg000:0A9A					    ; 0-1: word	length:	00=5, 01=6, 10=7, 11=8
-seg000:0A9A					    ; 2:   stop	bits: 0=1,1=2
-seg000:0A9A					    ; 3-4: parity: x0=None, 01=Odd, 11=Even
-seg000:0A9A					    ; 5:   stuck parity
-seg000:0A9A					    ; 6:   enable break	control. 1=start sending 0s (spaces)
-seg000:0A9A					    ; 7:   DLAB	(Divisor Latch Access Bit)
-seg000:0A9B		    jmp	    short $+2
-seg000:0A9D		    xchg    dx,	cx
+seg000:0A8F		    in	    al,	dx
+seg000:0A90		    and	    al,	10000b	    ; cts up yet?
+seg000:0A92		    jz	    short mo2	    ; loop til it is
+seg000:0A94		    dec	    dx		    ; set dx=2fd (line status reg)
+seg000:0A95		    xchg    dx,	cx	    ; point to xmit. data reg
+seg000:0A97		    mov	    al,	ds:seg50.mfg_tst ; get mfg routine error indicator
+seg000:0A9A		    out	    dx,	al	    ; (maybe wrong from	early errors)
+seg000:0A9B		    jmp	    short $+2	    ; delay
+seg000:0A9D		    xchg    dx,	cx	    ; point dx=2fd
 seg000:0A9F mo3:				    ; CODE XREF: e_msg+E8j
-seg000:0A9F		    in	    al,	dx	    ; COM: line	status register	bits:
-seg000:0A9F					    ; 0: 1=data	ready (DR)
-seg000:0A9F					    ; 1: 1=overrun error (OE)
-seg000:0A9F					    ; 2: 1=parity error	(PE)
-seg000:0A9F					    ; 3: 1=Bad stop bit	in character
-seg000:0A9F					    ; 4: 1=break indicated (BI)
-seg000:0A9F					    ; 5: 1=transmitter holding register	empty
-seg000:0A9F					    ; 6: 1=transmitter empty
-seg000:0AA0		    and	    al,	20h
-seg000:0AA2		    jmp	    short $+2
-seg000:0AA4		    jz	    short mo3
+seg000:0A9F		    in	    al,	dx	    ; transmit empty?
+seg000:0AA0		    and	    al,	100000b
+seg000:0AA2		    jmp	    short $+2	    ; delay
+seg000:0AA4		    jz	    short mo3	    ; loop til it is
 seg000:0AA6		    xchg    dx,	cx
-seg000:0AA8		    mov	    al,	bh
-seg000:0AAA		    out	    dx,	al	    ; COM: line	control	register bits:
-seg000:0AAA					    ; 0-1: word	length:	00=5, 01=6, 10=7, 11=8
-seg000:0AAA					    ; 2:   stop	bits: 0=1,1=2
-seg000:0AAA					    ; 3-4: parity: x0=None, 01=Odd, 11=Even
-seg000:0AAA					    ; 5:   stuck parity
-seg000:0AAA					    ; 6:   enable break	control. 1=start sending 0s (spaces)
-seg000:0AAA					    ; 7:   DLAB	(Divisor Latch Access Bit)
-seg000:0AAB		    jmp	    short $+2
+seg000:0AA8		    mov	    al,	bh	    ; get msb of error word
+seg000:0AAA		    out	    dx,	al
+seg000:0AAB		    jmp	    short $+2	    ; delay
 seg000:0AAD		    xchg    dx,	cx
 seg000:0AAF mo4:				    ; CODE XREF: e_msg+F8j
-seg000:0AAF		    in	    al,	dx	    ; COM: line	status register	bits:
-seg000:0AAF					    ; 0: 1=data	ready (DR)
-seg000:0AAF					    ; 1: 1=overrun error (OE)
-seg000:0AAF					    ; 2: 1=parity error	(PE)
-seg000:0AAF					    ; 3: 1=Bad stop bit	in character
-seg000:0AAF					    ; 4: 1=break indicated (BI)
-seg000:0AAF					    ; 5: 1=transmitter holding register	empty
-seg000:0AAF					    ; 6: 1=transmitter empty
-seg000:0AB0		    and	    al,	20h
-seg000:0AB2		    jmp	    short $+2
+seg000:0AAF		    in	    al,	dx	    ; wait for xmit empty
+seg000:0AB0		    and	    al,	100000b
+seg000:0AB2		    jmp	    short $+2	    ; delay
 seg000:0AB4		    jz	    short mo4
-seg000:0AB6		    mov	    al,	bl
+seg000:0AB6		    mov	    al,	bl	    ; get lsb of error word
 seg000:0AB8		    xchg    dx,	cx
-seg000:0ABA		    out	    dx,	al	    ; COM: line	control	register bits:
-seg000:0ABA					    ; 0-1: word	length:	00=5, 01=6, 10=7, 11=8
-seg000:0ABA					    ; 2:   stop	bits: 0=1,1=2
-seg000:0ABA					    ; 3-4: parity: x0=None, 01=Odd, 11=Even
-seg000:0ABA					    ; 5:   stuck parity
-seg000:0ABA					    ; 6:   enable break	control. 1=start sending 0s (spaces)
-seg000:0ABA					    ; 7:   DLAB	(Divisor Latch Access Bit)
+seg000:0ABA		    out	    dx,	al
 seg000:0ABB totlpt0:				    ; CODE XREF: e_msg+5Cj
 seg000:0ABB					    ; e_msg+79j e_msg+94j
 seg000:0ABB					    ; e_msg+9Ej
-seg000:0ABB		    cli
+seg000:0ABB					    ; DATA XREF: seg000:002Co
+seg000:0ABB		    cli			    ; disable ints.
 seg000:0ABC		    sub	    al,	al
-seg000:0ABE		    out	    0F2h, al
-seg000:0AC0		    out	    0A0h, al	    ; PIC 2  same as 0020 for PIC 1
-seg000:0AC2		    hlt
+seg000:0ABE		    out	    0F2h, al	    ; stop diskette motor
+seg000:0AC0		    out	    0A0h, al	    ; disable nmi
+seg000:0AC2		    hlt			    ; halt
 seg000:0AC3		    retn
 seg000:0AC3 e_msg	    endp
 seg000:0AC4 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
@@ -8110,7 +8088,7 @@ seg000:4067		    mov	    ax,	cs
 seg000:4069		    mov	    es:[di], ax	    ; new segment for 0x1c
 seg000:406C		    sti			    ; enable interrupts
 seg000:406D		    pop	    ds
-seg000:406E		    call    diag_run_action_bis
+seg000:406E		    call    diag_run_action
 seg000:4071		    mov	    ax,	507h	    ; page 7
 seg000:4074		    int	    10h		    ; -	VIDEO -	SELECT DISPLAY PAGE
 seg000:4074					    ; AL = display page, 0-7  for modes	0 & 1, 0-3  for	modes 2	& 3
@@ -8123,7 +8101,7 @@ seg000:407D					    ; BH = page	number
 seg000:407F		    int	    83h		    ; reserved for BASIC
 seg000:407F int_80_diag_init endp
 seg000:4081 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
-seg000:4081 wait_and_process_key proc near	    ; CODE XREF: diag_run_action+C2j
+seg000:4081 wait_and_process_key proc near	    ; CODE XREF: diag_run_action_mfg+C2j
 seg000:4081		    push    bx
 seg000:4082		    push    cx
 seg000:4083		    mov	    bl,	3
@@ -8146,7 +8124,7 @@ seg000:409C		    cmp	    ah,	1Ch	    ; pressed enter?
 seg000:409F		    pop	    ax
 seg000:40A0		    mov	    ah,	al
 seg000:40A2		    jnz	    short l3	    ; no, another key
-seg000:40A4		    jmp	    short diag_run_action
+seg000:40A4		    jmp	    short diag_run_action_mfg
 seg000:40A6		    db	90h ; ђ
 seg000:40A7 l3:					    ; CODE XREF: wait_and_process_key+21j
 seg000:40A7		    int	    83h		    ; reserved for BASIC
@@ -8220,8 +8198,8 @@ seg000:40FD int_83_key_pressed endp
 seg000:40FF ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
 seg000:40FF ; input
 seg000:40FF ;	   ah =	test to	run
-seg000:40FF diag_run_action proc near		    ; CODE XREF: wait_and_process_key+23j
-seg000:40FF					    ; diag_run_action_bis+28j
+seg000:40FF diag_run_action_mfg	proc near	    ; CODE XREF: wait_and_process_key+23j
+seg000:40FF					    ; diag_run_action+28j
 seg000:40FF		    call    ds_50	    ; ds = 0x50
 seg000:4102		    mov	    byte ptr ds:seg50.menu_up, 0
 seg000:4107		    push    ax
@@ -8239,9 +8217,9 @@ seg000:411C		    int	    10h		    ; -	VIDEO -	SELECT DISPLAY PAGE
 seg000:411C					    ; AL = display page, 0-7  for modes	0 & 1, 0-3  for	modes 2	& 3
 seg000:411E		    pop	    ax
 seg000:411F		    mov	    cx,	64	    ; go through 64 interrupt handlers
-seg000:4122		    mov	    di,	214h	    ; int 0x85 - 0xc4
-seg000:4125 l0:					    ; CODE XREF: diag_run_action+3Ej
-seg000:4125					    ; diag_run_action+58j
+seg000:4122		    mov	    di,	214h	    ; int 0x85 - 0xc4 (0x214 / 4 = 0x85)
+seg000:4125 l0:					    ; CODE XREF: diag_run_action_mfg+3Ej
+seg000:4125					    ; diag_run_action_mfg+58j
 seg000:4125		    push    cx
 seg000:4126		    push    di
 seg000:4127		    push    es
@@ -8258,31 +8236,31 @@ seg000:4135		    pop	    es
 seg000:4136		    pop	    di
 seg000:4137		    pop	    cx
 seg000:4138		    jb	    short l1
-seg000:413A		    add	    di,	4	    ; next interrupt to	call
+seg000:413A		    add	    di,	4	    ; next interrupt handler
 seg000:413D		    loop    l0
 seg000:413F		    mov	    ax,	0FFFFh
 seg000:4142		    mov	    es,	ax	    ; es = 0xffff
 seg000:4144		    mov	    di,	1	    ; wtf is ffff:0001... shouldn't it be ffff:0?
 seg000:4147		    jmp	    dword ptr es:[di] ;	jump to: ffff:0001 (reset?)
-seg000:414A l1:					    ; CODE XREF: diag_run_action+39j
-seg000:414A		    cmp	    ah,	0FFh
-seg000:414D		    jnz	    short l4
-seg000:414F		    or	    dh,	dh
+seg000:414A l1:					    ; CODE XREF: diag_run_action_mfg+39j
+seg000:414A		    cmp	    ah,	0FFh	    ; ah = 0xff	?
+seg000:414D		    jnz	    short l4	    ; if not, try to reset (?)
+seg000:414F		    or	    dh,	dh	    ; dh == 0 or dh == 41h -> do next test
 seg000:4151		    jnz	    short l3
-seg000:4153 l2:					    ; CODE XREF: diag_run_action+5Dj
-seg000:4153		    dec	    cx
-seg000:4154		    add	    di,	4
-seg000:4157		    jmp	    short l0
-seg000:4159 l3:					    ; CODE XREF: diag_run_action+52j
+seg000:4153 l2:					    ; CODE XREF: diag_run_action_mfg+5Dj
+seg000:4153		    dec	    cx		    ; one less time
+seg000:4154		    add	    di,	4	    ; next interrupt handler
+seg000:4157		    jmp	    short l0	    ; do the next test
+seg000:4159 l3:					    ; CODE XREF: diag_run_action_mfg+52j
 seg000:4159		    cmp	    dh,	41h ; 'A'
 seg000:415C		    jz	    short l2
 seg000:415E		    call    ds_50
 seg000:4161		    mov	    ds:seg50.mfg_tst, cl
 seg000:4165		    jmp	    dword ptr ds:seg50.mfg_rtn
-seg000:4169 l4:					    ; CODE XREF: diag_run_action+4Ej
+seg000:4169 l4:					    ; CODE XREF: diag_run_action_mfg+4Ej
 seg000:4169		    push    bx
 seg000:416A		    push    dx
-seg000:416B		    call    diag_run_action_bis
+seg000:416B		    call    diag_run_action
 seg000:416E		    call    ds_50	    ; ds = 0x50
 seg000:4171		    mov	    al,	ds:seg50.dcp_menu_page
 seg000:4174		    mov	    bh,	al
@@ -8306,22 +8284,22 @@ seg000:418A		    or	    dh,	dh
 seg000:418C		    jnz	    short l5
 seg000:418E		    mov	    al,	2Ah ; '*'
 seg000:4190		    jmp	    short l6
-seg000:4192 l5:					    ; CODE XREF: diag_run_action+8Dj
+seg000:4192 l5:					    ; CODE XREF: diag_run_action_mfg+8Dj
 seg000:4192		    and	    al,	0F0h
 seg000:4194		    cmp	    al,	1000000b
 seg000:4196		    jz	    short l7
 seg000:4198		    mov	    al,	dh
 seg000:419A		    call    tty_write_char
 seg000:419D		    mov	    al,	dl
-seg000:419F l6:					    ; CODE XREF: diag_run_action+91j
+seg000:419F l6:					    ; CODE XREF: diag_run_action_mfg+91j
 seg000:419F		    call    tty_write_char
 seg000:41A2		    jmp	    short l8
-seg000:41A4 l7:					    ; CODE XREF: diag_run_action+97j
+seg000:41A4 l7:					    ; CODE XREF: diag_run_action_mfg+97j
 seg000:41A4		    mov	    al,	bh
 seg000:41A6		    call    bcd_add_4_times
 seg000:41A9		    mov	    al,	bl
 seg000:41AB		    call    bcd_add_4_times
-seg000:41AE l8:					    ; CODE XREF: diag_run_action+A3j
+seg000:41AE l8:					    ; CODE XREF: diag_run_action_mfg+A3j
 seg000:41AE		    mov	    bh,	ds:seg50.dcp_menu_page
 seg000:41B2		    mov	    dx,	ds:seg50.dcp_row_col
 seg000:41B6		    mov	    ah,	2
@@ -8335,14 +8313,14 @@ seg000:41BC					    ; Return: AL = character
 seg000:41BC					    ; AH = attribute of	character (alpha modes)
 seg000:41BE		    call    ds_40
 seg000:41C1		    jmp	    wait_and_process_key
-seg000:41C1 diag_run_action endp
+seg000:41C1 diag_run_action_mfg	endp
 seg000:41C4 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
 seg000:41C4 ds_50	    proc near		    ; CODE XREF: int_80_diag_init+1Fp
 seg000:41C4					    ; int_83_key_pressed+2p
-seg000:41C4					    ; diag_run_actionp
-seg000:41C4					    ; diag_run_action+5Fp
-seg000:41C4					    ; diag_run_action+6Fp
-seg000:41C4					    ; diag_run_action_bis+5Ep ...
+seg000:41C4					    ; diag_run_action_mfgp
+seg000:41C4					    ; diag_run_action_mfg+5Fp
+seg000:41C4					    ; diag_run_action_mfg+6Fp
+seg000:41C4					    ; diag_run_action+5Ep ...
 seg000:41C4		    push    ax
 seg000:41C5		    mov	    ax,	50h ; 'P'
 seg000:41C8		    mov	    ds,	ax
@@ -8350,8 +8328,8 @@ seg000:41CA		    pop	    ax
 seg000:41CB		    retn
 seg000:41CB ds_50	    endp
 seg000:41CC ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
-seg000:41CC diag_run_action_bis	proc near	    ; CODE XREF: int_80_diag_init+4Dp
-seg000:41CC					    ; diag_run_action+6Cp
+seg000:41CC diag_run_action proc near		    ; CODE XREF: int_80_diag_init+4Dp
+seg000:41CC					    ; diag_run_action_mfg+6Cp
 seg000:41CC		    xor	    ax,	ax
 seg000:41CE		    mov	    es,	ax	    ; es = 0
 seg000:41D0		    int	    10h		    ; set video	mode 40x25 b&w
@@ -8375,15 +8353,15 @@ seg000:41EB		    cmp	    al,	10000b	    ; mfg sys test mode?
 seg000:41ED		    jnz	    short l0	    ; no, jump
 seg000:41EF		    dec	    ah		    ; ah = 0xff: mfg system test
 seg000:41F1		    add	    sp,	2	    ; stack +2 (simulate pop)
-seg000:41F4		    jmp	    diag_run_action
-seg000:41F7 l0:					    ; CODE XREF: diag_run_action_bis+21j
+seg000:41F4		    jmp	    diag_run_action_mfg
+seg000:41F7 l0:					    ; CODE XREF: diag_run_action+21j
 seg000:41F7		    cmp	    al,	1000000b    ; service mode (system test) ?
 seg000:41F9		    jnz	    short l1	    ; no, jump
 seg000:41FB		    inc	    ah		    ; ah = 1 (service mode - system test)
-seg000:41FD l1:					    ; CODE XREF: diag_run_action_bis+2Dj
-seg000:41FD		    mov	    cx,	64	    ; go through 64 interrupts (?)
-seg000:4200		    mov	    di,	214h	    ; from int int 0x85	to 0xc4	(?)
-seg000:4203 l2:					    ; CODE XREF: diag_run_action_bis+48j
+seg000:41FD l1:					    ; CODE XREF: diag_run_action+2Dj
+seg000:41FD		    mov	    cx,	64	    ; go through 64 interrupts
+seg000:4200		    mov	    di,	214h	    ; from int int 0x85	to 0xc4	(0x214 / 4 = 0x85)
+seg000:4203 l2:					    ; CODE XREF: diag_run_action+48j
 seg000:4203		    push    cx
 seg000:4204		    push    di
 seg000:4205		    push    es
@@ -8396,7 +8374,7 @@ seg000:420D		    pop	    ax
 seg000:420E		    pop	    es
 seg000:420F		    pop	    di
 seg000:4210		    pop	    cx
-seg000:4211		    add	    di,	4
+seg000:4211		    add	    di,	4	    ; next interrupt handler
 seg000:4214		    loop    l2
 seg000:4216		    mov	    ah,	0Fh
 seg000:4218		    int	    10h		    ; -	VIDEO -	GET CURRENT VIDEO MODE
@@ -8429,10 +8407,10 @@ seg000:423A					    ; CL bits 0-4 = end	line for cursor	in character cell
 seg000:423C		    pop	    cx
 seg000:423D		    pop	    ax
 seg000:423E		    retn
-seg000:423E diag_run_action_bis	endp ; sp = -2
+seg000:423E diag_run_action endp ; sp =	-2
 seg000:423F ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
-seg000:423F bcd_add_4_times proc near		    ; CODE XREF: diag_run_action+A7p
-seg000:423F					    ; diag_run_action+ACp
+seg000:423F bcd_add_4_times proc near		    ; CODE XREF: diag_run_action_mfg+A7p
+seg000:423F					    ; diag_run_action_mfg+ACp
 seg000:423F		    push    ax
 seg000:4240		    mov	    cl,	4
 seg000:4242		    shr	    al,	cl
@@ -8449,8 +8427,8 @@ seg000:424F		    daa
 seg000:424F bcd_add_130	    endp
 seg000:4250 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
 seg000:4250 ; al = char	to write
-seg000:4250 tty_write_char  proc near		    ; CODE XREF: diag_run_action+9Bp
-seg000:4250					    ; diag_run_action:l6p
+seg000:4250 tty_write_char  proc near		    ; CODE XREF: diag_run_action_mfg+9Bp
+seg000:4250					    ; diag_run_action_mfg:l6p
 seg000:4250		    push    bx
 seg000:4251		    mov	    ah,	0Eh
 seg000:4253		    mov	    bh,	0
@@ -8461,7 +8439,7 @@ seg000:4257		    pop	    bx
 seg000:4258		    retn
 seg000:4258 tty_write_char  endp
 seg000:4259 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
-seg000:4259 clear_screen    proc near		    ; CODE XREF: diag_run_action+17p
+seg000:4259 clear_screen    proc near		    ; CODE XREF: diag_run_action_mfg+17p
 seg000:4259		    push    es
 seg000:425A		    push    ax
 seg000:425B		    push    di
@@ -12259,9 +12237,9 @@ seg000:5A1F		    retn
 seg000:5A1F diag_check_kbd_break endp
 seg000:5A20 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
 seg000:5A20 ds_40	    proc near		    ; CODE XREF: int_80_diag_initp
-seg000:5A20					    ; diag_run_action+Fp
-seg000:5A20					    ; diag_run_action+BFp
-seg000:5A20					    ; diag_run_action_bis+14p
+seg000:5A20					    ; diag_run_action_mfg+Fp
+seg000:5A20					    ; diag_run_action_mfg+BFp
+seg000:5A20					    ; diag_run_action+14p
 seg000:5A20					    ; int_8e_diag_serial_printer?+3p
 seg000:5A20					    ; int_8f_diag_rs232p
 seg000:5A20		    push    ax
@@ -13276,7 +13254,9 @@ seg000:5F5D ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
 seg000:5F5D ; int 8b
 seg000:5F5D ; keyboard test
 seg000:5F5D ; intput:
-seg000:5F5D ;	   ah =	'J' and 'K' (they are different modes)
+seg000:5F5D ;	   ah =	'J': 62-key keyboard test
+seg000:5F5D ;		'K': 83-key keyboard test
+seg000:5F5D ;		0,1: show error	and exit
 seg000:5F5D ; output:
 seg000:5F5D ;	   bh =	kbd error code
 seg000:5F5D ;	   dh/dl = error message ?
@@ -17125,7 +17105,7 @@ seg000:E6F5					    ; uart:at9p
 seg000:E6F5		    push    ax
 seg000:E6F6		    sti
 seg000:E6F7		    mov	    ah,	cs:[di]
-seg000:E6FA		    and	    ds:84h, ah
+seg000:E6FA		    and	    ds:seg40.intr_flag,	ah
 seg000:E6FE		    in	    al,	21h	    ; Interrupt	controller, 8259A.
 seg000:E700		    and	    al,	ah
 seg000:E702		    out	    21h, al	    ; Interrupt	controller, 8259A.
@@ -17141,7 +17121,7 @@ seg000:E707		    sub	    cx,	cx
 seg000:E709		    mov	    al,	cs:[di]
 seg000:E70C		    xor	    al,	0FFh
 seg000:E70E at25:				    ; CODE XREF: c5059+Ej
-seg000:E70E		    test    ds:84h, al
+seg000:E70E		    test    ds:seg40.intr_flag,	al
 seg000:E712		    jnz	    short at27
 seg000:E714		    loop    at25
 seg000:E716		    stc
@@ -17168,14 +17148,15 @@ seg000:E727 at30:				    ; CODE XREF: w8250c+Bj
 seg000:E727		    pop	    cx
 seg000:E728		    retn
 seg000:E728 w8250c	    endp
-seg000:E729 a1		    dw 3F9h		    ; DATA XREF: rs232_io+44o
-seg000:E72B		    dw 2EAh
-seg000:E72D		    dw 175h
-seg000:E72F		    dw 0BAh
-seg000:E731		    dw 5Dh
-seg000:E733		    dw 2Fh
-seg000:E735		    dw 17h
-seg000:E737		    dw 17h
+seg000:E729 a1		    dw 1017		    ; DATA XREF: rs232_io+44o
+seg000:E729					    ; 110 baud - table of init value
+seg000:E72B		    dw 746		    ; 150
+seg000:E72D		    dw 373		    ; 300
+seg000:E72F		    dw 186		    ; 600
+seg000:E731		    dw 93		    ; 1200
+seg000:E733		    dw 47		    ; 2400
+seg000:E735		    dw 23		    ; 4800
+seg000:E737		    dw 23		    ; 4800
 seg000:E739 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
 seg000:E739 rs232_io	    proc far		    ; DATA XREF: seg000:FF0Bo
 seg000:E739		    sti
