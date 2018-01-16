@@ -21,12 +21,12 @@ Detailed description:
 TL;DR;:
 
 *   Connect two joysticks
-*   Press `Ctrl` + `Alt` + `Insert` keys
-*   Immediately after that do:
-    *   Press: Joy 1 button B, and Joy 2 buttons A & B: enters diag loop mode without the diag screen
-    *   Press: Joy 1 button A, and Joy 2 buttons A & B: enters boot loop. Keeps botting
-    *   Press: Joy 1 buttons A & B, and Joy 2 button B: all diag. screen present
-    *   Press: Joy 1 buttons A & B, and Joy 2 button A: ?
+*   Press `Ctrl` + `Alt` + `Insert` keys to enter into diagnostics mode
+*   Immediately after that, do:
+    *   Press: Joy 1 button B, and Joy 2 buttons A & B for Manufacturing burn-in mode: enters diag loop mode without the diag screen
+    *   Press: Joy 1 button A, and Joy 2 buttons A & B for Manufacturing system test mode: enters boot loop. Keeps booting
+    *   Press: Joy 1 buttons A & B, and Joy 2 button B for Service loop-post mode: displays all diagnostics options, even if the hardware is not present
+    *   Press: Joy 1 buttons A & B, and Joy 2 button A for Service system-test mode
     *   Press: Joy 1 buttons A & B, and joy 2 buttons A & B: enters boot loop with sound test
 
 
