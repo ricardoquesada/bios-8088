@@ -15,28 +15,38 @@ seg000:0000 ; ออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออ
 seg000:0000 ; Segment type: Pure code
 seg000:0000 seg000	    segment byte public	'CODE'
 seg000:0000 a1504036Copr_Ibm19811 db '1504036 COPR. IBM 1981,1983'
-seg000:001B z1		    dw offset l12
+seg000:001B z1		    dw offset l12	    ; return pointers for rtns called before stack is initialized
 seg000:001D		    dw offset l14
 seg000:001F		    dw offset l16
 seg000:0021		    dw offset l19
 seg000:0023		    dw offset l24
-seg000:0025 aKb		    db ' KB'                ; DATA XREF: q35+36o
+seg000:0025 f3b		    db ' KB'                ; DATA XREF: q35+36o
 seg000:0028 ex_0	    dw offset eb0	    ; DATA XREF: e_msg+83o
 seg000:002A		    dw offset eb0
 seg000:002C		    dw offset totlpt0
 seg000:002E ex1		    dw offset mo1	    ; DATA XREF: e_msg+BFo
-seg000:0030 aError	    db 'ERROR'              ; DATA XREF: e_msg+25o
-seg000:0035 aA		    db 'A'
-seg000:0036 aB		    db 'B'                  ; DATA XREF: key_scan_save+16o
-seg000:0037 aC		    db 'C'
-seg000:0038 aD		    db 'D'
-seg000:0039 aE		    db 'E'
-seg000:003A aF		    db 'F'
-seg000:003B aG		    db 'G'
+seg000:0030 ;----------------------------------------------------
+seg000:0030 ; message area for post
+seg000:0030 ;----------------------------------------------------
+seg000:0030 error_err	    db 'ERROR'              ; DATA XREF: e_msg+25o
+seg000:0035 mem_err	    db 'A'
+seg000:0036 key_err	    db 'B'                  ; DATA XREF: key_scan_save+16o
+seg000:0037 cass_err	    db 'C'
+seg000:0038 com1_err	    db 'D'
+seg000:0039 com2_err	    db 'E'
+seg000:003A rom_err	    db 'F'
+seg000:003B cart_err	    db 'G'
 seg000:003C disk_err	    db 'H'                  ; DATA XREF: seg000:086Fo
-seg000:003D prt_src_tbl	    dw 378h		    ; DATA XREF: seg000:f15co
+seg000:003D f4		    dw 378h		    ; DATA XREF: seg000:f15co
+seg000:003D					    ; print source table
 seg000:003F		    dw 278h
-seg000:0041		    dw 0F7EFh
+seg000:0041 imasks	    dw 0F7EFh		    ; interrupt	masks for 8259 interrupt controllers
+seg000:0043 ;----------------------------------------------------
+seg000:0043 ; setup
+seg000:0043 ;	  disable nmi, maskable	ints.
+seg000:0043 ;	  sound	chip, and video.
+seg000:0043 ;	  turn drive 0 motor off
+seg000:0043 ;----------------------------------------------------
 seg000:0043 ; START OF FUNCTION	CHUNK FOR kb_int
 seg000:0043 reset:				    ; CODE XREF: seg000:f19_0j
 seg000:0043					    ; kb_int+10Dj kb_int+11Aj
@@ -66,6 +76,15 @@ seg000:0067		    mov	    al,	4	    ; set vga reset reg
 seg000:0069		    out	    dx,	al	    ; select it
 seg000:006A		    mov	    al,	1	    ; set async	reset
 seg000:006C		    out	    dx,	al	    ; reset video gate array
+seg000:006D ;----------------------------------------------------
+seg000:006D ; test 1
+seg000:006D ;	  8088 processor test
+seg000:006D ; description
+seg000:006D ;	  verify 8088 flags, registers
+seg000:006D ;	  and conditional jumps
+seg000:006D ;
+seg000:006D ; mfg. error code 0001h
+seg000:006D ;----------------------------------------------------
 seg000:006D		    mov	    ah,	0D5h ; 'ี'
 seg000:006F		    sahf
 seg000:0070 loc_F0070:				    ; DATA XREF: diag_bios_break+5r
@@ -93,6 +112,8 @@ seg000:0091		    shr	    ah,	cl
 seg000:0093		    jb	    short l4
 seg000:0095		    shl	    ah,	1
 seg000:0097		    jo	    short l4
+seg000:0099 ;----- read/write the 8088 general and segmentation	registers
+seg000:0099 ;	   with	all one's and zeroes's
 seg000:0099		    mov	    ax,	0FFFFh
 seg000:009C		    stc
 seg000:009D l2:					    ; CODE XREF: kb_int-14A9j
@@ -128,8 +149,17 @@ seg000:00C5		    out	    dx,	al
 seg000:00C6		    inc	    al
 seg000:00C8		    out	    dx,	al
 seg000:00C9		    hlt
-seg000:00CA ;----- test	2
-seg000:00CA	8522 initialization and	test
+seg000:00CA ;----------------------------------------------------
+seg000:00CA ; test 2
+seg000:00CA ;	  8522 initialization and test
+seg000:00CA ; description
+seg000:00CA ;	  first	initialize 8255	prog.
+seg000:00CA ;	  peripheral interface.	ports a&b
+seg000:00CA ;	  are latched output
+seg000:00CA ;	  buffers. c is	input.
+seg000:00CA ;
+seg000:00CA ; mfg. err.	code =0002h
+seg000:00CA ;----------------------------------------------------
 seg000:00CA l5:					    ; CODE XREF: kb_int-14A5j
 seg000:00CA		    mov	    al,	0FEh ; 'þ'
 seg000:00CC		    out	    10h, al	    ; send fe to mfg
@@ -163,8 +193,11 @@ seg000:00FB		    mov	    dx,	3DFh
 seg000:00FE		    out	    dx,	al
 seg000:00FF		    mov	    al,	0Dh	    ; initialize output	ports
 seg000:0101		    out	    61h, al
+seg000:0103 ;----------------------------------------------------
 seg000:0103 ; Part 3
 seg000:0103 ;	 set up	video gate array and 6845 to get memory	working
+seg000:0103 ;
+seg000:0103 ;----------------------------------------------------
 seg000:0103		    mov	    al,	0FDh ; 'ý'
 seg000:0105		    out	    10h, al
 seg000:0107		    mov	    dx,	3D4h	    ; set address of 6845
@@ -193,10 +226,20 @@ seg000:012D		    xor	    al,	al	    ; set zero for data
 seg000:012F		    out	    dx,	al
 seg000:0130		    inc	    ah		    ; next reg
 seg000:0132		    loop    l11
-seg000:0134 ; part 4
-seg000:0134 ;	planar board ros checksum test
+seg000:0134 ;----------------------------------------------------
+seg000:0134 ; test 4
+seg000:0134 ;	  planar board ros checksum test
+seg000:0134 ; description
+seg000:0134 ;	  a checksum test is done for each ros
+seg000:0134 ;	  module on the	planar board to.
+seg000:0134 ;	  mfg error code =0003h	module at address
+seg000:0134 ;			  f000:0000 error
+seg000:0134 ;			  0004h	module at address
+seg000:0134 ;			  f800:0000 error
+seg000:0134 ;----------------------------------------------------
 seg000:0134		    mov	    al,	0FCh ; 'ü'
 seg000:0136		    out	    10h, al	    ; mfg out =	fc
+seg000:0138 ; check module at f000:0 (lenght 32k)
 seg000:0138		    xor	    si,	si
 seg000:013A		    mov	    ax,	cs
 seg000:013C		    mov	    ss,	ax
@@ -214,8 +257,23 @@ seg000:0151		    mov	    cx,	8000h
 seg000:0154		    jmp	    ros_checksum
 seg000:0157 l14:				    ; DATA XREF: seg000:001Do
 seg000:0157		    jz	    short l15
-seg000:0159		    mov	    bx,	4
+seg000:0159		    mov	    bx,	4	    ; indicate error
 seg000:015C		    jmp	    e_msg
+seg000:015F ;----------------------------------------------------
+seg000:015F ; test 5
+seg000:015F ;	  base 2k read/write storage test
+seg000:015F ; description
+seg000:015F ;	  write/read/verify data patterns
+seg000:015F ;	  aa,55	and 00 to 1st 2k of storage
+seg000:015F ;	  and the 2k just below	64k (crt buffer)
+seg000:015F ;	  verify storage addressability.
+seg000:015F ;	  on exit set crt page to 3. set
+seg000:015F ;	  temporary stack also.
+seg000:015F ; mfg. error code 04xx for system board mem.
+seg000:015F ;		      05xx for 64k attrib. cd. mem
+seg000:015F ;		      06xx for error in	both
+seg000:015F ;		      (xx= error bits)
+seg000:015F ;----------------------------------------------------
 seg000:015F l15:				    ; CODE XREF: seg000:l14j
 seg000:015F		    mov	    al,	0FBh ; '๛'
 seg000:0161		    out	    10h, al	    ; set mfg flag = fb
@@ -290,39 +348,50 @@ seg000:01E2		    mov	    al,	3Fh ; '?'   ; port setting for 128k system
 seg000:01E4 l26:				    ; CODE XREF: seg000:01DDj
 seg000:01E4		    mov	    ds:415h, bx	    ; 40:15 (true_mem)
 seg000:01E8		    mov	    ds:48Ah, al	    ; 40:8a (pagdat)
+seg000:01EB ;----------------------------------------------------
 seg000:01EB ; part 6
-seg000:01EB ;	interrupts
+seg000:01EB ;	  interrupts
 seg000:01EB ; description
-seg000:01EB ;	32 interrupts are initialized
+seg000:01EB ;	  32 interrupts	are initialized	to point to a
+seg000:01EB ;	  dummy	handler. the bios interrupts are loaded.
+seg000:01EB ;	  diagnostics interrupts are loaded
+seg000:01EB ;	  system configuration word is put in memory.
+seg000:01EB ;	  the dummy interrupt handler resides here.
+seg000:01EB ;----------------------------------------------------
 seg000:01EB		    mov	    ax,	50h ; 'P'
 seg000:01EE		    mov	    ds,	ax
-seg000:01F0		    mov	    byte ptr ds:seg50.mfg_tst, 0F8h ; '๘'
-seg000:01F5		    call    mfg_up
+seg000:01F0		    mov	    byte ptr ds:seg50.mfg_tst, 0F8h ; '๘' ; set up mfg checkpoint from this point
+seg000:01F5		    call    mfg_up	    ; update mfg checkpoint
 seg000:01F8		    mov	    word ptr ds:seg50.mfg_rtn, offset mfg_out
 seg000:01FE		    mov	    ax,	cs
-seg000:0200		    mov	    ds:seg50.mfg_ret_s,	ax
+seg000:0200		    mov	    ds:seg50.mfg_ret_s,	ax ; set doubleword pointer to mfg.
+seg000:0200					    ; error output routine so diags
+seg000:0200					    ; don't have to duplicate code
 seg000:0203		    mov	    ax,	0
 seg000:0206		    mov	    ds,	ax
-seg000:0208		    mov	    cx,	0FFh
-seg000:020B		    sub	    di,	di
-seg000:020D		    mov	    es,	di
+seg000:0208 ;----- set up the interrupt	vectors	to temp	interrupt
+seg000:0208		    mov	    cx,	0FFh	    ; first all	interrupts
+seg000:020B		    sub	    di,	di	    ; first interrupt location is 0000
+seg000:020D		    mov	    es,	di	    ; set es=0000 also
 seg000:020F d3:					    ; CODE XREF: seg000:0216j
-seg000:020F		    mov	    ax,	offset d11
+seg000:020F		    mov	    ax,	offset d11  ; move addr	of intr	proc seg
 seg000:0212		    stosw
-seg000:0213		    mov	    ax,	cs
+seg000:0213		    mov	    ax,	cs	    ; get addr of intr proc seg
 seg000:0215		    stosw
-seg000:0216		    loop    d3
-seg000:0218		    mov	    word ptr ds:124h, offset extab ; int 0x49
-seg000:021E		    mov	    di,	40h ; '@'   ; int 0x10
+seg000:0216		    loop    d3		    ; vectbl0
+seg000:0218		    mov	    word ptr ds:124h, offset extab ; set up ekt. scan table (int 0x49)
+seg000:021E ;----- set up bios interrupts
+seg000:021E		    mov	    di,	40h ; '@'   ; set up video int (int 0x10)
 seg000:0221		    push    cs
-seg000:0222		    pop	    ds
+seg000:0222		    pop	    ds		    ; place cs in ds
 seg000:0223		    mov	    si,	offset vector_table_16
 seg000:0226		    mov	    cx,	16	    ; 16 entries
 seg000:0229 d4:					    ; CODE XREF: seg000:022Cj
-seg000:0229		    movsw
+seg000:0229		    movsw		    ; move interrupt vector to low memory
 seg000:022A		    inc	    di
-seg000:022B		    inc	    di
-seg000:022C		    loop    d4
+seg000:022B		    inc	    di		    ; point to next vector entry
+seg000:022C		    loop    d4		    ; repeat for all 16	bios interrupts
+seg000:022E ;----- set up diagnostics interrupts
 seg000:022E		    mov	    di,	200h	    ; start with int 80h
 seg000:0231		    mov	    si,	offset diag_table_ptr ;	point to entry point table
 seg000:0234		    mov	    cx,	16	    ; 16 entries
@@ -335,6 +404,23 @@ seg000:023C		    mov	    ds,	cx	    ; set ds to	zero
 seg000:023E		    mov	    word ptr ds:204h, offset locate_1_int_81 ; int 0x81
 seg000:0244		    mov	    word ptr ds:208h, offset prtn3_int_82 ; int	0x82
 seg000:024A		    mov	    word ptr ds:224h, offset int_89_diag_joystick ; int	0x89
+seg000:0250 ;----- set up default equipment determination word
+seg000:0250 ;	  bit 15,14 = number of	printers attached
+seg000:0250 ;	  bit 13 = 1 = serial printer present
+seg000:0250 ;	  bit 12 = game	i/o attached
+seg000:0250 ;	  bit 11,10,9 =	number of rs232	cards attached
+seg000:0250 ;	  bit 8	= dma (0=dma present, 1=no dma on system)
+seg000:0250 ;	  bit 7,6 = number of diskette drives
+seg000:0250 ;		  00=1,	01=2, 10=3, 11=4 only if bit 0 = 1
+seg000:0250 ;	  bit 5,4 = initial video mode
+seg000:0250 ;			 00 - unused
+seg000:0250 ;			 01 - 40x25 bw using color card
+seg000:0250 ;			 10 - 80x25 bw using color card
+seg000:0250 ;			 11 - 80x25 bw using bw	card
+seg000:0250 ;	  bit 3,2 = planar ram size (10=48k, 11=64k)
+seg000:0250 ;	  bit 1	not used
+seg000:0250 ;	  bit 0	= 1 (ipl diskette installed)
+seg000:0250 ;----------------------------------------------------
 seg000:0250		    mov	    bx,	1118h	    ; default gameio, 40x25, no	dma, 48k on planar
 seg000:0253		    in	    al,	62h
 seg000:0255		    and	    al,	8	    ; 64k card present
@@ -342,10 +428,12 @@ seg000:0257		    jnz	    short d55	    ; no, jump
 seg000:0259		    or	    bl,	4	    ; set 64k on planar
 seg000:025C d55:				    ; CODE XREF: seg000:0257j
 seg000:025C		    mov	    ds:410h, bx	    ; 0:410 = 40:10 = equip flag
+seg000:0260 ;----------------------------------------------------
 seg000:0260 ; test 7
-seg000:0260 ;	initialize and test the	8259 interrupt controller chip
-seg000:0260 ;	nfg err. code 07xx (xx=00, data	path or	internal failure,
-seg000:0260 ;	xx=any other bits on=unexpected	interrupts
+seg000:0260 ;	  initialize and test the 8259 interrupt controller chip
+seg000:0260 ; mfg err. code 07xx (xx=00, data path or internal failure,
+seg000:0260 ;	  xx=any other bits on=unexpected interrupts
+seg000:0260 ;----------------------------------------------------
 seg000:0260		    call    mfg_up	    ; mfg code=f7
 seg000:0263		    mov	    al,	13h
 seg000:0265		    out	    20h, al
@@ -390,32 +478,31 @@ seg000:02A9		    call    init_timer	    ; initialize timer 1
 seg000:02AC		    mov	    ax,	110110b	    ; set timer	0 to mode 3 binary
 seg000:02AF		    call    init_timer	    ; initialize timer 0
 seg000:02B2		    mov	    al,	20h ; ' '
-seg000:02B4 loc_F02B4:
 seg000:02B4		    out	    0A0h, al
 seg000:02B6		    mov	    ah,	0
 seg000:02B8		    call    bits_on_off
-seg000:02BB		    jnb	    short loc_F02C2
+seg000:02BB		    jnb	    short timer1_nz
 seg000:02BD		    mov	    bl,	0
 seg000:02BF		    jmp	    timer_error
-seg000:02C2 loc_F02C2:				    ; CODE XREF: seg000:02BBj
+seg000:02C2 timer1_nz:				    ; CODE XREF: seg000:02BBj
 seg000:02C2		    in	    al,	41h	    ; Timer 8253-5 (AT:	8254.2).
 seg000:02C4		    mov	    ah,	al
 seg000:02C6		    in	    al,	41h	    ; Timer 8253-5 (AT:	8254.2).
 seg000:02C8		    cmp	    ax,	0FFFFh
-seg000:02CB		    jnz	    short loc_F02D2
+seg000:02CB		    jnz	    short timer0_intr
 seg000:02CD		    mov	    bl,	1
 seg000:02CF		    jmp	    timer_error
-seg000:02D2 loc_F02D2:				    ; CODE XREF: seg000:02CBj
+seg000:02D2 timer0_intr:			    ; CODE XREF: seg000:02CBj
 seg000:02D2		    sti
 seg000:02D3		    in	    al,	21h	    ; Interrupt	controller, 8259A.
 seg000:02D5		    and	    al,	0FEh
 seg000:02D7		    and	    ds:484h, al
 seg000:02DB		    out	    21h, al	    ; Interrupt	controller, 8259A.
 seg000:02DD		    mov	    cx,	0FFFFh
-seg000:02E0 loc_F02E0:				    ; CODE XREF: seg000:02E7j
-seg000:02E0		    test    byte ptr ds:484h, 1
+seg000:02E0 wait_intr_loop:			    ; CODE XREF: seg000:02E7j
+seg000:02E0		    test    byte ptr ds:484h, 1	; timer	0 int occur?
 seg000:02E5		    jnz	    short reset_intrs
-seg000:02E7		    loop    loc_F02E0
+seg000:02E7		    loop    wait_intr_loop
 seg000:02E9		    mov	    bl,	2
 seg000:02EB		    jmp	    short timer_error
 seg000:02ED ;----------------------------------------------------
@@ -882,7 +969,7 @@ seg000:05E9		    pop	    ax
 seg000:05EA		    call    prt_hex
 seg000:05ED		    loop    q37
 seg000:05EF		    mov	    cx,	3
-seg000:05F2		    mov	    si,	offset aKb  ; print " kb"
+seg000:05F2		    mov	    si,	offset f3b  ; print " kb"
 seg000:05F5 q38:				    ; CODE XREF: q35+40j
 seg000:05F5		    mov	    al,	cs:[si]
 seg000:05F8		    inc	    si
@@ -1144,7 +1231,7 @@ seg000:07CF		    mov	    word ptr ds:110h, offset crt_char_gen ; dot	table (int 
 seg000:07D5		    mov	    word ptr ds:60h, offset bas_ent ; cassette basic entry (int	0x18)
 seg000:07DB		    push    cs
 seg000:07DC		    pop	    ax
-seg000:07DD		    mov	    ds:62h, ax	    ; code segment for cassette
+seg000:07DD		    mov	    ds:62h, ax	    ; code segment for cassette	(int 0x18)
 seg000:07E0		    mov	    al,	1
 seg000:07E2		    out	    13h, al
 seg000:07E4		    call    mfg_up	    ; mfg routine = ee
@@ -1293,7 +1380,7 @@ seg000:08DB		    mov	    dl,	1
 seg000:08DD		    call    err_beep
 seg000:08E0 ;----- setup printer and rs232 base	addresses if device attached
 seg000:08E0 f15c:				    ; CODE XREF: seg000:08D9j
-seg000:08E0		    mov	    bp,	offset prt_src_tbl
+seg000:08E0		    mov	    bp,	offset f4
 seg000:08E3		    xor	    si,	si
 seg000:08E5 f16:				    ; CODE XREF: seg000:08FEj
 seg000:08E5		    mov	    dx,	cs:[bp+0]
@@ -1444,7 +1531,7 @@ seg000:09DD		    mov	    bh,	7	    ; page 7
 seg000:09DF		    int	    10h		    ; -	VIDEO -	SET CURSOR POSITION
 seg000:09DF					    ; DH,DL = row, column (0,0 = upper left)
 seg000:09DF					    ; BH = page	number
-seg000:09E1		    mov	    si,	offset aError ;	"ERROR"
+seg000:09E1		    mov	    si,	offset error_err ; "ERROR"
 seg000:09E4		    mov	    cx,	5
 seg000:09E7 em_0:				    ; CODE XREF: e_msg+32j
 seg000:09E7		    mov	    al,	cs:[si]
@@ -18500,7 +18587,7 @@ seg000:F075		    jz	    short ks_1
 seg000:F077		    xor	    al,	al
 seg000:F079		    out	    0A0h, al	    ; shut off nmi
 seg000:F07B		    mov	    bx,	2000h	    ; error code 2000h
-seg000:F07E		    mov	    si,	offset aB   ; post message
+seg000:F07E		    mov	    si,	offset key_err ; post message
 seg000:F081		    call    e_msg	    ; and halt system
 seg000:F084 ks_1:				    ; CODE XREF: key_scan_save+Dj
 seg000:F084		    iret		    ; return to	caller
