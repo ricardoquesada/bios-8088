@@ -3578,38 +3578,41 @@ seg000:18BF		    int	    10h
 seg000:18C1		    pop	    bx
 seg000:18C2		    retn
 seg000:18C2 prt_hex	    endp
-seg000:18C3 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
-seg000:18C3 reprint	    proc far		    ; CODE XREF: printer_io+1Cj
-seg000:18C3 ; FUNCTION CHUNK AT	seg000:F00D SIZE 00000006 BYTES
+seg000:18C3 ; START OF FUNCTION	CHUNK FOR printer_io
+seg000:18C3 reprint:				    ; CODE XREF: printer_io+1Cj
 seg000:18C3		    sub	    dx,	dx
 seg000:18C5		    test    ch,	4
-seg000:18C8		    jz	    short b10_1
+seg000:18C8		    jz	    short loc_F18CB
 seg000:18CA		    inc	    dx
-seg000:18CB b10_1:				    ; CODE XREF: reprint+5j
+seg000:18CB loc_F18CB:				    ; CODE XREF: printer_io-D70Aj
 seg000:18CB		    or	    ah,	ah
-seg000:18CD		    jz	    short b12
+seg000:18CD		    jz	    short loc_F1910
 seg000:18CF		    dec	    ah
-seg000:18D1		    jz	    short b11
+seg000:18D1		    jz	    short loc_F18F0
 seg000:18D3		    dec	    ah
-seg000:18D5		    jnz	    short b10_3
+seg000:18D5		    jnz	    short loc_F18ED
 seg000:18D7		    push    ax
 seg000:18D8		    mov	    ah,	3
-seg000:18DA		    int	    14h
+seg000:18DA		    int	    14h		    ; SERIAL I/O - GET USART STATUS
+seg000:18DA					    ; DX = port	number (0-3)
+seg000:18DA					    ; Return: AX = port	status code
 seg000:18DC		    call    fake
 seg000:18DF		    pop	    ax
 seg000:18E0		    or	    dh,	dh
-seg000:18E2		    jz	    short b10_2
+seg000:18E2		    jz	    short loc_F18EB
 seg000:18E4		    mov	    ah,	dh
 seg000:18E6		    and	    ah,	0FEh
-seg000:18E9		    jmp	    short b10_3
-seg000:18EB b10_2:				    ; CODE XREF: reprint+1Fj
+seg000:18E9		    jmp	    short loc_F18ED
+seg000:18EB loc_F18EB:				    ; CODE XREF: printer_io-D6F0j
 seg000:18EB		    mov	    ah,	90h ; 'ђ'
-seg000:18ED b10_3:				    ; CODE XREF: reprint+12j
-seg000:18ED					    ; reprint+26j reprint+47j
-seg000:18ED					    ; reprint+4Bj reprint+5Cj
-seg000:18ED					    ; reprint+60j
+seg000:18ED loc_F18ED:				    ; CODE XREF: printer_io-D6FDj
+seg000:18ED					    ; printer_io-D6E9j
+seg000:18ED					    ; printer_io-D6C8j
+seg000:18ED					    ; printer_io-D6C4j
+seg000:18ED					    ; printer_io-D6B3j
+seg000:18ED					    ; printer_io-D6AFj
 seg000:18ED		    jmp	    loc_FF00D
-seg000:18F0 b11:				    ; CODE XREF: reprint+Ej
+seg000:18F0 loc_F18F0:				    ; CODE XREF: printer_io-D701j
 seg000:18F0		    mov	    si,	dx
 seg000:18F2		    mov	    al,	ds:78h
 seg000:18F5		    add	    al,	0Ah
@@ -3617,31 +3620,36 @@ seg000:18F7		    mov	    [si+7Ch], al
 seg000:18FB		    push    ax
 seg000:18FC		    mov	    al,	87h ; '‡'
 seg000:18FE		    sub	    ah,	ah
-seg000:1900		    int	    14h
+seg000:1900		    int	    14h		    ; SERIAL I/O - INITIALIZE USART
+seg000:1900					    ; AL = initializing	parameters, DX = port number (0-3)
+seg000:1900					    ; Return: AH = RS-232 status code bits, AL = modem status bits
 seg000:1902		    call    fake
 seg000:1905		    pop	    ax
 seg000:1906		    mov	    ah,	dh
 seg000:1908		    or	    ah,	ah
-seg000:190A		    jz	    short b10_3
+seg000:190A		    jz	    short loc_F18ED
 seg000:190C		    mov	    ah,	0A8h ; 'Ё'
-seg000:190E		    jmp	    short b10_3
-seg000:1910 b12:				    ; CODE XREF: reprint+Aj
+seg000:190E		    jmp	    short loc_F18ED
+seg000:1910 loc_F1910:				    ; CODE XREF: printer_io-D705j
 seg000:1910		    push    ax
 seg000:1911		    mov	    ah,	1
-seg000:1913		    int	    14h
+seg000:1913		    int	    14h		    ; SERIAL I/O - TRANSMIT CHARACTER
+seg000:1913					    ; AL = character, DX = port	number (0-3)
+seg000:1913					    ; Return: AH = RS-232 status code bits, AL = modem status bits
 seg000:1915		    call    fake
 seg000:1918		    pop	    ax
 seg000:1919		    or	    dh,	dh
-seg000:191B		    jz	    short b12_1
+seg000:191B		    jz	    short loc_F1921
 seg000:191D		    mov	    ah,	dh
-seg000:191F		    jmp	    short b10_3
-seg000:1921 b12_1:				    ; CODE XREF: reprint+58j
+seg000:191F		    jmp	    short loc_F18ED
+seg000:1921 loc_F1921:				    ; CODE XREF: printer_io-D6B7j
 seg000:1921		    mov	    ah,	10h
-seg000:1923		    jmp	    short b10_3
-seg000:1923 reprint	    endp
+seg000:1923		    jmp	    short loc_F18ED
+seg000:1923 ; END OF FUNCTION CHUNK FOR	printer_io
 seg000:1925 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
-seg000:1925 fake	    proc near		    ; CODE XREF: reprint+19p
-seg000:1925					    ; reprint+3Fp reprint+52p
+seg000:1925 fake	    proc near		    ; CODE XREF: printer_io-D6F6p
+seg000:1925					    ; printer_io-D6D0p
+seg000:1925					    ; printer_io-D6BDp
 seg000:1925		    xor	    dh,	dh
 seg000:1927		    test    ah,	1Eh
 seg000:192A		    jz	    short b13_1
@@ -18462,21 +18470,40 @@ seg000:EFB6		    pop	    ds
 seg000:EFB7		    iret
 seg000:EFB7 disk_int	    endp
 seg000:EFB8		    db 0Fh dup(0)
-seg000:EFC7 disk_parms	    db 0CFh ; П		    ; DATA XREF: boot_strap+Fo
+seg000:EFC7 ;----------------------------------------------------
+seg000:EFC7 ; disk base
+seg000:EFC7 ;  this is the set of parameters required for
+seg000:EFC7 ;  diskette	operation. they	are pointed at by the
+seg000:EFC7 ;  data variable disk_pointer. to modify the parameters
+seg000:EFC7 ;  build another parameter block and point at it
+seg000:EFC7 ;----------------------------------------------------
+seg000:EFC7 disk_parms	    db 11001111b	    ; DATA XREF: boot_strap+Fo
 seg000:EFC7					    ; seg000:FF1Fo
-seg000:EFC8		    db	  3
-seg000:EFC9		    db	25h ; %
-seg000:EFCA		    db	  2
-seg000:EFCB		    db	  8
-seg000:EFCC		    db	2Ah ; *
-seg000:EFCD		    db 0FFh
-seg000:EFCE		    db	50h ; P
-seg000:EFCF		    db 0F6h ; ц
-seg000:EFD0		    db	19h
-seg000:EFD1		    db	  4
+seg000:EFC7					    ; srt=c, hd	unload=of - 1st	specify	byte
+seg000:EFC8		    db	  3		    ; hd load=1, mode=no dma - 2nd specify byte
+seg000:EFC9		    db	25h ; %		    ; wait after opn til motor off
+seg000:EFCA		    db	  2		    ; 512 bytes/sector
+seg000:EFCB		    db	  8		    ; eot ( last sector	on track )
+seg000:EFCC		    db	2Ah ; *		    ; gap length
+seg000:EFCD		    db 0FFh		    ; dtl
+seg000:EFCE		    db	50h ; P		    ; gap length for format
+seg000:EFCF		    db 0F6h ; ц		    ; fill byte	for format
+seg000:EFD0		    db 25		    ; head settle time (milliseconds)
+seg000:EFD1		    db	  4		    ; motor start time (1/8 seconds)
 seg000:EFD2 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
+seg000:EFD2 ; --- int 17 -----------------------------------------
+seg000:EFD2 ;  printer_io
+seg000:EFD2 ;	   this	routine	provides communication with the	printer
+seg000:EFD2 ;	   (ah)=0  print the character in (al)
+seg000:EFD2 ;		   on return, ah=1 if character	could not be printed
+seg000:EFD2 ;		   (time out), other bits set as on normal status call
+seg000:EFD2 ;	   (ah)=1  initialize the printer port
+seg000:EFD2 ;		   returns with	(ah) set with printer status
+seg000:EFD2 ;	   (ah)=2  read	the printer status into	(ah)
+seg000:EFD2 ;
+seg000:EFD2 ; (finish me)
 seg000:EFD2 printer_io	    proc far		    ; DATA XREF: seg000:FF11o
-seg000:EFD2 ; FUNCTION CHUNK AT	seg000:F013 SIZE 00000047 BYTES
+seg000:EFD2 ; FUNCTION CHUNK AT	seg000:18C3 SIZE 00000062 BYTES
 seg000:EFD2		    sti
 seg000:EFD3		    push    ds
 seg000:EFD4		    push    dx
@@ -18490,7 +18517,7 @@ seg000:EFE2		    jz	    short loc_FEFF1
 seg000:EFE4		    mov	    bx,	ds:seg40.printer_base
 seg000:EFE8		    cmp	    bx,	2F8h
 seg000:EFEC		    jnz	    short loc_FEFF1
-seg000:EFEE		    jmp	    near ptr reprint
+seg000:EFEE		    jmp	    reprint
 seg000:EFF1 loc_FEFF1:				    ; CODE XREF: printer_io+10j
 seg000:EFF1					    ; printer_io+1Aj
 seg000:EFF1		    mov	    si,	dx
@@ -18505,9 +18532,7 @@ seg000:F005		    dec	    ah
 seg000:F007		    jz	    short loc_FF049
 seg000:F009		    dec	    ah
 seg000:F00B		    jz	    short loc_FF035
-seg000:F00B printer_io	    endp
-seg000:F00D ; START OF FUNCTION	CHUNK FOR reprint
-seg000:F00D loc_FF00D:				    ; CODE XREF: reprint:b10_3j
+seg000:F00D loc_FF00D:				    ; CODE XREF: printer_io:loc_F18EDj
 seg000:F00D					    ; printer_io+2Dj
 seg000:F00D					    ; printer_io+75j
 seg000:F00D		    pop	    bx
@@ -18516,8 +18541,6 @@ seg000:F00F		    pop	    si
 seg000:F010		    pop	    dx
 seg000:F011		    pop	    ds
 seg000:F012		    iret
-seg000:F012 ; END OF FUNCTION CHUNK FOR	reprint
-seg000:F013 ; START OF FUNCTION	CHUNK FOR printer_io
 seg000:F013 loc_FF013:				    ; CODE XREF: printer_io+31j
 seg000:F013		    push    ax
 seg000:F014		    out	    dx,	al
@@ -18568,7 +18591,7 @@ seg000:F053		    jnz	    short loc_FF052
 seg000:F055		    mov	    al,	0Ch
 seg000:F057		    out	    dx,	al
 seg000:F058		    jmp	    short loc_FF036
-seg000:F058 ; END OF FUNCTION CHUNK FOR	printer_io
+seg000:F058 printer_io	    endp
 seg000:F05A		    db 0Bh dup(0)
 seg000:F065		    jmp	    near ptr video_io
 seg000:F068 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
