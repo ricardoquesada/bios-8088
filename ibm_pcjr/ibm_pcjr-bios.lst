@@ -598,13 +598,13 @@ seg000:0381 inner_loop:				    ; CODE XREF: bits_on_off+3Ej
 seg000:0381		    push    cx
 seg000:0382		    mov	    cx,	0FFFFh
 seg000:0385 tst_bits:				    ; CODE XREF: bits_on_off+3Bj
-seg000:0385		    mov	    al,	cs:[di]
-seg000:0388		    out	    43h, al	    ; Timer 8253-5 (AT:	8254.2).
-seg000:038A		    push    ax
+seg000:0385		    mov	    al,	cs:[di]	    ; timer latch mask index
+seg000:0388		    out	    43h, al	    ; latch timer
+seg000:038A		    push    ax		    ; pause
 seg000:038B		    pop	    ax
-seg000:038C		    in	    al,	dx
+seg000:038C		    in	    al,	dx	    ; read timer lsb
 seg000:038D		    or	    si,	si
-seg000:038F		    jnz	    short second
+seg000:038F		    jnz	    short second    ; second pass
 seg000:0391		    or	    al,	1
 seg000:0393		    or	    bl,	al
 seg000:0395		    in	    al,	dx
@@ -631,11 +631,22 @@ seg000:03B3		    jnz	    short outer_loop
 seg000:03B5		    clc
 seg000:03B6		    retn
 seg000:03B6 bits_on_off	    endp
+seg000:03B7 ;----------------------------------------------------
+seg000:03B7 ;		  crt attachment test
+seg000:03B7 ; 1. init crt to 40x25 - bw
+seg000:03B7 ; 2. check for vertical and	video enables, and check
+seg000:03B7 ;	 timing	of same
+seg000:03B7 ; 3. check vertical	interrupt
+seg000:03B7 ; 4. check red, green, blue	and intensify dots
+seg000:03B7 ; 5. init to 40x25 - color
+seg000:03B7 ;	mfg. error code	09xx (xx-see comments in code)
+seg000:03B7 ;----------------------------------------------------
 seg000:03B7 pod_13_end:				    ; CODE XREF: seg000:035Ej
 seg000:03B7					    ; seg000:0367j
 seg000:03B7		    call    mfg_up	    ; mfg checkpoint=f5
 seg000:03BA		    cli
 seg000:03BB		    mov	    al,	1110000b    ; set timer	1 to mode 0
+seg000:03BB					    ; (tim 1, read/load	lsb/msb, interrupt on terminal count, binary)
 seg000:03BD		    out	    43h, al
 seg000:03BF		    mov	    cx,	8000h
 seg000:03C2 q1:					    ; CODE XREF: seg000:q1j
@@ -648,6 +659,7 @@ seg000:03CC		    mov	    ax,	507h	    ; set video	page 7
 seg000:03CF		    int	    10h
 seg000:03D1		    mov	    dx,	3DAh	    ; set addressing to	video array
 seg000:03D4		    sub	    cx,	cx
+seg000:03D6 ; look for vertical
 seg000:03D6 q2:					    ; CODE XREF: seg000:03DBj
 seg000:03D6		    in	    al,	dx	    ; get status
 seg000:03D7		    test    al,	8	    ; vertical there yet?
@@ -655,10 +667,12 @@ seg000:03D9		    jnz	    short q3	    ; continue if it is
 seg000:03DB		    loop    q2
 seg000:03DD		    mov	    bl,	0
 seg000:03DF		    jmp	    short q115	    ; no vertical = error 0900
+seg000:03E1 ; got vertical - start timer
 seg000:03E1 q3:					    ; CODE XREF: seg000:03D9j
 seg000:03E1		    xor	    al,	al
 seg000:03E3		    out	    41h, al	    ; send 2nd byte to timer to	start
 seg000:03E5		    sub	    bx,	bx	    ; init. enable counter
+seg000:03E7 ; wait for vertical	to go away
 seg000:03E7		    xor	    cx,	cx
 seg000:03E9 q4:					    ; CODE XREF: seg000:03EEj
 seg000:03E9		    in	    al,	dx	    ; get status
@@ -667,51 +681,49 @@ seg000:03EC		    jz	    short q5	    ; continue if it's gone
 seg000:03EE		    loop    q4
 seg000:03F0		    mov	    bl,	1	    ; vertical stuck on	= error	0901
 seg000:03F2		    jmp	    short q115
+seg000:03F4 ; now start	looking	for enable transitions
 seg000:03F4 q5:					    ; CODE XREF: seg000:03ECj
 seg000:03F4					    ; seg000:041Fj
 seg000:03F4		    sub	    cx,	cx
-seg000:03F6 loc_F03F6:				    ; CODE XREF: seg000:03FFj
-seg000:03F6		    in	    al,	dx	    ; Video status bits:
-seg000:03F6					    ; 0: retrace.  1=display is	in vert	or horiz retrace.
-seg000:03F6					    ; 1: 1=light pen is	triggered; 0=armed
-seg000:03F6					    ; 2: 1=light pen switch is open; 0=closed
-seg000:03F6					    ; 3: 1=vertical sync pulse is occurring.
-seg000:03F7		    test    al,	1
-seg000:03F9		    jnz	    short loc_F0405
-seg000:03FB		    test    al,	8
-seg000:03FD		    jnz	    short loc_F0421
-seg000:03FF		    loop    loc_F03F6
+seg000:03F6 q6:					    ; CODE XREF: seg000:03FFj
+seg000:03F6		    in	    al,	dx	    ; get status
+seg000:03F7		    test    al,	1	    ; enable on	yet?
+seg000:03F9		    jnz	    short q7	    ; go on if it is
+seg000:03FB		    test    al,	8	    ; vertical on again?
+seg000:03FD		    jnz	    short q11	    ; continue if it is
+seg000:03FF		    loop    q6		    ; keep looking if not
 seg000:0401		    mov	    bl,	2
-seg000:0403		    jmp	    short q115
-seg000:0405 loc_F0405:				    ; CODE XREF: seg000:03F9j
-seg000:0405		    test    al,	8
-seg000:0407		    jz	    short loc_F040D
+seg000:0403		    jmp	    short q115	    ; enable stuck off = error 0902
+seg000:0405 ; make sure	vertical went off with enable going on
+seg000:0405 q7:					    ; CODE XREF: seg000:03F9j
+seg000:0405		    test    al,	8	    ; vertical off?
+seg000:0407		    jz	    short q8	    ; go on if it is
 seg000:0409		    mov	    bl,	3
-seg000:040B		    jmp	    short q115
-seg000:040D loc_F040D:				    ; CODE XREF: seg000:0407j
+seg000:040B		    jmp	    short q115	    ; vertical stuck on	= error	0903
+seg000:040D ; now wait for enable go to	off
+seg000:040D q8:					    ; CODE XREF: seg000:0407j
 seg000:040D		    sub	    cx,	cx
-seg000:040F loc_F040F:				    ; CODE XREF: seg000:0414j
-seg000:040F		    in	    al,	dx	    ; Video status bits:
-seg000:040F					    ; 0: retrace.  1=display is	in vert	or horiz retrace.
-seg000:040F					    ; 1: 1=light pen is	triggered; 0=armed
-seg000:040F					    ; 2: 1=light pen switch is open; 0=closed
-seg000:040F					    ; 3: 1=vertical sync pulse is occurring.
-seg000:0410		    test    al,	1
-seg000:0412		    jz	    short loc_F041A
-seg000:0414		    loop    loc_F040F
+seg000:040F q9:					    ; CODE XREF: seg000:0414j
+seg000:040F		    in	    al,	dx	    ; get status
+seg000:0410		    test    al,	1	    ; enable off yet?
+seg000:0412		    jz	    short q10	    ; proceed if it is
+seg000:0414		    loop    q9		    ; keep looking if not yet low
 seg000:0416		    mov	    bl,	4
 seg000:0418		    jmp	    short q115
-seg000:041A loc_F041A:				    ; CODE XREF: seg000:0412j
-seg000:041A		    inc	    bx
-seg000:041B		    jz	    short loc_F0421
-seg000:041D		    test    al,	8
-seg000:041F		    jz	    short q5
-seg000:0421 loc_F0421:				    ; CODE XREF: seg000:03FDj
+seg000:041A ; enable has toggled , bump	counter	and test for next vertical
+seg000:041A q10:				    ; CODE XREF: seg000:0412j
+seg000:041A		    inc	    bx		    ; bump enable counter
+seg000:041B		    jz	    short q11	    ; if counter wraps,	error
+seg000:041D		    test    al,	8	    ; did enable go low	because	of vertical?
+seg000:041F		    jz	    short q5	    ; if not, look for another enable toggle
+seg000:0421 ; have had complete	vertical-vertical cycle, now test results
+seg000:0421 q11:				    ; CODE XREF: seg000:03FDj
 seg000:0421					    ; seg000:041Bj
-seg000:0421		    mov	    al,	1000000b
-seg000:0423		    out	    43h, al	    ; Timer 8253-5 (AT:	8254.2).
-seg000:0425		    cmp	    bx,	0C8h ; 'И'
-seg000:0429		    jz	    short loc_F042F
+seg000:0421		    mov	    al,	1000000b    ; latch timer1
+seg000:0421					    ; (tim 1, latching,	interrupt on terminal count, binary)
+seg000:0423		    out	    43h, al
+seg000:0425		    cmp	    bx,	200	    ; number of	enables	between	verticals o.k.?
+seg000:0429		    jz	    short q12
 seg000:042B		    mov	    bl,	5
 seg000:042D q115:				    ; CODE XREF: seg000:03DFj
 seg000:042D					    ; seg000:03F2j
@@ -719,23 +731,26 @@ seg000:042D					    ; seg000:0403j
 seg000:042D					    ; seg000:040Bj
 seg000:042D					    ; seg000:0418j
 seg000:042D		    jmp	    short q22	    ; wrong # enables =	error 0905
-seg000:042F loc_F042F:				    ; CODE XREF: seg000:0429j
-seg000:042F		    in	    al,	41h	    ; Timer 8253-5 (AT:	8254.2).
-seg000:0431		    mov	    ah,	al
+seg000:042F q12:				    ; CODE XREF: seg000:0429j
+seg000:042F		    in	    al,	41h	    ; get timer	value low
+seg000:0431		    mov	    ah,	al	    ; save it
 seg000:0433		    nop
-seg000:0434		    in	    al,	41h	    ; Timer 8253-5 (AT:	8254.2).
+seg000:0434		    in	    al,	41h	    ; get timer	high
 seg000:0436		    xchg    ah,	al
-seg000:0438		    sti
+seg000:0438		    sti			    ; interrupts back on
 seg000:0439		    nop
-seg000:043A		    cmp	    ax,	0A0ACh
-seg000:043D		    jge	    short loc_F0443
+seg000:043A		    cmp	    ax,	0A0ACh	    ; (0xb286 *	0.9)
+seg000:043D		    jge	    short q13
 seg000:043F		    mov	    bl,	6
-seg000:0441		    jmp	    short q22
-seg000:0443 loc_F0443:				    ; CODE XREF: seg000:043Dj
-seg000:0443		    cmp	    ax,	0C460h
+seg000:0441		    jmp	    short q22	    ; verticals	too far	appart
+seg000:0441					    ; =	error 0906
+seg000:0443 q13:				    ; CODE XREF: seg000:043Dj
+seg000:0443		    cmp	    ax,	0C460h	    ; (0xb286 *	1.1)
 seg000:0446		    jle	    short q14
 seg000:0448		    mov	    bl,	7
-seg000:044A		    jmp	    short q22
+seg000:044A		    jmp	    short q22	    ; verticals	too close together
+seg000:044A					    ; =	error 0907
+seg000:044C ; timings seem o.k., now check vertical interrupt (level 5)
 seg000:044C q14:				    ; CODE XREF: seg000:0446j
 seg000:044C		    sub	    cx,	cx	    ; set timeout reg
 seg000:044E		    in	    al,	21h
@@ -753,45 +768,48 @@ seg000:0466 q16:				    ; CODE XREF: seg000:045Ej
 seg000:0466		    in	    al,	21h	    ; disable interrupts for level 5
 seg000:0468		    or	    al,	20h
 seg000:046A		    out	    21h, al
-seg000:046C		    mov	    ax,	9DBh
-seg000:046F		    mov	    bx,	77Fh
-seg000:0472		    mov	    cx,	28h ; '('
-seg000:0475		    int	    10h		    ; -	VIDEO -	WRITE ATTRIBUTES/CHARACTERS AT CURSOR POSITION
-seg000:0475					    ; AL = character, BH = display page
-seg000:0475					    ; BL = attributes of character (alpha modes) or color (graphics modes)
-seg000:0475					    ; CX = number of times to write character
-seg000:0477		    xor	    ax,	ax
-seg000:0479 loc_F0479:				    ; CODE XREF: seg000:04A1j
+seg000:046C ; see if red, green, blue and intesify dots	work
+seg000:046C ; first, set a line	of reverse video, intensified blanksinto video
+seg000:046C ; buffer
+seg000:046C		    mov	    ax,	9DBh	    ; write chars, blocks
+seg000:046F		    mov	    bx,	77Fh	    ; page 7, reverse video, high intensity
+seg000:0472		    mov	    cx,	40	    ; 40 characters
+seg000:0475		    int	    10h
+seg000:0477		    xor	    ax,	ax	    ; start with blue dots
+seg000:0479 q17:				    ; CODE XREF: seg000:04A1j
 seg000:0479		    sub	    cx,	cx
-seg000:047B		    out	    dx,	al
-seg000:047C loc_F047C:				    ; CODE XREF: seg000:0481j
-seg000:047C		    in	    al,	dx
-seg000:047D		    test    al,	10h
-seg000:047F		    jnz	    short loc_F0489
-seg000:0481		    loop    loc_F047C
+seg000:047B		    out	    dx,	al	    ; set video	array address for dots
+seg000:047C ; see if dot comes on
+seg000:047C q18:				    ; CODE XREF: seg000:0481j
+seg000:047C		    in	    al,	dx	    ; get status
+seg000:047D		    test    al,	10h	    ; dot there?
+seg000:047F		    jnz	    short q19	    ; go look for dot to turn off
+seg000:0481		    loop    q18		    ; continue testing for dot on
 seg000:0483		    mov	    bl,	10h
-seg000:0485		    or	    bl,	ah
-seg000:0487		    jmp	    short q22
-seg000:0489 loc_F0489:				    ; CODE XREF: seg000:047Fj
+seg000:0485		    or	    bl,	ah	    ; or in dot	being tested
+seg000:0487		    jmp	    short q22	    ; dot not coming on	= error	091x
+seg000:0487					    ; (	x=0, blue; x=1,	green;
+seg000:0487					    ; x=2, red;, x=3, intensity)
+seg000:0489 ; see if dot comes off
+seg000:0489 q19:				    ; CODE XREF: seg000:047Fj
 seg000:0489		    sub	    cx,	cx
-seg000:048B loc_F048B:				    ; CODE XREF: seg000:0490j
-seg000:048B		    in	    al,	dx	    ; Video status bits:
-seg000:048B					    ; 0: retrace.  1=display is	in vert	or horiz retrace.
-seg000:048B					    ; 1: 1=light pen is	triggered; 0=armed
-seg000:048B					    ; 2: 1=light pen switch is open; 0=closed
-seg000:048B					    ; 3: 1=vertical sync pulse is occurring.
-seg000:048C		    test    al,	10h
-seg000:048E		    jz	    short loc_F0498
-seg000:0490		    loop    loc_F048B
+seg000:048B q20:				    ; CODE XREF: seg000:0490j
+seg000:048B		    in	    al,	dx	    ; get status
+seg000:048C		    test    al,	10h	    ; is dot still on?
+seg000:048E		    jz	    short q21	    ; go on if dot off
+seg000:0490		    loop    q20		    ; else, keep waiting for dot to go off
 seg000:0492		    mov	    bl,	20h ; ' '
-seg000:0494		    or	    bl,	ah
-seg000:0496		    jmp	    short q22
-seg000:0498 loc_F0498:				    ; CODE XREF: seg000:048Ej
+seg000:0494		    or	    bl,	ah	    ; or in dot	being tested
+seg000:0496		    jmp	    short q22	    ; dot stuck	on = error 092x
+seg000:0496					    ; (	x=0, blue; x=1,	green;
+seg000:0496					    ; x=2, red;	x=3 intensity)
+seg000:0498 ; adjust to	point to next dot
+seg000:0498 q21:				    ; CODE XREF: seg000:048Ej
 seg000:0498		    inc	    ah
-seg000:049A		    cmp	    ah,	4
-seg000:049D		    jz	    short q23
+seg000:049A		    cmp	    ah,	4	    ; all for dots gone?
+seg000:049D		    jz	    short q23	    ; go end
 seg000:049F		    mov	    al,	ah
-seg000:04A1		    jmp	    short loc_F0479
+seg000:04A1		    jmp	    short q17	    ; go look for another dot
 seg000:04A3 q22:				    ; CODE XREF: seg000:q115j
 seg000:04A3					    ; seg000:0441j
 seg000:04A3					    ; seg000:044Aj
@@ -800,6 +818,7 @@ seg000:04A3					    ; seg000:0487j
 seg000:04A3					    ; seg000:0496j
 seg000:04A3		    mov	    bh,	9	    ; set msb of error code
 seg000:04A5		    jmp	    e_msg
+seg000:04A8 ; done with	test reset to 40x25 - color
 seg000:04A8 q23:				    ; CODE XREF: seg000:049Dj
 seg000:04A8		    call    dss
 seg000:04AB		    mov	    ax,	1	    ; init to 40x25 - color
@@ -811,6 +830,7 @@ seg000:04BB		    jz	    short q24	    ; bypass putting up	power-on screen
 seg000:04BD		    call    put_logo	    ; put logo on screen
 seg000:04C0 q24:				    ; CODE XREF: seg000:04BBj
 seg000:04C0		    mov	    al,	1110110b    ; re-init timer 1
+seg000:04C0					    ; (tim 1, read/load	lsb/msb, square, binary)
 seg000:04C2		    out	    43h, al
 seg000:04C4		    mov	    al,	0
 seg000:04C6		    out	    41h, al
@@ -1059,7 +1079,8 @@ seg000:0684		    jz	    short f6_x	    ; bypass test if it	is
 seg000:0686		    in	    al,	61h
 seg000:0688		    and	    al,	11111100b   ; drop speaker data
 seg000:068A		    out	    61h, al
-seg000:068C		    mov	    al,	0B6h ; '¶'  ; mode set timer 2
+seg000:068C		    mov	    al,	10110110b   ; mode set timer 2
+seg000:068C					    ; (tim 2, read/load	lsb/msb, square, binary)
 seg000:068E		    out	    43h, al
 seg000:0690		    mov	    al,	40h ; '@'   ; disable nmi
 seg000:0692		    out	    0A0h, al
@@ -1131,7 +1152,8 @@ seg000:070A		    out	    61h, al
 seg000:070C		    in	    al,	21h
 seg000:070E		    or	    al,	1
 seg000:0710		    out	    21h, al
-seg000:0712		    mov	    al,	10110110b
+seg000:0712		    mov	    al,	10110110b   ; sel tim 2, lsb, msb, md 3
+seg000:0712					    ; (tim 2, read/load	lsb/msb, square, binary)
 seg000:0714		    out	    43h, al
 seg000:0716		    mov	    ax,	4D2h
 seg000:0719		    out	    42h, al
@@ -2381,6 +2403,7 @@ seg000:0FA8		    jmp	    short i8
 seg000:0FAA		    db	90h ; ђ
 seg000:0FAB i5:					    ; CODE XREF: kdbnmi+2Cj
 seg000:0FAB		    mov	    al,	1000000b    ; read clock
+seg000:0FAB					    ; (tim 1, latching,	interrupt on terminal count, binary)
 seg000:0FAD		    out	    43h, al
 seg000:0FAF		    nop
 seg000:0FB0		    nop
@@ -20427,25 +20450,26 @@ seg000:FF31					    ; e_msg+A2j write_tty+75p
 seg000:FF31					    ; err_beep+5p
 seg000:FF31					    ; prtn3_int_82+116p
 seg000:FF31					    ; prtn3_int_82+11Dp
-seg000:FF31		    mov	    al,	10110110b
-seg000:FF33		    out	    43h, al	    ; Timer 8253-5 (AT:	8254.2).
-seg000:FF35		    mov	    ax,	533h
-seg000:FF38		    out	    42h, al	    ; Timer 8253-5 (AT:	8254.2).
+seg000:FF31		    mov	    al,	10110110b   ; sel tim 2,lsb,msb,binary
+seg000:FF31					    ; (tim 2, read/load	lsb/msb, square, binary)
+seg000:FF33		    out	    43h, al	    ; write the	timer mode reg
+seg000:FF35		    mov	    ax,	533h	    ; divisor for 1000hz
+seg000:FF38		    out	    42h, al	    ; write timer 2 cnt	- lsb
 seg000:FF3A		    mov	    al,	ah
-seg000:FF3C		    out	    42h, al	    ; Timer 8253-5 (AT:	8254.2).
-seg000:FF3E		    in	    al,	61h
-seg000:FF40		    mov	    ah,	al
-seg000:FF42		    or	    al,	3
+seg000:FF3C		    out	    42h, al	    ; write timer 2 cnt	- msb
+seg000:FF3E		    in	    al,	61h	    ; get current setting of port
+seg000:FF40		    mov	    ah,	al	    ; save that	setting
+seg000:FF42		    or	    al,	3	    ; turn speaker on
 seg000:FF44		    out	    61h, al
-seg000:FF46		    sub	    cx,	cx
+seg000:FF46		    sub	    cx,	cx	    ; set cnt to wait 500ms
 seg000:FF48 delay:				    ; CODE XREF: beep:delayj
 seg000:FF48					    ; beep+1Bj
-seg000:FF48		    loop    delay
-seg000:FF4A		    dec	    bl
-seg000:FF4C		    jnz	    short delay
-seg000:FF4E		    mov	    al,	ah
+seg000:FF48		    loop    delay	    ; delay before turning off
+seg000:FF4A		    dec	    bl		    ; delay cnt	expired?
+seg000:FF4C		    jnz	    short delay	    ; no - continue beeping spk
+seg000:FF4E		    mov	    al,	ah	    ; recover value of port
 seg000:FF50		    out	    61h, al
-seg000:FF52		    retn
+seg000:FF52		    retn		    ; return to	caller
 seg000:FF52 beep	    endp
 seg000:FF53		    iret
 seg000:FF54 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
