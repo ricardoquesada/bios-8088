@@ -40,7 +40,8 @@ seg000:003C disk_err	    db 'H'                  ; DATA XREF: seg000:086Fo
 seg000:003D f4		    dw 378h		    ; DATA XREF: seg000:f15co
 seg000:003D					    ; print source table
 seg000:003F		    dw 278h
-seg000:0041 imasks	    dw 0F7EFh		    ; interrupt	masks for 8259 interrupt controllers
+seg000:0041 imasks	    dw 0F7EFh		    ; DATA XREF: uart:at1o
+seg000:0041					    ; interrupt	masks for 8259 interrupt controllers
 seg000:0043 ;----------------------------------------------------
 seg000:0043 ; setup
 seg000:0043 ;	  disable nmi, maskable	ints.
@@ -435,25 +436,29 @@ seg000:0260 ; mfg err. code 07xx (xx=00, data path or internal failure,
 seg000:0260 ;	  xx=any other bits on=unexpected interrupts
 seg000:0260 ;----------------------------------------------------
 seg000:0260		    call    mfg_up	    ; mfg code=f7
-seg000:0263		    mov	    al,	13h
+seg000:0263		    mov	    al,	10011b	    ; icw1 - reset edge	sense circuit, set single 8259 chip and	icw4 read
 seg000:0265		    out	    20h, al
-seg000:0267		    mov	    al,	1000b
+seg000:0267		    mov	    al,	8	    ; icw2 - set interrupt type	8 (8-f)
 seg000:0269		    out	    21h, al
-seg000:026B		    mov	    al,	1001b
+seg000:026B		    mov	    al,	1001b	    ; icw4 - set buffered mode/slave and 8086 mode
 seg000:026D		    out	    21h, al
+seg000:026F ;----------------------------------------------------
 seg000:026F ; test ability to write/read the mask register
-seg000:026F		    mov	    al,	0
-seg000:0271		    mov	    bl,	al
-seg000:0273		    out	    21h, al
-seg000:0275		    in	    al,	21h
-seg000:0277		    or	    al,	al
-seg000:0279		    jnz	    short gerror
-seg000:027B		    mov	    al,	0FFh
-seg000:027D		    out	    21h, al
-seg000:027F		    in	    al,	21h
-seg000:0281		    add	    al,	1
-seg000:0283		    jnz	    short gerror
+seg000:026F ;----------------------------------------------------
+seg000:026F		    mov	    al,	0	    ; write zeroes to imr
+seg000:0271		    mov	    bl,	al	    ; preset error indicator
+seg000:0273		    out	    21h, al	    ; device interrupts	enabled
+seg000:0275		    in	    al,	21h	    ; read imr
+seg000:0277		    or	    al,	al	    ; imr = 0?
+seg000:0279		    jnz	    short gerror    ; no - go to error routine
+seg000:027B		    mov	    al,	0FFh	    ; disable device interrupts
+seg000:027D		    out	    21h, al	    ; write ones to imr
+seg000:027F		    in	    al,	21h	    ; read imr
+seg000:0281		    add	    al,	1	    ; all imr bits on? (add should produce 0)
+seg000:0283		    jnz	    short gerror    ; no - go to error routine
+seg000:0285 ;----------------------------------------------------
 seg000:0285 ; check for	hot interrupts
+seg000:0285 ;----------------------------------------------------
 seg000:0285		    sti
 seg000:0286		    mov	    cx,	50h ; 'P'
 seg000:0289 hot1:				    ; CODE XREF: seg000:hot1j
@@ -465,6 +470,7 @@ seg000:0293 gerror:				    ; CODE XREF: seg000:0279j
 seg000:0293					    ; seg000:0283j
 seg000:0293		    mov	    bh,	7
 seg000:0295		    jmp	    e_msg
+seg000:0298 ; fire the diskette	watchdog timer
 seg000:0298 end_testg:				    ; CODE XREF: seg000:0291j
 seg000:0298		    mov	    al,	0E0h ; 'р'
 seg000:029A		    out	    0F2h, al
@@ -477,33 +483,48 @@ seg000:02A6		    mov	    bx,	0FFFFh	    ; initial count of ffff
 seg000:02A9		    call    init_timer	    ; initialize timer 1
 seg000:02AC		    mov	    ax,	110110b	    ; set timer	0 to mode 3 binary
 seg000:02AF		    call    init_timer	    ; initialize timer 0
-seg000:02B2		    mov	    al,	20h ; ' '
+seg000:02B2 ;----------------------------------------------------
+seg000:02B2 ;	  set bit 5 of port a0 so timer	1 clock	will be	pulsed by the
+seg000:02B2 ;	  timer	0 output rather	than the system	clock
+seg000:02B2 ;----------------------------------------------------
+seg000:02B2		    mov	    al,	100000b	    ; (timer 0 output used as clk input	for timer 1)
 seg000:02B4		    out	    0A0h, al
-seg000:02B6		    mov	    ah,	0
-seg000:02B8		    call    bits_on_off
-seg000:02BB		    jnb	    short timer1_nz
-seg000:02BD		    mov	    bl,	0
+seg000:02B6 ;----------------------------------------------------
+seg000:02B6 ;	  check	if all bits go on an off in timer 0 (check for stuck
+seg000:02B6 ;	     bits)
+seg000:02B6 ;----------------------------------------------------
+seg000:02B6		    mov	    ah,	0	    ; timer 0
+seg000:02B8		    call    bits_on_off	    ; let subroutine check it
+seg000:02BB		    jnb	    short timer1_nz ; no stuck bits (carry flag	not set)
+seg000:02BD		    mov	    bl,	0	    ; stuck bits in timer 0
 seg000:02BF		    jmp	    timer_error
+seg000:02C2 ;----------------------------------------------------
+seg000:02C2 ;	  since	timer 0	has completed at least one complete cycle,
+seg000:02C2 ;	  timer	1 should be non-zero. check that this is the case.
+seg000:02C2 ;----------------------------------------------------
 seg000:02C2 timer1_nz:				    ; CODE XREF: seg000:02BBj
-seg000:02C2		    in	    al,	41h	    ; Timer 8253-5 (AT:	8254.2).
-seg000:02C4		    mov	    ah,	al
-seg000:02C6		    in	    al,	41h	    ; Timer 8253-5 (AT:	8254.2).
-seg000:02C8		    cmp	    ax,	0FFFFh
-seg000:02CB		    jnz	    short timer0_intr
-seg000:02CD		    mov	    bl,	1
+seg000:02C2		    in	    al,	41h	    ; read lsb of timer	1
+seg000:02C4		    mov	    ah,	al	    ; save lsb
+seg000:02C6		    in	    al,	41h	    ; read msb of timer	1
+seg000:02C8		    cmp	    ax,	0FFFFh	    ; still ffff?
+seg000:02CB		    jnz	    short timer0_intr ;	no - timer 1 has been bumped
+seg000:02CD		    mov	    bl,	1	    ; timer 1 was not bumped by	timer 0
 seg000:02CF		    jmp	    timer_error
+seg000:02D2 ;----------------------------------------------------
+seg000:02D2 ;	  check	for timer 0 interrupt
+seg000:02D2 ;----------------------------------------------------
 seg000:02D2 timer0_intr:			    ; CODE XREF: seg000:02CBj
-seg000:02D2		    sti
-seg000:02D3		    in	    al,	21h	    ; Interrupt	controller, 8259A.
-seg000:02D5		    and	    al,	0FEh
-seg000:02D7		    and	    ds:484h, al
-seg000:02DB		    out	    21h, al	    ; Interrupt	controller, 8259A.
-seg000:02DD		    mov	    cx,	0FFFFh
+seg000:02D2		    sti			    ; enable maskable ext interrupts
+seg000:02D3		    in	    al,	21h
+seg000:02D5		    and	    al,	0FEh	    ; mask all intrs except lvl	0
+seg000:02D7		    and	    ds:484h, al	    ; clear int	received
+seg000:02DB		    out	    21h, al	    ; write the	8259 imr
+seg000:02DD		    mov	    cx,	0FFFFh	    ; set loop count
 seg000:02E0 wait_intr_loop:			    ; CODE XREF: seg000:02E7j
 seg000:02E0		    test    byte ptr ds:484h, 1	; timer	0 int occur?
-seg000:02E5		    jnz	    short reset_intrs
-seg000:02E7		    loop    wait_intr_loop
-seg000:02E9		    mov	    bl,	2
+seg000:02E5		    jnz	    short reset_intrs ;	yes - continue
+seg000:02E7		    loop    wait_intr_loop  ; wait for interrupt for specified time
+seg000:02E9		    mov	    bl,	2	    ; timer 0 intr didn't occur
 seg000:02EB		    jmp	    short timer_error
 seg000:02ED ;----------------------------------------------------
 seg000:02ED ;	  housekeeping for timer 0 interrupts
@@ -522,20 +543,33 @@ seg000:02FC d6:					    ; CODE XREF: seg000:02F6j
 seg000:02FC		    mov	    word ptr ds:20h, offset mfg_tick ; set to point to mfg. (int 0x08)
 seg000:0302		    mov	    word ptr ds:70h, offset mfg_tick ; also set	user timer int for diags. use (int 0x1c)
 seg000:0308		    mov	    al,	0FEh ; 'ў'
-seg000:030A		    out	    21h, al	    ; Interrupt	controller, 8259A.
+seg000:030A		    out	    21h, al	    ; (enable lvl 0 interrupt)
 seg000:030C		    sti
+seg000:030D ;----------------------------------------------------
+seg000:030D ;	  reset	d5 of port a0 so that the timer	1 clock	will be
+seg000:030D ;	  pulsed by the	system clock
+seg000:030D ;----------------------------------------------------
 seg000:030D time_1:				    ; CODE XREF: seg000:02FAj
-seg000:030D		    mov	    al,	0
-seg000:030F		    out	    0A0h, al	    ; PIC 2  same as 0020 for PIC 1
-seg000:0311		    mov	    ah,	1
+seg000:030D		    mov	    al,	0	    ; make al =	0
+seg000:030F		    out	    0A0h, al
+seg000:0311 ;----------------------------------------------------
+seg000:0311 ;	  check	for stuck bits in timer	1
+seg000:0311 ;----------------------------------------------------
+seg000:0311		    mov	    ah,	1	    ; timer 1
 seg000:0313		    call    bits_on_off
-seg000:0316		    jnb	    short timer2_init
-seg000:0318		    mov	    bl,	3
+seg000:0316		    jnb	    short timer2_init ;	no stuck bits
+seg000:0318		    mov	    bl,	3	    ; stuck bits in timer 1
 seg000:031A		    jmp	    short timer_error
+seg000:031C ;----------------------------------------------------
+seg000:031C ;	  initialize timer 2
+seg000:031C ;----------------------------------------------------
 seg000:031C timer2_init:			    ; CODE XREF: seg000:0316j
 seg000:031C		    mov	    ax,	2B6h	    ; set timer	2 to mode 3 binary
 seg000:031F		    mov	    bx,	0FFFFh	    ; initial count
 seg000:0322		    call    init_timer
+seg000:0325 ;----------------------------------------------------
+seg000:0325 ;	  set pb0 of port_b of 8255 (timer 2 gate)
+seg000:0325 ;----------------------------------------------------
 seg000:0325		    in	    al,	61h	    ; current status
 seg000:0327		    or	    al,	1	    ; set bit 0, others	alone
 seg000:0329		    out	    61h, al
@@ -646,7 +680,7 @@ seg000:03B7					    ; seg000:0367j
 seg000:03B7		    call    mfg_up	    ; mfg checkpoint=f5
 seg000:03BA		    cli
 seg000:03BB		    mov	    al,	1110000b    ; set timer	1 to mode 0
-seg000:03BB					    ; (tim 1, read/load	lsb/msb, interrupt on terminal count, binary)
+seg000:03BB					    ; (tim 1, lsb/msb, interrupt on terminal count, binary)
 seg000:03BD		    out	    43h, al
 seg000:03BF		    mov	    cx,	8000h
 seg000:03C2 q1:					    ; CODE XREF: seg000:q1j
@@ -740,6 +774,8 @@ seg000:0436		    xchg    ah,	al
 seg000:0438		    sti			    ; interrupts back on
 seg000:0439		    nop
 seg000:043A		    cmp	    ax,	0A0ACh	    ; (0xb286 *	0.9)
+seg000:043A					    ; there are	0x4dc8 PIT cycles per screen (262*76)
+seg000:043A					    ; and 0x10000-0xb286 = 0x4d7a... a few PIT cycles short... but good	enough
 seg000:043D		    jge	    short q13
 seg000:043F		    mov	    bl,	6
 seg000:0441		    jmp	    short q22	    ; verticals	too far	appart
@@ -857,7 +893,7 @@ seg000:04F2		    mov	    ds:seg40.buffer_start, si
 seg000:04F6		    add	    si,	32	    ; set default buffer of 32 bytes
 seg000:04F9		    mov	    ds:seg40.buffer_end, si
 seg000:04FD		    in	    al,	0A0h	    ; clear nmi	f/f
-seg000:04FF		    mov	    al,	80h ; ''   ; enable nmi
+seg000:04FF		    mov	    al,	10000000b   ; enable nmi
 seg000:0501		    out	    0A0h, al
 seg000:0503		    call    mfg_up	    ; mfg checkpoint=f3
 seg000:0506		    mov	    bx,	64	    ; start with base 64k
@@ -1082,7 +1118,7 @@ seg000:068A		    out	    61h, al
 seg000:068C		    mov	    al,	10110110b   ; mode set timer 2
 seg000:068C					    ; (tim 2, read/load	lsb/msb, square, binary)
 seg000:068E		    out	    43h, al
-seg000:0690		    mov	    al,	40h ; '@'   ; disable nmi
+seg000:0690		    mov	    al,	1000000b    ; disable nmi
 seg000:0692		    out	    0A0h, al
 seg000:0694		    mov	    al,	32	    ; lsb to timer 2 (approx. 40khz vaue)
 seg000:0696		    mov	    dx,	42h ; 'B'
@@ -1109,7 +1145,7 @@ seg000:06BD		    mov	    ds:seg40.intr_flag,	al ; reset intr. flag
 seg000:06C0		    in	    al,	61h	    ; disable internal beeper to
 seg000:06C2		    or	    al,	30h	    ; prevent error beep
 seg000:06C4		    out	    61h, al
-seg000:06C6		    mov	    al,	0C0h ; 'Р'
+seg000:06C6		    mov	    al,	11000000b
 seg000:06C8		    out	    0A0h, al	    ; enable nmi
 seg000:06CA		    mov	    cx,	100h
 seg000:06CD f6_0:				    ; CODE XREF: seg000:f6_0j
@@ -1123,15 +1159,15 @@ seg000:06DA		    mov	    bl,	3	    ; set possible error code
 seg000:06DC		    mov	    word ptr es:8, offset kdbnmi ; reset nmi vector
 seg000:06E3		    pop	    es
 seg000:06E4		    jz	    short f6_1
-seg000:06E6		    mov	    al,	0
-seg000:06E8		    out	    0A0h, al	    ; PIC 2  same as 0020 for PIC 1
+seg000:06E6		    mov	    al,	0	    ; disable feedback ckt
+seg000:06E8		    out	    0A0h, al
 seg000:06EA		    in	    al,	61h
-seg000:06EC		    and	    al,	0FEh
+seg000:06EC		    and	    al,	0FEh	    ; drop gate	to timer 2
 seg000:06EE		    out	    61h, al
 seg000:06F0 f6_2:				    ; CODE XREF: seg000:06F6j
-seg000:06F0		    in	    al,	62h
+seg000:06F0		    in	    al,	62h	    ; see if keyboard data active
 seg000:06F2		    and	    al,	40h
-seg000:06F4		    jz	    short f6_x
+seg000:06F4		    jz	    short f6_x	    ; exit loop	if data	went low
 seg000:06F6		    loop    f6_2
 seg000:06F8		    mov	    bl,	1
 seg000:06FA f6_1:				    ; CODE XREF: seg000:06AFj
@@ -1142,15 +1178,16 @@ seg000:06FF f6_x:				    ; CODE XREF: seg000:f6_zj
 seg000:06FF					    ; seg000:067Ej
 seg000:06FF					    ; seg000:0684j
 seg000:06FF					    ; seg000:06F4j
-seg000:06FF		    mov	    al,	0
+seg000:06FF		    mov	    al,	0	    ; disable feedback ckt
 seg000:0701		    out	    0A0h, al
 seg000:0703 ;	 cassette interface test
 seg000:0703		    call    mfg_up
 seg000:0706		    in	    al,	61h
 seg000:0708		    or	    al,	9
 seg000:070A		    out	    61h, al
+seg000:070C ;----- write a bit
 seg000:070C		    in	    al,	21h
-seg000:070E		    or	    al,	1
+seg000:070E		    or	    al,	1	    ; disable timer interrupts
 seg000:0710		    out	    21h, al
 seg000:0712		    mov	    al,	10110110b   ; sel tim 2, lsb, msb, md 3
 seg000:0712					    ; (tim 2, read/load	lsb/msb, square, binary)
@@ -1211,10 +1248,10 @@ seg000:0776		    call    e_msg
 seg000:0779 t13_end:				    ; CODE XREF: seg000:0751j
 seg000:0779					    ; seg000:0769j
 seg000:0779		    in	    al,	21h
-seg000:077B		    and	    al,	0FEh
+seg000:077B		    and	    al,	0FEh	    ; enable timer ints
 seg000:077D		    out	    21h, al
-seg000:077F		    in	    al,	0A0h
-seg000:0781		    mov	    al,	80h ; ''
+seg000:077F		    in	    al,	0A0h	    ; clear nmi	flip/flop
+seg000:0781		    mov	    al,	10000000b   ; enable nmi interrupts
 seg000:0783		    out	    0A0h, al
 seg000:0785		    call    mfg_up
 seg000:0788		    mov	    dx,	2F8h
@@ -2186,8 +2223,8 @@ seg000:0E49		    mov	    al,	cs:[bx+2]   ;	till we	can put	them in	ram (al=borde
 seg000:0E4D		    mov	    si,	ax
 seg000:0E4F		    cli			    ; disable interrupts
 seg000:0E50		    call    mode_alive	    ; keep memory data valid
-seg000:0E53		    mov	    al,	10h	    ; disable nmi and hold request
-seg000:0E55		    out	    0A0h, al	    ; 0xa0 = nmi_port
+seg000:0E53		    mov	    al,	10000b	    ; disable nmi and hold request
+seg000:0E55		    out	    0A0h, al
 seg000:0E57		    mov	    dx,	3DAh
 seg000:0E5A		    mov	    al,	4	    ; point to reset reg
 seg000:0E5C		    out	    dx,	al	    ; send to gate array
@@ -2478,38 +2515,49 @@ seg000:1031 ; ллллллллллллллл S	U B R O	U T I N	E лллллллллллллллллллллллллллллл
 seg000:1031 i30		    proc near		    ; CODE XREF: kdbnmi:i7p
 seg000:1031					    ; kdbnmi+58p kdbnmi+69p
 seg000:1031					    ; kdbnmi+6Dp i30+14j
-seg000:1031		    mov	    al,	1000000b
-seg000:1033		    out	    43h, al	    ; Timer 8253-5 (AT:	8254.2).
+seg000:1031		    mov	    al,	1000000b    ; read clock
+seg000:1031					    ; (tim 1, latching,	interrupt on terminal count, binary)
+seg000:1033		    out	    43h, al
 seg000:1035		    nop
 seg000:1036		    nop
-seg000:1037		    in	    al,	41h	    ; Timer 8253-5 (AT:	8254.2).
+seg000:1037		    in	    al,	41h
 seg000:1039		    mov	    ah,	al
-seg000:103B		    in	    al,	41h	    ; Timer 8253-5 (AT:	8254.2).
+seg000:103B		    in	    al,	41h
 seg000:103D		    xchg    ah,	al
-seg000:103F		    mov	    cx,	di
-seg000:1041		    sub	    cx,	ax
-seg000:1043		    cmp	    cx,	dx
-seg000:1045		    jb	    short i30
-seg000:1047		    sub	    cx,	dx
-seg000:1049		    mov	    di,	ax
-seg000:104B		    add	    di,	cx
-seg000:104D		    mov	    cx,	5
-seg000:1050		    xor	    ah,	ah
+seg000:103F		    mov	    cx,	di	    ; get last clock time
+seg000:1041		    sub	    cx,	ax	    ; sub current time
+seg000:1043		    cmp	    cx,	dx	    ; is it time to sample?
+seg000:1045		    jb	    short i30	    ; no, keep looking at it
+seg000:1047		    sub	    cx,	dx	    ; update # of counts off
+seg000:1049		    mov	    di,	ax	    ; save current time	as last	time
+seg000:104B		    add	    di,	cx	    ; add difference for next time
+seg000:104D ;----- start sampling data bit (5 samples)
+seg000:104D		    mov	    cx,	5	    ; set counter
+seg000:1050 ;----------------------------------------------------
+seg000:1050 ;
+seg000:1050 ; sample line
+seg000:1050 ;
+seg000:1050 ;	  port_c is sampled cx times and if there are 3	or more	1"s
+seg000:1050 ;	  then 80h is returned in al, else 00h is returned in al.
+seg000:1050 ;	  parity counter is mantained in es.
+seg000:1050 ;
+seg000:1050 ;----------------------------------------------------
+seg000:1050		    xor	    ah,	ah	    ; clear counter
 seg000:1052 i32:				    ; CODE XREF: i30:i33j
-seg000:1052		    in	    al,	62h
-seg000:1054		    test    al,	40h
-seg000:1056		    jz	    short i33
-seg000:1058		    inc	    ah
+seg000:1052		    in	    al,	62h	    ; get sample
+seg000:1054		    test    al,	40h	    ; test if 1
+seg000:1056		    jz	    short i33	    ; jump if 0
+seg000:1058		    inc	    ah		    ; keep count of 1's
 seg000:105A i33:				    ; CODE XREF: i30+25j
-seg000:105A		    loop    i32
-seg000:105C		    cmp	    ah,	3
-seg000:105F		    jb	    short i34
-seg000:1061		    mov	    al,	80h ; ''
-seg000:1063		    inc	    bl
-seg000:1065		    retn
+seg000:105A		    loop    i32		    ; keep sampling
+seg000:105C		    cmp	    ah,	3	    ; valid 1?
+seg000:105F		    jb	    short i34	    ; jmp if not valid 1
+seg000:1061		    mov	    al,	80h ; ''   ; return 80h in al (1)
+seg000:1063		    inc	    bl		    ; increment	parity counter
+seg000:1065		    retn		    ; return to	caller
 seg000:1066 i34:				    ; CODE XREF: i30+2Ej
-seg000:1066		    xor	    al,	al
-seg000:1068		    retn
+seg000:1066		    xor	    al,	al	    ; return 0 in al (0)
+seg000:1068		    retn		    ; return to	caller
 seg000:1068 i30		    endp
 seg000:1069 kb0		    db 30h, 10h, 12h, 19h, 1Fh,	31h, 48h, 50h, 4Bh, 4Dh, 0Ch
 seg000:1069		    db 0Dh
@@ -8608,45 +8656,48 @@ seg000:429A		    mov	    bx,	ds:seg50.mem_done_o
 seg000:429E		    push    ds
 seg000:429F		    mov	    ds,	ax
 seg000:42A1		    mov	    cx,	80h ; ''
+seg000:42A4 ;----------------------------------------------------
+seg000:42A4 ;	  checks memory	using 0x55aa pattern
+seg000:42A4 ;----------------------------------------------------
 seg000:42A4 l2:					    ; CODE XREF: diag_int_1c+73j
 seg000:42A4		    mov	    ah,	[bx]
 seg000:42A6		    mov	    dx,	55AAh
-seg000:42A9		    mov	    al,	0
-seg000:42AB		    out	    0A0h, al	    ; PIC 2  same as 0020 for PIC 1
+seg000:42A9		    mov	    al,	0	    ; disable nmi
+seg000:42AB		    out	    0A0h, al
 seg000:42AD		    mov	    [bx], dl
 seg000:42AF		    xor	    dl,	[bx]
 seg000:42B1		    jnz	    short diag_mem_error
 seg000:42B3		    mov	    [bx], ah
-seg000:42B5		    mov	    al,	80h ; ''
-seg000:42B7		    out	    0A0h, al	    ; PIC 2  same as 0020 for PIC 1
+seg000:42B5		    mov	    al,	10000000b   ; enable nmi
+seg000:42B7		    out	    0A0h, al
 seg000:42B9		    xchg    dl,	dh
-seg000:42BB		    mov	    al,	0
-seg000:42BD		    out	    0A0h, al	    ; PIC 2  same as 0020 for PIC 1
+seg000:42BB		    mov	    al,	0	    ; disable nmi
+seg000:42BD		    out	    0A0h, al
 seg000:42BF		    mov	    [bx], dl
 seg000:42C1		    xor	    dl,	[bx]
 seg000:42C3		    jnz	    short diag_mem_error
 seg000:42C5		    mov	    [bx], ah
-seg000:42C7		    mov	    al,	80h ; ''
-seg000:42C9		    out	    0A0h, al	    ; PIC 2  same as 0020 for PIC 1
+seg000:42C7		    mov	    al,	10000000b   ; enable nmi
+seg000:42C9		    out	    0A0h, al
 seg000:42CB		    mov	    dx,	0FFh
 seg000:42CE		    nop
-seg000:42CF		    mov	    al,	0
-seg000:42D1		    out	    0A0h, al	    ; PIC 2  same as 0020 for PIC 1
+seg000:42CF		    mov	    al,	0	    ; disable nmi
+seg000:42D1		    out	    0A0h, al
 seg000:42D3		    mov	    [bx], dl
 seg000:42D5		    xor	    dl,	[bx]
 seg000:42D7		    jnz	    short diag_mem_error
 seg000:42D9		    mov	    [bx], ah
-seg000:42DB		    mov	    al,	80h ; ''
-seg000:42DD		    out	    0A0h, al	    ; PIC 2  same as 0020 for PIC 1
+seg000:42DB		    mov	    al,	10000000b   ; enable nmi
+seg000:42DD		    out	    0A0h, al
 seg000:42DF		    xchg    dl,	dh
-seg000:42E1		    mov	    al,	0
-seg000:42E3		    out	    0A0h, al	    ; PIC 2  same as 0020 for PIC 1
+seg000:42E1		    mov	    al,	0	    ; disable nmi
+seg000:42E3		    out	    0A0h, al
 seg000:42E5		    mov	    [bx], dl
 seg000:42E7		    xor	    dl,	[bx]
 seg000:42E9		    jnz	    short diag_mem_error
 seg000:42EB		    mov	    [bx], ah
-seg000:42ED		    mov	    al,	80h ; ''
-seg000:42EF		    out	    0A0h, al	    ; PIC 2  same as 0020 for PIC 1
+seg000:42ED		    mov	    al,	10000000b   ; enable nmi
+seg000:42EF		    out	    0A0h, al
 seg000:42F1		    inc	    bx
 seg000:42F2		    loop    l2
 seg000:42F4		    jmp	    short l4
@@ -8780,9 +8831,9 @@ seg000:43B9		    inc	    di
 seg000:43BA		    mov	    al,	dl
 seg000:43BC		    call    sub_F43C5
 seg000:43BF l9:					    ; CODE XREF: diag_int_1c+127j
-seg000:43BF		    cli
-seg000:43C0		    sub	    al,	al
-seg000:43C2		    out	    0A0h, al	    ; PIC 2  same as 0020 for PIC 1
+seg000:43BF		    cli			    ; disable interrupts
+seg000:43C0		    sub	    al,	al	    ; disable nmi
+seg000:43C2		    out	    0A0h, al
 seg000:43C4		    hlt
 seg000:43C4 ; END OF FUNCTION CHUNK FOR	diag_int_1c
 seg000:43C5 ; ллллллллллллллл S	U B R O	U T I N	E ллллллллллллллллллллллллллллллллллллллл
@@ -9883,11 +9934,11 @@ seg000:4A58					    ; DH = head, DL = drive, ES:BX -> buffer to	fill
 seg000:4A58					    ; Return: CF set on	error, AH = status, AL = number	of sectors read
 seg000:4A5A		    cmp	    ah,	4
 seg000:4A5D		    jnz	    short l5
-seg000:4A5F		    call    sub_F4AEB
+seg000:4A5F		    call    diag_get_timer_0_plus
 seg000:4A62		    mov	    ds:seg60.tim_1, ax
 seg000:4A65		    mov	    ds:seg60.tim_l_1, cx
 seg000:4A69		    call    sub_F4B09
-seg000:4A6C		    call    sub_F4AEB
+seg000:4A6C		    call    diag_get_timer_0_plus
 seg000:4A6F		    cmp	    ds:seg60.tim_l_1, cx
 seg000:4A73		    jz	    short l1
 seg000:4A75		    jmp	    short l2
@@ -9907,12 +9958,12 @@ seg000:4A91					    ; DH = head, DL = drive, ES:BX -> buffer to	fill
 seg000:4A91					    ; Return: CF set on	error, AH = status, AL = number	of sectors read
 seg000:4A93		    cmp	    ah,	4
 seg000:4A96		    jnz	    short l5
-seg000:4A98		    call    sub_F4AEB
+seg000:4A98		    call    diag_get_timer_0_plus
 seg000:4A9B		    mov	    ds:seg60.tim_2, ax
 seg000:4A9E		    not	    word ptr ds:seg60.tim_2
 seg000:4AA2		    mov	    ds:seg60.tim_l_2, cx
 seg000:4AA6		    call    sub_F4B09
-seg000:4AA9		    call    sub_F4AEB
+seg000:4AA9		    call    diag_get_timer_0_plus
 seg000:4AAC		    cmp	    ds:seg60.tim_l_2, cx
 seg000:4AB0		    jz	    short l3
 seg000:4AB2		    add	    word ptr ds:seg60.half_cycle, 1
@@ -9941,32 +9992,35 @@ seg000:4AE9		    stc
 seg000:4AEA		    retn
 seg000:4AEA sub_F4A44	    endp
 seg000:4AEB ; ллллллллллллллл S	U B R O	U T I N	E ллллллллллллллллллллллллллллллллллллллл
-seg000:4AEB sub_F4AEB	    proc near		    ; CODE XREF: sub_F4A44+1Bp
+seg000:4AEB ; return
+seg000:4AEB ;	   cx =	timer low (40:6c)
+seg000:4AEB ;	   ax =	timer 0	value
+seg000:4AEB diag_get_timer_0_plus proc near	    ; CODE XREF: sub_F4A44+1Bp
 seg000:4AEB					    ; sub_F4A44+28p
 seg000:4AEB					    ; sub_F4A44+54p
 seg000:4AEB					    ; sub_F4A44+65p
 seg000:4AEB					    ; sub_F4B09+5p
 seg000:4AEB					    ; sub_F4B09:l0p
-seg000:4AEB		    mov	    al,	0
-seg000:4AED		    cli
-seg000:4AEE		    out	    43h, al	    ; Timer 8253-5 (AT:	8254.2).
+seg000:4AEB		    mov	    al,	0	    ; tim 0, latching, interrupt on terminal count, binary
+seg000:4AED		    cli			    ; no interrupts
+seg000:4AEE		    out	    43h, al
 seg000:4AF0		    nop
 seg000:4AF1		    nop
-seg000:4AF2		    in	    al,	40h	    ; Timer 8253-5 (AT:	8254.2).
+seg000:4AF2		    in	    al,	40h	    ; read tim 0 lsb
 seg000:4AF4		    mov	    ah,	al
-seg000:4AF6		    in	    al,	40h	    ; Timer 8253-5 (AT:	8254.2).
-seg000:4AF8		    xchg    ah,	al
+seg000:4AF6		    in	    al,	40h	    ; read tim 0 msb
+seg000:4AF8		    xchg    ah,	al	    ; ax = tim 0
 seg000:4AFA		    push    ds
 seg000:4AFB		    push    si
 seg000:4AFC		    sub	    si,	si
 seg000:4AFE		    mov	    ds,	si
-seg000:4B00		    mov	    si,	46Ch
+seg000:4B00		    mov	    si,	46Ch	    ; 40:6c = timer low
 seg000:4B03		    mov	    cx,	[si]
 seg000:4B05		    pop	    si
 seg000:4B06		    pop	    ds
-seg000:4B07		    sti
+seg000:4B07		    sti			    ; enable interrupts
 seg000:4B08		    retn
-seg000:4B08 sub_F4AEB	    endp
+seg000:4B08 diag_get_timer_0_plus endp
 seg000:4B09 ; ллллллллллллллл S	U B R O	U T I N	E ллллллллллллллллллллллллллллллллллллллл
 seg000:4B09 sub_F4B09	    proc near		    ; CODE XREF: sub_F4A44+25p
 seg000:4B09					    ; sub_F4A44+62p
@@ -9974,10 +10028,10 @@ seg000:4B09		    push    bx
 seg000:4B0A		    push    cx
 seg000:4B0B		    push    dx
 seg000:4B0C		    mov	    dx,	ax
-seg000:4B0E		    call    sub_F4AEB
+seg000:4B0E		    call    diag_get_timer_0_plus
 seg000:4B11		    mov	    bx,	ax
 seg000:4B13 l0:					    ; CODE XREF: sub_F4B09+13j
-seg000:4B13		    call    sub_F4AEB
+seg000:4B13		    call    diag_get_timer_0_plus
 seg000:4B16		    mov	    cx,	bx
 seg000:4B18		    sub	    cx,	ax
 seg000:4B1A		    cmp	    cx,	dx
@@ -10936,13 +10990,13 @@ seg000:514A		    int	    82h		    ; reserved for BASIC
 seg000:514C		    clc
 seg000:514D		    jmp	    lret5
 seg000:5150 run_test:				    ; CODE XREF: int_8a_diag_sound+Dj
-seg000:5150		    mov	    ah,	1
-seg000:5152		    call    sub_F5B8F
+seg000:5150		    mov	    ah,	1	    ; long beep
+seg000:5152		    call    diag_beeper_test
 seg000:5155		    mov	    cx,	0Fh
 seg000:5158		    call    diag_delay
 seg000:515B		    in	    al,	61h
 seg000:515D		    push    ax
-seg000:515E		    or	    al,	70h
+seg000:515E		    or	    al,	1110000b
 seg000:5160		    out	    61h, al
 seg000:5162		    mov	    al,	9Fh ; ''
 seg000:5164 l2:					    ; CODE XREF: int_8a_diag_sound+37j
@@ -11230,7 +11284,7 @@ seg000:533C		    mov	    bx,	415h
 seg000:533F		    jmp	    l43
 seg000:5342 l5:					    ; CODE XREF: int_8c_diag_modem+A6j
 seg000:5342		    mov	    cx,	175h
-seg000:5345		    call    sub_F59BD
+seg000:5345		    call    diag_send_serial_cmds
 seg000:5348		    mov	    al,	1Ah
 seg000:534A		    out	    dx,	al
 seg000:534B		    jmp	    short $+2
@@ -12065,7 +12119,7 @@ seg000:589F		    mov	    cx,	cs:[di]
 seg000:58A2		    push    si
 seg000:58A3		    push    ax
 seg000:58A4		    mov	    dx,	2FBh
-seg000:58A7		    call    sub_F59BD
+seg000:58A7		    call    diag_send_serial_cmds
 seg000:58AA		    call    sub_F58D2
 seg000:58AD		    pop	    ax
 seg000:58AE		    pop	    si
@@ -12126,7 +12180,7 @@ seg000:5901		    clc
 seg000:5902 lret:				    ; CODE XREF: sub_F58D2+1Bj
 seg000:5902		    retn
 seg000:5902 sub_F58D2	    endp
-seg000:5903		    db 0BAh ; К
+seg000:5903 diag_serial_cmds db	0BAh ; К	    ; DATA XREF: sub_F5923+4o
 seg000:5904		    db	  0
 seg000:5905		    db	5Dh ; ]
 seg000:5906		    db	  0
@@ -12159,16 +12213,18 @@ seg000:5920		    db	22h ; "
 seg000:5921		    db	6Ah ; j
 seg000:5922		    db	13h
 seg000:5923 ; ллллллллллллллл S	U B R O	U T I N	E ллллллллллллллллллллллллллллллллллллллл
+seg000:5923 ; input:
+seg000:5923 ;	   dx =	serial port
 seg000:5923 sub_F5923	    proc near		    ; CODE XREF: int_8c_diag_modem+A3p
 seg000:5923					    ; int_8f_diag_rs232+31p
-seg000:5923		    mov	    al,	0
-seg000:5925		    out	    0A0h, al	    ; PIC 2  same as 0020 for PIC 1
-seg000:5927		    mov	    di,	5903h
+seg000:5923		    mov	    al,	0	    ; disable nmi
+seg000:5925		    out	    0A0h, al
+seg000:5927		    mov	    di,	offset diag_serial_cmds
 seg000:592A		    mov	    cx,	4
 seg000:592D l0:					    ; CODE XREF: sub_F5923+26j
 seg000:592D		    push    cx
 seg000:592E		    mov	    cx,	cs:[di]
-seg000:5931		    call    sub_F59BD
+seg000:5931		    call    diag_send_serial_cmds
 seg000:5934		    pop	    cx
 seg000:5935		    mov	    al,	cs:[di+9]
 seg000:5939		    out	    dx,	al
@@ -12181,8 +12237,8 @@ seg000:5948		    inc	    di
 seg000:5949		    loop    l0
 seg000:594B		    clc
 seg000:594C l1:					    ; CODE XREF: sub_F5923+22j
-seg000:594C		    mov	    al,	80h ; ''
-seg000:594E		    out	    0A0h, al	    ; PIC 2  same as 0020 for PIC 1
+seg000:594C		    mov	    al,	10000000b   ; enable nmi
+seg000:594E		    out	    0A0h, al
 seg000:5950		    retn
 seg000:5950 sub_F5923	    endp
 seg000:5951 ; ллллллллллллллл S	U B R O	U T I N	E ллллллллллллллллллллллллллллллллллллллл
@@ -12212,7 +12268,7 @@ seg000:5970		    jnz	    short loc_F5976
 seg000:5972		    loop    loc_F596D
 seg000:5974		    jmp	    short loc_F5985
 seg000:5976 loc_F5976:				    ; CODE XREF: sub_F5951+1Fj
-seg000:5976		    call    sub_F59A1
+seg000:5976		    call    diag_get_timer_0
 seg000:5979		    mov	    bx,	ax
 seg000:597B		    mov	    cx,	0
 seg000:597E loc_F597E:				    ; CODE XREF: sub_F5951+32j
@@ -12226,7 +12282,7 @@ seg000:5985		    sti
 seg000:5986		    pop	    ax
 seg000:5987		    jmp	    short loc_F599C
 seg000:5989 loc_F5989:				    ; CODE XREF: sub_F5951+30j
-seg000:5989		    call    sub_F59A1
+seg000:5989		    call    diag_get_timer_0
 seg000:598C		    sti
 seg000:598D		    sub	    bx,	ax
 seg000:598F		    pop	    ax
@@ -12248,19 +12304,21 @@ seg000:599F		    pop	    cx
 seg000:59A0		    retn
 seg000:59A0 sub_F5951	    endp
 seg000:59A1 ; ллллллллллллллл S	U B R O	U T I N	E ллллллллллллллллллллллллллллллллллллллл
-seg000:59A1 sub_F59A1	    proc near		    ; CODE XREF: sub_F5951:loc_F5976p
+seg000:59A1 ; return
+seg000:59A1 ;	   ax =	timer 0	value
+seg000:59A1 diag_get_timer_0 proc near		    ; CODE XREF: sub_F5951:loc_F5976p
 seg000:59A1					    ; sub_F5951:loc_F5989p
-seg000:59A1		    mov	    al,	0
-seg000:59A3		    out	    43h, al	    ; Timer 8253-5 (AT:	8254.2).
+seg000:59A1		    mov	    al,	0	    ; tim 0, latching, interrupt on terminal count, binary
+seg000:59A3		    out	    43h, al
 seg000:59A5		    nop
 seg000:59A6		    jmp	    short $+2
-seg000:59A8		    in	    al,	40h	    ; Timer 8253-5 (AT:	8254.2).
+seg000:59A8		    in	    al,	40h	    ; read timer 0 lsb
 seg000:59AA		    jmp	    short $+2
 seg000:59AC		    mov	    ah,	al
-seg000:59AE		    in	    al,	40h	    ; Timer 8253-5 (AT:	8254.2).
-seg000:59B0		    xchg    ah,	al
+seg000:59AE		    in	    al,	40h	    ; read timer 0 msb
+seg000:59B0		    xchg    ah,	al	    ; ax = timer value
 seg000:59B2		    retn
-seg000:59B2 sub_F59A1	    endp
+seg000:59B2 diag_get_timer_0 endp
 seg000:59B3 ; ллллллллллллллл S	U B R O	U T I N	E ллллллллллллллллллллллллллллллллллллллл
 seg000:59B3 sub_F59B3	    proc near		    ; CODE XREF: int_8c_diag_modem+CBp
 seg000:59B3					    ; sub_F5567+1Ap
@@ -12276,7 +12334,9 @@ seg000:59BC locret_F59BC:			    ; CODE XREF: sub_F59B3+5j
 seg000:59BC		    retn
 seg000:59BC sub_F59B3	    endp
 seg000:59BD ; ллллллллллллллл S	U B R O	U T I N	E ллллллллллллллллллллллллллллллллллллллл
-seg000:59BD sub_F59BD	    proc near		    ; CODE XREF: int_8c_diag_modem+B1p
+seg000:59BD ; input:
+seg000:59BD ;	   dx =	serial port
+seg000:59BD diag_send_serial_cmds proc near	    ; CODE XREF: int_8c_diag_modem+B1p
 seg000:59BD					    ; int_8f_diag_rs232+5Ap
 seg000:59BD					    ; sub_F5923+Ep
 seg000:59BD		    push    dx
@@ -12304,7 +12364,7 @@ seg000:59DE		    sub	    dx,	3
 seg000:59E1		    in	    al,	dx
 seg000:59E2		    pop	    dx
 seg000:59E3		    retn
-seg000:59E3 sub_F59BD	    endp
+seg000:59E3 diag_send_serial_cmds endp
 seg000:59E4 ; ллллллллллллллл S	U B R O	U T I N	E ллллллллллллллллллллллллллллллллллллллл
 seg000:59E4 diag_out_something proc near	    ; CODE XREF: int_8c_diag_modem+9Dp
 seg000:59E4					    ; int_84+8p
@@ -12614,39 +12674,42 @@ seg000:5B8C		    loop    diag_delay
 seg000:5B8E		    retn
 seg000:5B8E diag_delay	    endp
 seg000:5B8F ; ллллллллллллллл S	U B R O	U T I N	E ллллллллллллллллллллллллллллллллллллллл
-seg000:5B8F sub_F5B8F	    proc near		    ; CODE XREF: int_8a_diag_sound+21p
+seg000:5B8F ; input:
+seg000:5B8F ;	   ah =	0 -> short beep
+seg000:5B8F ;	   ah =	1 -> long beep
+seg000:5B8F diag_beeper_test proc near		    ; CODE XREF: int_8a_diag_sound+21p
 seg000:5B8F		    push    ax
 seg000:5B90		    push    cx
 seg000:5B91		    or	    ah,	ah
-seg000:5B93		    mov	    cx,	1
+seg000:5B93		    mov	    cx,	1	    ; beeper sound duration
 seg000:5B96		    jz	    short l0
 seg000:5B98		    dec	    ah
-seg000:5B9A		    mov	    cx,	0Ah
+seg000:5B9A		    mov	    cx,	0Ah	    ; beeper sound duration
 seg000:5B9D		    jz	    short l0
 seg000:5B9F		    pop	    cx
 seg000:5BA0		    pop	    ax
 seg000:5BA1		    retn
-seg000:5BA2 l0:					    ; CODE XREF: sub_F5B8F+7j
-seg000:5BA2					    ; sub_F5B8F+Ej
-seg000:5BA2		    mov	    al,	10110110b
-seg000:5BA4		    out	    43h, al	    ; Timer 8253-5 (AT:	8254.2).
+seg000:5BA2 l0:					    ; CODE XREF: diag_beeper_test+7j
+seg000:5BA2					    ; diag_beeper_test+Ej
+seg000:5BA2		    mov	    al,	10110110b   ; tim 2, lsb/msb, square wave, binary
+seg000:5BA4		    out	    43h, al
 seg000:5BA6		    mov	    ax,	215h
-seg000:5BA9		    out	    42h, al	    ; Timer 8253-5 (AT:	8254.2).
+seg000:5BA9		    out	    42h, al	    ; write lsb
 seg000:5BAB		    mov	    al,	ah
-seg000:5BAD		    out	    42h, al	    ; Timer 8253-5 (AT:	8254.2).
+seg000:5BAD		    out	    42h, al	    ; write msb
 seg000:5BAF		    in	    al,	61h
-seg000:5BB1		    or	    al,	3
+seg000:5BB1		    or	    al,	3	    ; enable speaker
 seg000:5BB3		    out	    61h, al
-seg000:5BB5		    call    diag_delay
+seg000:5BB5		    call    diag_delay	    ; do delay based on	cx
 seg000:5BB8		    in	    al,	61h
-seg000:5BBA		    and	    al,	0FCh
+seg000:5BBA		    and	    al,	0FCh	    ; disable speaker
 seg000:5BBC		    out	    61h, al
 seg000:5BBE		    mov	    cx,	1
-seg000:5BC1		    call    diag_delay
+seg000:5BC1		    call    diag_delay	    ; short delay
 seg000:5BC4		    pop	    cx
 seg000:5BC5		    pop	    ax
 seg000:5BC6		    retn
-seg000:5BC6 sub_F5B8F	    endp
+seg000:5BC6 diag_beeper_test endp
 seg000:5BC7 ; ллллллллллллллл S	U B R O	U T I N	E ллллллллллллллллллллллллллллллллллллллл
 seg000:5BC7 ; int 0x8d
 seg000:5BC7 ; test parallel printer (graphics printer)
@@ -12992,8 +13055,8 @@ seg000:5DB5 sub_F5DB5	    proc near		    ; CODE XREF: int_8d_diag_parallel_print
 seg000:5DB5					    ; int_8d_diag_parallel_printer+164p
 seg000:5DB5		    in	    al,	21h	    ; Interrupt	controller, 8259A.
 seg000:5DB7		    push    ax
-seg000:5DB8		    and	    al,	7Fh
-seg000:5DBA		    out	    21h, al	    ; Interrupt	controller, 8259A.
+seg000:5DB8		    and	    al,	1111111b    ; enable interrupt lvl 7 (i/o channel, parallel printer)
+seg000:5DBA		    out	    21h, al
 seg000:5DBC		    sti
 seg000:5DBD		    xor	    cx,	cx
 seg000:5DBF delay0:				    ; CODE XREF: sub_F5DB5:delay0j
@@ -13007,7 +13070,7 @@ seg000:5DD0		    call    sub_F5DAF
 seg000:5DD3 delay1:				    ; CODE XREF: sub_F5DB5:delay1j
 seg000:5DD3		    loop    delay1
 seg000:5DD5		    pop	    ax
-seg000:5DD6		    out	    21h, al	    ; Interrupt	controller, 8259A.
+seg000:5DD6		    out	    21h, al	    ; restore original interrupts
 seg000:5DD8		    mov	    al,	0
 seg000:5DDA		    cmp	    byte ptr ds:loc_F0083+1, 80h ; ''
 seg000:5DDF		    jnz	    short locret
@@ -17221,12 +17284,12 @@ seg000:E6F5 svi		    proc near		    ; CODE XREF: uart:at2p
 seg000:E6F5					    ; uart:at3p uart:at7p
 seg000:E6F5					    ; uart:at9p
 seg000:E6F5		    push    ax
-seg000:E6F6		    sti
-seg000:E6F7		    mov	    ah,	cs:[di]
-seg000:E6FA		    and	    ds:seg40.intr_flag,	ah
-seg000:E6FE		    in	    al,	21h	    ; Interrupt	controller, 8259A.
-seg000:E700		    and	    al,	ah
-seg000:E702		    out	    21h, al	    ; Interrupt	controller, 8259A.
+seg000:E6F6		    sti			    ; enable maskable external interrupts
+seg000:E6F7		    mov	    ah,	cs:[di]	    ; get interrupt bit	mask
+seg000:E6FA		    and	    ds:seg40.intr_flag,	ah ; clear 8259	interrupt rec'd flag bit
+seg000:E6FE		    in	    al,	21h	    ; current interrupts
+seg000:E700		    and	    al,	ah	    ; enable this interrupt, too
+seg000:E702		    out	    21h, al	    ; write to 8259 (interrupt controller)
 seg000:E704		    pop	    ax
 seg000:E705		    retn
 seg000:E705 svi		    endp
@@ -17421,18 +17484,21 @@ seg000:E819 wfs_end:				    ; CODE XREF: wait_for_status+Dj
 seg000:E819		    retn
 seg000:E819 wait_for_status endp
 seg000:E81A ; ллллллллллллллл S	U B R O	U T I N	E ллллллллллллллллллллллллллллллллллллллл
+seg000:E81A ; -----------------------------------------------------
+seg000:E81A ; this routine will	read timer1. the value read is returned	in ax
+seg000:E81A ; -----------------------------------------------------
 seg000:E81A read_time	    proc near		    ; CODE XREF: rw_opn+CAp
 seg000:E81A					    ; rw_opn+131p
-seg000:E81A		    mov	    al,	1000000b
-seg000:E81C		    out	    43h, al	    ; Timer 8253-5 (AT:	8254.2).
-seg000:E81E		    push    ax
+seg000:E81A		    mov	    al,	1000000b    ; latch timer1
+seg000:E81C		    out	    43h, al
+seg000:E81E		    push    ax		    ; wait for 8253 to init itself
 seg000:E81F		    pop	    ax
-seg000:E820		    in	    al,	41h	    ; Timer 8253-5 (AT:	8254.2).
-seg000:E822		    mov	    ah,	al
-seg000:E824		    push    ax
+seg000:E820		    in	    al,	41h	    ; read lsb
+seg000:E822		    mov	    ah,	al	    ; save it in high byte
+seg000:E824		    push    ax		    ; wait for 8253 to init itself
 seg000:E825		    pop	    ax
-seg000:E826		    in	    al,	41h	    ; Timer 8253-5 (AT:	8254.2).
-seg000:E828		    xchg    al,	ah
+seg000:E826		    in	    al,	41h	    ; read msb
+seg000:E828		    xchg    al,	ah	    ; put bytes	in proper order
 seg000:E82A		    retn
 seg000:E82A read_time	    endp
 seg000:E82B		    db	  0
@@ -17443,10 +17509,10 @@ seg000:E831 ; ллллллллллллллл S	U B R O	U T I N	E лллллллллллллллллллллллллллллл
 seg000:E831 uart	    proc near		    ; CODE XREF: seg000:078Bp
 seg000:E831					    ; seg000:07A2p
 seg000:E831		    push    ds
-seg000:E832		    in	    al,	21h	    ; Interrupt	controller, 8259A.
-seg000:E834		    push    ax
-seg000:E835		    or	    al,	1
-seg000:E837		    out	    21h, al	    ; Interrupt	controller, 8259A.
+seg000:E832		    in	    al,	21h	    ; current enabled interrupts
+seg000:E834		    push    ax		    ; save for exit
+seg000:E835		    or	    al,	1	    ; disable timer intr during	this test
+seg000:E837		    out	    21h, al
 seg000:E839		    pushf
 seg000:E83A		    push    dx
 seg000:E83B		    call    dss
@@ -17454,7 +17520,7 @@ seg000:E83E		    call    i8250
 seg000:E841		    jnb	    short at1
 seg000:E843		    jmp	    at14
 seg000:E846 at1:				    ; CODE XREF: uart+10j
-seg000:E846		    mov	    di,	41h ; 'A'
+seg000:E846		    mov	    di,	offset imasks
 seg000:E849		    xor	    si,	si
 seg000:E84B		    cmp	    dh,	2
 seg000:E84E		    jnz	    short at2
@@ -17594,7 +17660,7 @@ seg000:E93B		    sub	    dx,	6
 seg000:E93E		    in	    al,	dx
 seg000:E93F		    inc	    dx
 seg000:E940		    mov	    al,	0
-seg000:E942		    int	    84h		    ; reserved for BASIC
+seg000:E942		    int	    84h		    ; do loop back transmisison	test (int wrap)
 seg000:E944		    mov	    cl,	0
 seg000:E946		    jnb	    short at15
 seg000:E948 at13:				    ; CODE XREF: uart+4Dj
@@ -17609,12 +17675,12 @@ seg000:E94D		    pop	    dx
 seg000:E94E		    push    bx
 seg000:E94F		    call    i8250
 seg000:E952		    pop	    bx
-seg000:E953		    mov	    ah,	cs:[di]
-seg000:E956		    and	    ds:84h, ah
-seg000:E95A		    xor	    ah,	0FFh
-seg000:E95D		    in	    al,	21h	    ; Interrupt	controller, 8259A.
-seg000:E95F		    or	    al,	ah
-seg000:E961		    out	    21h, al	    ; Interrupt	controller, 8259A.
+seg000:E953		    mov	    ah,	cs:[di]	    ; get device interrupt mask
+seg000:E956		    and	    ds:seg40.intr_flag,	ah ; clear device's interrupt list
+seg000:E95A		    xor	    ah,	0FFh	    ; flip bits
+seg000:E95D		    in	    al,	21h	    ; get current interrupt port
+seg000:E95F		    or	    al,	ah	    ; disable this device interrupt
+seg000:E961		    out	    21h, al
 seg000:E963		    popf
 seg000:E964		    or	    cl,	cl
 seg000:E966		    jz	    short at17
@@ -17628,8 +17694,8 @@ seg000:E972		    jmp	    short at18
 seg000:E974 at17:				    ; CODE XREF: uart+135j
 seg000:E974		    clc
 seg000:E975 at18:				    ; CODE XREF: uart+141j
-seg000:E975		    pop	    ax
-seg000:E976		    out	    21h, al	    ; Interrupt	controller, 8259A.
+seg000:E975		    pop	    ax		    ; restore entry enabled interrupts
+seg000:E976		    out	    21h, al	    ; device intrs re-estrablished
 seg000:E978		    pop	    ds
 seg000:E979		    retn
 seg000:E979 uart	    endp
@@ -17893,60 +17959,99 @@ seg000:EAF8		    mov	    [bp+0Eh], al
 seg000:EAFB		    retn
 seg000:EAFB num_trans	    endp
 seg000:EAFC ; ллллллллллллллл S	U B R O	U T I N	E ллллллллллллллллллллллллллллллллллллллл
+seg000:EAFC ; -----------------------------------------------------
+seg000:EAFC ;  disable
+seg000:EAFC ;	   this	routine	will disable all interrupts except for
+seg000:EAFC ;	   interrupt 6 so watch	dog time out can occur in error
+seg000:EAFC ;	   conditions.
+seg000:EAFC ;  input
+seg000:EAFC ;	   none
+seg000:EAFC ;  output
+seg000:EAFC ;	   none
+seg000:EAFC ;	   all registers remain	intact
+seg000:EAFC ; -----------------------------------------------------
 seg000:EAFC disable	    proc near		    ; CODE XREF: rw_opn+D0p
 seg000:EAFC		    push    ax
-seg000:EAFD		    in	    al,	21h	    ; Interrupt	controller, 8259A.
-seg000:EAFF		    mov	    [bp+10h], ax
-seg000:EB02		    mov	    al,	0BFh ; 'П'
-seg000:EB04		    out	    21h, al	    ; Interrupt	controller, 8259A.
-seg000:EB06		    call    bound_setup
+seg000:EAFD ;----- disable all interrupts at 8259 level	except diskette
+seg000:EAFD		    in	    al,	21h	    ; read current mask
+seg000:EAFF		    mov	    [bp+10h], ax    ; save mask	on space allocated on the stack
+seg000:EB02		    mov	    al,	10111111b   ; mask off all interrupts except diskette
+seg000:EB04		    out	    21h, al	    ; output mask to 8259
+seg000:EB06		    call    bound_setup	    ; setup registers to access	buffer
 seg000:EB09		    pop	    ax
 seg000:EB0A		    retn
 seg000:EB0A disable	    endp
 seg000:EB0B ; ллллллллллллллл S	U B R O	U T I N	E ллллллллллллллллллллллллллллллллллллллл
+seg000:EB0B ; -----------------------------------------------------
+seg000:EB0B ;  enable
+seg000:EB0B ;	   this	proc enables all interrupts. it	also sets the 8253 to
+seg000:EB0B ;	   the mode required for keyboard data deserialization.
+seg000:EB0B ;	   before the latch for	keyboarda data is reset, bit 0 of the
+seg000:EB0B ;	   8255	is read	to determine whether any keystrokes occured
+seg000:EB0B ;	   while the system was	masked off.
+seg000:EB0B ; input
+seg000:EB0B ;	   none
+seg000:EB0B ; ouput
+seg000:EB0B ;	   al=1	means a	key was	struck during diskette i/o. (or	noise
+seg000:EB0B ;		on line)
+seg000:EB0B ;	   al=0	means that no key was pressed
+seg000:EB0B ;	   ax is destroyed. all	other registers	remain intact.
+seg000:EB0B ; -----------------------------------------------------
 seg000:EB0B enable	    proc near		    ; CODE XREF: rw_opn:j16_5p
-seg000:EB0B		    push    dx
-seg000:EB0C		    mov	    al,	1110110b
-seg000:EB0E		    out	    43h, al	    ; Timer 8253-5 (AT:	8254.2).
+seg000:EB0B		    push    dx		    ; save dx
+seg000:EB0C ;----- return timer1 to state needed for keyboard i/o
+seg000:EB0C		    mov	    al,	1110110b    ; (tim 1, lsb/msb, square wave, binary)
+seg000:EB0E		    out	    43h, al
 seg000:EB10		    push    ax
-seg000:EB11		    pop	    ax
-seg000:EB12		    mov	    al,	0FFh
-seg000:EB14		    out	    41h, al	    ; Timer 8253-5 (AT:	8254.2).
+seg000:EB11		    pop	    ax		    ; wait for 8253 to initialize itself
+seg000:EB12		    mov	    al,	0FFh	    ; initial value for	8253
+seg000:EB14		    out	    41h, al	    ; lsb
 seg000:EB16		    push    ax
-seg000:EB17		    pop	    ax
-seg000:EB18		    out	    41h, al	    ; Timer 8253-5 (AT:	8254.2).
-seg000:EB1A		    mov	    es,	word ptr [bp+10h]
-seg000:EB1D		    in	    al,	62h	    ; PC/XT PPI	port C.	Bits:
-seg000:EB1D					    ; 0-3: values of DIP switches
-seg000:EB1D					    ; 5: 1=Timer 2 channel out
-seg000:EB1D					    ; 6: 1=I/O channel check
-seg000:EB1D					    ; 7: 1=RAM parity check error occurred.
-seg000:EB1F		    and	    al,	1
-seg000:EB21		    push    ax
-seg000:EB22		    in	    al,	0A0h	    ; PIC 2  same as 0020 for PIC 1
-seg000:EB24		    mov	    al,	80h ; ''
-seg000:EB26		    out	    0A0h, al	    ; PIC 2  same as 0020 for PIC 1
-seg000:EB28		    mov	    ax,	[bp+10h]
-seg000:EB2B		    out	    21h, al	    ; Interrupt	controller, 8259A.
-seg000:EB2D		    pop	    ax
+seg000:EB17		    pop	    ax		    ; wait
+seg000:EB18		    out	    41h, al	    ; msb
+seg000:EB1A ;----- check if any	keystrokes occured during diskette transfer
+seg000:EB1A		    mov	    es,	word ptr [bp+10h] ; get	original es value from the stack
+seg000:EB1D		    in	    al,	62h	    ; read port	c of 8255
+seg000:EB1F		    and	    al,	1	    ; bit=1 means keystroke has	occured
+seg000:EB21		    push    ax		    ; save it on the stack
+seg000:EB22 ;----- enable nmi interrupts
+seg000:EB22		    in	    al,	0A0h	    ; reset latch
+seg000:EB24		    mov	    al,	80h ; ''   ; mask to enable nmi
+seg000:EB26		    out	    0A0h, al	    ; enable nmi
+seg000:EB28 ;----- enable all interrupts which were enabled before transfer
+seg000:EB28		    mov	    ax,	[bp+10h]    ; get mask from the	stack
+seg000:EB2B		    out	    21h, al
+seg000:EB2D		    pop	    ax		    ; pass back	key strock flag
 seg000:EB2E		    pop	    dx
 seg000:EB2F		    sti
 seg000:EB30		    retn
 seg000:EB30 enable	    endp
 seg000:EB31 ; ллллллллллллллл S	U B R O	U T I N	E ллллллллллллллллллллллллллллллллллллллл
+seg000:EB31 ; -----------------------------------------------------
+seg000:EB31 ; clock_wait
+seg000:EB31 ;	   this	procedure is called when the time of day
+seg000:EB31 ;	   is being updated. it	waits if timer0	is almost
+seg000:EB31 ;	   ready to wrap until it is safe to read an accurate
+seg000:EB31 ;	   timer1
+seg000:EB31 ; input
+seg000:EB31 ;	   none.
+seg000:EB31 ; output
+seg000:EB31 ;	   none. ax is destroyed
+seg000:EB31 ; -----------------------------------------------------
 seg000:EB31 clock_wait	    proc near		    ; CODE XREF: clock_wait+11j
 seg000:EB31					    ; rw_opn+B4p rw_opn+12Ep
-seg000:EB31		    xor	    al,	al
-seg000:EB33		    out	    43h, al	    ; Timer 8253-5 (AT:	8254.2).
+seg000:EB31		    xor	    al,	al	    ; read mode	timer0 for 8253
+seg000:EB31					    ; (tim 0, latching,	interrupt on terminal count, binary)
+seg000:EB33		    out	    43h, al	    ; output to	the 8253
 seg000:EB35		    push    ax
-seg000:EB36		    pop	    ax
-seg000:EB37		    in	    al,	40h	    ; Timer 8253-5 (AT:	8254.2).
-seg000:EB39		    xchg    al,	ah
-seg000:EB3B		    in	    al,	40h	    ; Timer 8253-5 (AT:	8254.2).
-seg000:EB3D		    xchg    al,	ah
+seg000:EB36		    pop	    ax		    ; wait for 8253 to initialize itself
+seg000:EB37		    in	    al,	40h	    ; read least significant byte
+seg000:EB39		    xchg    al,	ah	    ; save it
+seg000:EB3B		    in	    al,	40h	    ; read most	significant byte
+seg000:EB3D		    xchg    al,	ah	    ; rearrange	for proper order
 seg000:EB3F		    cmp	    ax,	12Ch	    ; is timer 0 close to wrapping?
-seg000:EB42		    jb	    short clock_wait
-seg000:EB44		    retn
+seg000:EB42		    jb	    short clock_wait ; jump if clock is	within threshold
+seg000:EB44		    retn		    ; ok to read timer1
 seg000:EB44 clock_wait	    endp
 seg000:EB45 ; ллллллллллллллл S	U B R O	U T I N	E ллллллллллллллллллллллллллллллллллллллл
 seg000:EB45 get_drive	    proc near		    ; CODE XREF: rw_opn+8p
@@ -18224,15 +18329,18 @@ seg000:EDC9		    mov	    bx,	0Dh
 seg000:EDCC		    push    bx
 seg000:EDCD j16:				    ; CODE XREF: rw_opn-Aj
 seg000:EDCD		    cld
-seg000:EDCE		    mov	    al,	1110000b
-seg000:EDD0		    out	    43h, al	    ; Timer 8253-5 (AT:	8254.2).
+seg000:EDCE ;----- start timer1	with initial value of ffff
+seg000:EDCE		    mov	    al,	1110000b    ; select timer1, lsb-msb, mode 0, binary counter
+seg000:EDCE					    ; (tim1, lsb/msb, interrupt	on terminal count, binary)
+seg000:EDD0		    out	    43h, al	    ; initialize the counter
 seg000:EDD2		    push    ax
-seg000:EDD3		    pop	    ax
-seg000:EDD4		    mov	    al,	0FFh
-seg000:EDD6		    out	    41h, al	    ; Timer 8253-5 (AT:	8254.2).
+seg000:EDD3		    pop	    ax		    ; allow enough time	for the	8253 to	initialize itself
+seg000:EDD4		    mov	    al,	0FFh	    ; initial count value for the 8253
+seg000:EDD6		    out	    41h, al	    ; output least significant byte
 seg000:EDD8		    push    ax
-seg000:EDD9		    pop	    ax
-seg000:EDDA		    out	    41h, al	    ; Timer 8253-5 (AT:	8254.2).
+seg000:EDD9		    pop	    ax		    ; wait
+seg000:EDDA		    out	    41h, al	    ; output most significant byte
+seg000:EDDC ;----- initialize cx for jump after	last parameter is passed to nec
 seg000:EDDC		    mov	    al,	[bp+0Fh]
 seg000:EDDF		    test    al,	1
 seg000:EDE1		    jz	    short j16_1
@@ -18245,11 +18353,13 @@ seg000:EDEC		    mov	    cx,	offset read_loop
 seg000:EDEF		    jmp	    short j16_3
 seg000:EDF1 j16_2:				    ; CODE XREF: rw_opn+A6j
 seg000:EDF1		    mov	    cx,	offset verify_loop
+seg000:EDF4 ;----- finish initialization
 seg000:EDF4 j16_3:				    ; CODE XREF: rw_opn+A2j
 seg000:EDF4					    ; rw_opn+ABj
-seg000:EDF4		    mov	    al,	10h
-seg000:EDF6		    out	    0A0h, al	    ; PIC 2  same as 0020 for PIC 1
-seg000:EDF8		    call    clock_wait
+seg000:EDF4		    mov	    al,	10h	    ; disable nmi
+seg000:EDF6		    out	    0A0h, al	    ; no keyboad interrupt
+seg000:EDF8		    call    clock_wait	    ; wait if timer0 is	about to interrupt
+seg000:EDFB ;----- enable watchdog timer
 seg000:EDFB		    call    get_drive
 seg000:EDFE		    mov	    dx,	0F2h ; 'ђ'
 seg000:EE01		    or	    al,	0E0h
@@ -18257,8 +18367,8 @@ seg000:EE03		    out	    dx,	al
 seg000:EE04		    and	    al,	0A7h
 seg000:EE06		    out	    dx,	al
 seg000:EE07		    mov	    dx,	0F4h ; 'є'
-seg000:EE0A		    mov	    al,	20h ; ' '
-seg000:EE0C		    out	    0A0h, al	    ; PIC 2  same as 0020 for PIC 1
+seg000:EE0A		    mov	    al,	100000b	    ; select timer1 input from timer0 output
+seg000:EE0C		    out	    0A0h, al
 seg000:EE0E		    call    read_time
 seg000:EE11		    mov	    [bp+12h], ax
 seg000:EE14		    call    disable
@@ -20013,15 +20123,16 @@ seg000:F978		    and	    al,	10h
 seg000:F97A		    cmp	    al,	ah
 seg000:F97C		    loope   w22
 seg000:F97E		    mov	    ds:seg40.last_val, al
-seg000:F981		    mov	    al,	1000000b
-seg000:F983		    out	    43h, al	    ; Timer 8253-5 (AT:	8254.2).
-seg000:F985		    mov	    bx,	ds:seg40.edge_cnt
-seg000:F989		    in	    al,	41h	    ; Timer 8253-5 (AT:	8254.2).
-seg000:F98B		    mov	    ah,	al
-seg000:F98D		    in	    al,	41h	    ; Timer 8253-5 (AT:	8254.2).
-seg000:F98F		    xchg    al,	ah
-seg000:F991		    sub	    bx,	ax
-seg000:F993		    mov	    ds:seg40.edge_cnt, ax
+seg000:F981		    mov	    al,	1000000b    ; read timer's counter command
+seg000:F981					    ; (timer1, latching, interrupt on terminal count, binary)
+seg000:F983		    out	    43h, al	    ; latch counter
+seg000:F985		    mov	    bx,	ds:seg40.edge_cnt ; bx gets last edge count
+seg000:F989		    in	    al,	41h	    ; get ls byte
+seg000:F98B		    mov	    ah,	al	    ; save in ah
+seg000:F98D		    in	    al,	41h	    ; get ms byte
+seg000:F98F		    xchg    al,	ah	    ; xchg al,ah
+seg000:F991		    sub	    bx,	ax	    ; set bx equal to halft bit	period
+seg000:F993		    mov	    ds:seg40.edge_cnt, ax ; update edge	count;
 seg000:F996		    retn
 seg000:F996 read_half_bit   endp
 seg000:F997 ; ллллллллллллллл S	U B R O	U T I N	E ллллллллллллллллллллллллллллллллллллллл
@@ -20032,16 +20143,17 @@ seg000:F999		    in	    al,	61h
 seg000:F99B		    and	    al,	0FDh
 seg000:F99D		    or	    al,	1
 seg000:F99F		    out	    61h, al
-seg000:F9A1		    mov	    al,	10110110b
-seg000:F9A3		    out	    43h, al	    ; Timer 8253-5 (AT:	8254.2).
-seg000:F9A5		    call    begin_op
-seg000:F9A8		    mov	    ax,	4A0h
-seg000:F9AB		    call    loc_FFA35
+seg000:F9A1		    mov	    al,	10110110b   ; set up timer - mode 3 square wave
+seg000:F9A1					    ; (tim 2, lsb/msb, square wave, binary)
+seg000:F9A3		    out	    43h, al
+seg000:F9A5		    call    begin_op	    ; start motor and delay
+seg000:F9A8		    mov	    ax,	1184	    ; set normal bit size
+seg000:F9AB		    call    w31		    ; set timer
 seg000:F9AE		    mov	    cx,	800h
-seg000:F9B1 loc_FF9B1:				    ; CODE XREF: write_block+1Ej
+seg000:F9B1 w23:				    ; CODE XREF: write_block+1Ej
 seg000:F9B1		    stc
 seg000:F9B2		    call    write_bit
-seg000:F9B5		    loop    loc_FF9B1
+seg000:F9B5		    loop    w23
 seg000:F9B7		    cli
 seg000:F9B8		    clc
 seg000:F9B9		    call    write_bit
@@ -20078,13 +20190,14 @@ seg000:F9F1		    stc
 seg000:F9F2		    call    write_bit
 seg000:F9F5		    loop    loc_FF9F1
 seg000:F9F7		    pop	    cx
-seg000:F9F8		    mov	    al,	10110000b
-seg000:F9FA		    out	    43h, al	    ; Timer 8253-5 (AT:	8254.2).
+seg000:F9F8		    mov	    al,	10110000b   ; turn timer2 off
+seg000:F9F8					    ; (tim 2, lsb/msb, interrupt on terminal count, binary)
+seg000:F9FA		    out	    43h, al
 seg000:F9FC		    mov	    ax,	1
-seg000:F9FF		    call    loc_FFA35
-seg000:FA02		    call    motor_off
-seg000:FA05		    sub	    ax,	ax
-seg000:FA07		    retn
+seg000:F9FF		    call    w31		    ; set_timer
+seg000:FA02		    call    motor_off	    ; turn motor off
+seg000:FA05		    sub	    ax,	ax	    ; no errors	reported on write op
+seg000:FA07		    retn		    ; finished
 seg000:FA07 write_block	    endp
 seg000:FA08 ; ллллллллллллллл S	U B R O	U T I N	E ллллллллллллллллллллллллллллллллллллллл
 seg000:FA08 ; write a byte to cassette
@@ -20136,11 +20249,11 @@ seg000:FA2E					    ; 7: 1=RAM parity check error occurred.
 seg000:FA30		    and	    al,	20h
 seg000:FA32		    jnz	    short loc_FFA2E
 seg000:FA34		    pop	    ax
-seg000:FA35 loc_FFA35:				    ; CODE XREF: write_block+14p
+seg000:FA35 w31:				    ; CODE XREF: write_block+14p
 seg000:FA35					    ; write_block+68p
-seg000:FA35		    out	    42h, al	    ; Timer 8253-5 (AT:	8254.2).
+seg000:FA35		    out	    42h, al	    ; set low byte of timer2
 seg000:FA37		    mov	    al,	ah
-seg000:FA39		    out	    42h, al	    ; Timer 8253-5 (AT:	8254.2).
+seg000:FA39		    out	    42h, al	    ; set high byte of timer2
 seg000:FA3B		    retn
 seg000:FA3B write_bit	    endp
 seg000:FA3C ; ллллллллллллллл S	U B R O	U T I N	E ллллллллллллллллллллллллллллллллллллллл
@@ -20389,7 +20502,7 @@ seg000:FEDF		    out	    0F2h, al	    ; turn off the motor
 seg000:FEE1 t6:					    ; CODE XREF: timer_int+31j
 seg000:FEE1		    int	    1Ch		    ; transfer countrol	to a user routine
 seg000:FEE3		    mov	    al,	20h ; ' '   ; end of interrupt to 8259
-seg000:FEE5		    out	    20h, al	    ; Interrupt	controller, 8259A.
+seg000:FEE5		    out	    20h, al
 seg000:FEE7		    pop	    dx
 seg000:FEE8		    pop	    ax
 seg000:FEE9		    pop	    ds
@@ -20451,7 +20564,7 @@ seg000:FF31					    ; err_beep+5p
 seg000:FF31					    ; prtn3_int_82+116p
 seg000:FF31					    ; prtn3_int_82+11Dp
 seg000:FF31		    mov	    al,	10110110b   ; sel tim 2,lsb,msb,binary
-seg000:FF31					    ; (tim 2, read/load	lsb/msb, square, binary)
+seg000:FF31					    ; (tim 2, lsb/msb, square wave, binary)
 seg000:FF33		    out	    43h, al	    ; write the	timer mode reg
 seg000:FF35		    mov	    ax,	533h	    ; divisor for 1000hz
 seg000:FF38		    out	    42h, al	    ; write timer 2 cnt	- lsb
