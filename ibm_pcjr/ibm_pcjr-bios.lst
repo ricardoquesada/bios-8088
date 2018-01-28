@@ -2560,12 +2560,18 @@ seg000:1066 i34:				    ; CODE XREF: i30+2Ej
 seg000:1066		    xor	    al,	al	    ; return 0 in al (0)
 seg000:1068		    retn		    ; return to	caller
 seg000:1068 i30		    endp
+seg000:1069 ;-----table	of valid scan codes
 seg000:1069 kb0		    db 30h, 10h, 12h, 19h, 1Fh,	31h, 48h, 50h, 4Bh, 4Dh, 0Ch
 seg000:1069					    ; DATA XREF: key62_int+174o
 seg000:1069					    ; key62_int:kb10_1o
 seg000:1069		    db 0Dh
+seg000:1075 ;-----table	of new scan codes
 seg000:1075 kb1		    db 2, 3, 1,	4, 46h,	45h, 47h, 4Fh, 49h, 51h, 4Ah, 4Eh
 seg000:1075					    ; DATA XREF: key62_int+1ABr
+seg000:1081 ;----------------------------------------------------
+seg000:1081 ; note: there is a one to one correspondance between
+seg000:1081 ;	    the	size of	kb0 and	kb1
+seg000:1081 ;----------------------------------------------------
 seg000:1081 num_codes	    db 4Fh, 50h, 51h, 4Bh, 4Ch,	4Dh, 47h, 48h, 49h, 52h
 seg000:1081					    ; DATA XREF: key62_int+131o
 seg000:108B ;table of simulated	keystrokes
@@ -2577,8 +2583,9 @@ seg000:108B ;  to cause	the following functions:
 seg000:108B ;	  row 1=ech0 crt output	to the printer
 seg000:108B ;	  row 2= break
 seg000:108B ;  the table has both hake and break scan codes.
-seg000:108B scan	    db 1Dh, 37h, 0B7h, 9Dh, 1Dh, 46h, 0C6h, 9Dh
-seg000:108B					    ; DATA XREF: key62_int+212o
+seg000:108B scan	    db 1Dh, 37h, 0B7h, 9Dh  ; DATA XREF: key62_int+212o
+seg000:108B					    ; ctrl + prtsc
+seg000:108F		    db 1Dh, 46h, 0C6h, 9Dh  ; ctrl + scroll_lock
 seg000:1093 alt_table	    db 35h, 28h, 34h, 1Ah, 1Bh ; DATA XREF: key62_int+B7o
 seg000:1093					    ; key62_int+C1o
 seg000:1098 new_alt	    db 2Bh, 29h, 37h, 2Bh, 29h ; DATA XREF: key62_int+C6r
@@ -2629,7 +2636,7 @@ seg000:10C6 ;	   passed in al. each scan code	passed either triggers one or
 seg000:10C6 ;	   more	calls to interrupt 9 or	sets flags to retain keyboard
 seg000:10C6 ;	   status. when	interrupt 9 is called the translated scan
 seg000:10C6 ;	   codes are passed to it in al. the intent of this code was
-seg000:10C6 ;	   to keep interrupt 9 intact from its origin in the pc	famlly.
+seg000:10C6 ;	   to keep interrupt 9 intact from its origin in the pc	family.
 seg000:10C6 ;	   this	routine	is in the front	end of interrupt 9 and
 seg000:10C6 ;	   transforms a	62 key keyboard	to look	as if it uere an 83
 seg000:10C6 ;	   key version.
@@ -2640,111 +2647,120 @@ seg000:10C6 ;	   destroyed
 seg000:10C6 ; -----------------------------------------------------
 seg000:10C6 key62_int	    proc far		    ; DATA XREF: seg000:07C9o
 seg000:10C6		    sti
-seg000:10C7		    cld
-seg000:10C8		    call    dss
-seg000:10CB		    mov	    ah,	al
-seg000:10CD		    call    tpm
-seg000:10D0		    jnb	    short kbx0
-seg000:10D2		    iret
+seg000:10C7		    cld			    ; forward direction
+seg000:10C8		    call    dss		    ; set up addressing
+seg000:10CB		    mov	    ah,	al	    ; save scan	code
+seg000:10CD		    call    tpm		    ; adjust output for	user modification
+seg000:10D0		    jnb	    short kbx0	    ; jump if ok to continue
+seg000:10D2		    iret		    ; return from interrupt
+seg000:10D3 ;-----extended scan	code check
 seg000:10D3 kbx0:				    ; CODE XREF: key62_int+Aj
-seg000:10D3		    cmp	    al,	0FFh
-seg000:10D5		    jz	    short kb0_1
-seg000:10D7		    and	    al,	7Fh
-seg000:10D9		    cmp	    al,	56h ; 'V'
-seg000:10DB		    jl	    short kbx4
+seg000:10D3		    cmp	    al,	0FFh	    ; is this an overrun char?
+seg000:10D5		    jz	    short kb0_1	    ; pass it to interrupt 9
+seg000:10D7		    and	    al,	7Fh	    ; turn off break bit
+seg000:10D9		    cmp	    al,	86	    ; is this scan code	> 86?
+seg000:10DB		    jl	    short kbx4	    ; replace break bit
+seg000:10DD ;-----scan code is in extended set
 seg000:10DD		    push    ds
 seg000:10DE		    xor	    si,	si
 seg000:10E0		    mov	    ds,	si
-seg000:10E2		    les	    di,	ds:124h
-seg000:10E6		    mov	    cl,	es:[di]
+seg000:10E2		    les	    di,	ds:124h	    ; get pointer to extended set (int 0x49)
+seg000:10E6		    mov	    cl,	es:[di]	    ; get lenght byte
 seg000:10E9		    pop	    ds
-seg000:10EA		    sub	    al,	56h ; 'V'
-seg000:10EC		    dec	    cl
-seg000:10EE		    cmp	    al,	cl
-seg000:10F0		    jg	    short kbx1
-seg000:10F2		    inc	    di
+seg000:10EA ;-----does scan code get mapped to keyboard	or to new extended scan	codes?
+seg000:10EA		    sub	    al,	86	    ; convert to base to new set
+seg000:10EC		    dec	    cl		    ; length - 1
+seg000:10EE		    cmp	    al,	cl	    ; is code in table?
+seg000:10F0		    jg	    short kbx1	    ; jump if scan code	not in table
+seg000:10F2 ;-----get scan code	from table
+seg000:10F2		    inc	    di		    ; point di past length byte
 seg000:10F3		    mov	    bx,	ax
-seg000:10F5		    xor	    bh,	bh
+seg000:10F5		    xor	    bh,	bh	    ; preparing	for adding to 16 bit register
 seg000:10F7		    shl	    bx,	1
-seg000:10F9		    add	    di,	bx
-seg000:10FB		    mov	    al,	es:[di]
-seg000:10FE		    cmp	    al,	56h ; 'V'
-seg000:1100		    jl	    short kbx4
+seg000:10F9		    add	    di,	bx	    ; offset to	correct	table entry
+seg000:10FB		    mov	    al,	es:[di]	    ; translated scan code in al
+seg000:10FE		    cmp	    al,	86	    ; is code in keyboard set?
+seg000:1100		    jl	    short kbx4	    ; in keyboard set, check for break
+seg000:1102 ;-----scan code gets mapped	to extended scan codes
 seg000:1102 kbx1:				    ; CODE XREF: key62_int+2Aj
-seg000:1102		    test    ah,	80h
-seg000:1105		    jz	    short kbx2
-seg000:1107		    iret
+seg000:1102		    test    ah,	80h	    ; is this a	break code?
+seg000:1105		    jz	    short kbx2	    ; make code, put it	in buffer
+seg000:1107		    iret		    ; break code, return from interrupt
 seg000:1108 kbx2:				    ; CODE XREF: key62_int+3Fj
-seg000:1108		    add	    ah,	40h ; '@'
-seg000:110B		    xor	    al,	al
-seg000:110D		    mov	    bx,	ds:seg40.buffer_tail
-seg000:1111		    mov	    si,	bx
-seg000:1113		    call    k4
-seg000:1116		    cmp	    bx,	ds:1Ah
-seg000:111A		    jnz	    short kbx3
-seg000:111C		    mov	    bx,	80h ; 'Ђ'
-seg000:111F		    mov	    cx,	48h ; 'H'
-seg000:1122		    call    kb_noise
-seg000:1125		    and	    byte ptr ds:seg40.kb_flag, 0F0h
-seg000:112A		    and	    byte ptr ds:seg40.kb_flag_1, 0Fh
-seg000:112F		    and	    byte ptr ds:seg40.kb_flag_2, 1Fh
-seg000:1134		    iret
+seg000:1108		    add	    ah,	64	    ; extended set codes begin at 150
+seg000:110B		    xor	    al,	al	    ; zero out ascii value (null)
+seg000:110D		    mov	    bx,	ds:seg40.buffer_tail ; get tail	pointer
+seg000:1111		    mov	    si,	bx	    ; save pointer to tail
+seg000:1113		    call    k4		    ; increment	tail value
+seg000:1116		    cmp	    bx,	ds:seg40.buffer_head ; is buffer full?
+seg000:111A		    jnz	    short kbx3	    ; put contents of ax in buffer
+seg000:111C ;-----buffer is full, beep and clear flags
+seg000:111C		    mov	    bx,	80h ; 'Ђ'   ; frequency of beep
+seg000:111F		    mov	    cx,	48h ; 'H'   ; duration of beep
+seg000:1122		    call    kb_noise	    ; buffer full beep
+seg000:1125		    and	    byte ptr ds:seg40.kb_flag, 0F0h ; clear alt, ctrl, left and	right shift
+seg000:112A		    and	    byte ptr ds:seg40.kb_flag_1, 0Fh ; clear make of ins, caps_lock, num and scroll
+seg000:112F		    and	    byte ptr ds:seg40.kb_flag_2, 1Fh ; clear function states
+seg000:1134		    iret		    ; done with	interrupt
 seg000:1135 kbx3:				    ; CODE XREF: key62_int+54j
-seg000:1135		    mov	    [si], ax
-seg000:1137		    mov	    ds:1Ch, bx
-seg000:113B		    iret
+seg000:1135		    mov	    [si], ax	    ; put contents of ax in buffer
+seg000:1137		    mov	    ds:seg40.buffer_tail, bx ; advance buffer tail
+seg000:113B		    iret		    ; return from interrupt
 seg000:113C kbx4:				    ; CODE XREF: key62_int+15j
 seg000:113C					    ; key62_int+3Aj
-seg000:113C		    and	    ah,	80h
-seg000:113F		    or	    al,	ah
-seg000:1141		    mov	    ah,	al
+seg000:113C		    and	    ah,	80h	    ; mask break bit on	original scan
+seg000:113F		    or	    al,	ah	    ; update new scan code
+seg000:1141		    mov	    ah,	al	    ; save al in ah again
+seg000:1143 ;------83 key keyboard functions shift+prtsc and ctrl+numlock
 seg000:1143 kb0_1:				    ; CODE XREF: key62_int+Fj
-seg000:1143		    cmp	    al,	45h ; 'E'
-seg000:1145		    jnz	    short kb0_3
-seg000:1147		    test    byte ptr ds:seg40.kb_flag, 4
-seg000:114C		    jz	    short kb0_2
-seg000:114E		    test    byte ptr ds:seg40.kb_flag, 8
-seg000:1153		    jnz	    short kb0_2
-seg000:1155		    jmp	    kb16_1
+seg000:1143		    cmp	    al,	45h ; 'E'   ; is this a numlock?
+seg000:1145		    jnz	    short kb0_3	    ; check for	prtsc
+seg000:1147		    test    byte ptr ds:seg40.kb_flag, 100b ; is ctrl key being	held down?
+seg000:114C		    jz	    short kb0_2	    ; numlock without ctrl, continue
+seg000:114E		    test    byte ptr ds:seg40.kb_flag, 1000b ; is alt key held currently?
+seg000:1153		    jnz	    short kb0_2	    ; pass it on
+seg000:1155		    jmp	    kb16_1	    ; put keyboard in hold state
 seg000:1158 kb0_2:				    ; CODE XREF: key62_int+86j
 seg000:1158					    ; key62_int+8Dj
 seg000:1158					    ; key62_int+9Ej
 seg000:1158					    ; key62_int+A5j
-seg000:1158		    jmp	    cont_int
+seg000:1158		    jmp	    cont_int	    ; continue with interrupt 0x48
+seg000:115B ;-----check	for prtsc
 seg000:115B kb0_3:				    ; CODE XREF: key62_int+7Fj
-seg000:115B		    cmp	    al,	37h ; '7'
-seg000:115D		    jnz	    short kb1_1
-seg000:115F		    test    byte ptr ds:seg40.kb_flag, 3
-seg000:1164		    jz	    short kb0_2
-seg000:1166		    test    byte ptr ds:seg40.kb_flag, 4
-seg000:116B		    jnz	    short kb0_2
-seg000:116D		    jmp	    prtsc
+seg000:115B		    cmp	    al,	37h ; '7'   ; is this prtsc key?
+seg000:115D		    jnz	    short kb1_1	    ; not a prtsc key
+seg000:115F		    test    byte ptr ds:seg40.kb_flag, 11b ; either shift active?
+seg000:1164		    jz	    short kb0_2	    ; process scan in int9
+seg000:1166		    test    byte ptr ds:seg40.kb_flag, 100b ; is ctrl key pressed?
+seg000:116B		    jnz	    short kb0_2	    ; not a valid prtsc	(pc compatible)
+seg000:116D		    jmp	    prtsc	    ; handle the print screen function
+seg000:1170 ;-----alternate shift translations
 seg000:1170 kb1_1:				    ; CODE XREF: key62_int+97j
-seg000:1170		    mov	    ah,	al
-seg000:1172		    and	    al,	7Fh
-seg000:1174		    test    byte ptr ds:seg40.kb_flag, 8
+seg000:1170		    mov	    ah,	al	    ; save character
+seg000:1172		    and	    al,	7Fh	    ; mask break bit
+seg000:1174		    test    byte ptr ds:seg40.kb_flag, 1000b ; is this a potential translation?
 seg000:1179		    jz	    short kb2
 seg000:117B ;-----table	lookup
 seg000:117B		    push    cs
-seg000:117C		    pop	    es
+seg000:117C		    pop	    es		    ; initialize segment for table lookup
 seg000:117D		    mov	    di,	offset alt_table
-seg000:1180		    mov	    cx,	5
-seg000:1183		    repne scasb
-seg000:1185		    jnz	    short kb2
+seg000:1180		    mov	    cx,	5	    ; get ready	for table lookup
+seg000:1183		    repne scasb		    ; search table
+seg000:1185		    jnz	    short kb2	    ; jump if match is not found
 seg000:1187		    mov	    cx,	(offset	alt_table+1)
-seg000:118A		    sub	    di,	cx
-seg000:118C		    mov	    al,	cs:new_alt[di]
+seg000:118A		    sub	    di,	cx	    ; update di	to index scan code
+seg000:118C		    mov	    al,	cs:new_alt[di] ; translate scan	code
 seg000:1191 ;-----check	for break code
-seg000:1191		    mov	    bl,	ds:seg40.kb_flag
-seg000:1195		    xor	    byte ptr ds:seg40.kb_flag, 8
-seg000:119A		    test    ah,	80h
-seg000:119D		    jz	    short kb1_2
-seg000:119F		    or	    al,	80h
+seg000:1191		    mov	    bl,	ds:seg40.kb_flag ; save	kb_flag	status
+seg000:1195		    xor	    byte ptr ds:seg40.kb_flag, 1000b ; mask off	alt shift
+seg000:119A		    test    ah,	80h	    ; is this a	break character
+seg000:119D		    jz	    short kb1_2	    ; jump if scan is a	make
+seg000:119F		    or	    al,	80h	    ; set break	bit
 seg000:11A1 ;-----make code, check for shift sequence
 seg000:11A1 kb1_2:				    ; CODE XREF: key62_int+D7j
 seg000:11A1		    cmp	    di,	3	    ; is this a	shift sequence
 seg000:11A4		    jl	    short kb1_3	    ; jump if not a shift sequence
-seg000:11A6		    or	    byte ptr ds:seg40.kb_flag, 2 ; turn	on shift flag
+seg000:11A6		    or	    byte ptr ds:seg40.kb_flag, 10b ; turn on shift flag
 seg000:11AB kb1_3:				    ; CODE XREF: key62_int+DEj
 seg000:11AB		    out	    60h, al
 seg000:11AD		    int	    9		    ; issue int	to process scan	code
@@ -2753,35 +2769,37 @@ seg000:11B3		    iret
 seg000:11B4 ;-----function key handler
 seg000:11B4 kb2:				    ; CODE XREF: key62_int+B3j
 seg000:11B4					    ; key62_int+BFj
-seg000:11B4		    cmp	    al,	54h ; 'T'
-seg000:11B6		    jnz	    short kb4
-seg000:11B8		    test    ah,	80h
-seg000:11BB		    jnz	    short kb3
-seg000:11BD		    and	    byte ptr ds:seg40.kb_flag_2, 1Fh
-seg000:11C2		    or	    byte ptr ds:seg40.kb_flag_2, 0A0h
-seg000:11C7		    iret
+seg000:11B4		    cmp	    al,	54h ; 'T'   ; check for function key
+seg000:11B6		    jnz	    short kb4	    ; jump if not function key
+seg000:11B8		    test    ah,	80h	    ; is this a	function break
+seg000:11BB		    jnz	    short kb3	    ; jump if function break
+seg000:11BD		    and	    byte ptr ds:seg40.kb_flag_2, 1Fh ; clear all previous functions
+seg000:11C2		    or	    byte ptr ds:seg40.kb_flag_2, 10100000b ; (fn_flag +	fn_pending)
+seg000:11C7		    iret		    ; return from interrupt
 seg000:11C8 ;-----function break
 seg000:11C8 kb3:				    ; CODE XREF: key62_int+F5j
-seg000:11C8		    test    byte ptr ds:seg40.kb_flag_2, 20h
-seg000:11CD		    jnz	    short kb3_1
-seg000:11CF		    and	    byte ptr ds:seg40.kb_flag_2, 1Fh
+seg000:11C8		    test    byte ptr ds:seg40.kb_flag_2, 100000b ; (fn_pending)
+seg000:11CD		    jnz	    short kb3_1	    ; jump if function is pending
+seg000:11CF		    and	    byte ptr ds:seg40.kb_flag_2, 1Fh ; clear all flags
 seg000:11D4		    iret
 seg000:11D5 kb3_1:				    ; CODE XREF: key62_int+107j
-seg000:11D5		    or	    byte ptr ds:seg40.kb_flag_2, 40h
+seg000:11D5		    or	    byte ptr ds:seg40.kb_flag_2, 1000000b ; set	break flag (fn_break)
 seg000:11DA kb3_2:				    ; CODE XREF: key62_int+117j
-seg000:11DA		    iret
+seg000:11DA		    iret		    ; return from interrupt
 seg000:11DB ;-----check	if function flag already set
 seg000:11DB kb4:				    ; CODE XREF: key62_int+F0j
-seg000:11DB		    cmp	    al,	55h ; 'U'
-seg000:11DD		    jz	    short kb3_2
-seg000:11DF		    test    byte ptr ds:seg40.kb_flag_2, 90h
+seg000:11DB		    cmp	    al,	55h ; 'U'   ; is this a phantom key?
+seg000:11DD		    jz	    short kb3_2	    ; jump if phantom sequence
+seg000:11DF		    test    byte ptr ds:seg40.kb_flag_2, 10010000b ; are we in function	state? (fn_flag	+ fn_lock)
 seg000:11E4		    jnz	    short kb5
-seg000:11E6		    test    byte ptr ds:seg40.kb_flag, 20h
+seg000:11E6 ;-----check	if num_state is	active
+seg000:11E6		    test    byte ptr ds:seg40.kb_flag, 100000b ; (num_state)
 seg000:11EB		    jz	    short kb4_0
 seg000:11ED		    cmp	    al,	0Bh
 seg000:11EF		    ja	    short kb4_0
 seg000:11F1		    dec	    al
 seg000:11F3		    jz	    short kb4_0
+seg000:11F5 ;-----translate scan code to numeric keypad
 seg000:11F5		    dec	    al
 seg000:11F7		    mov	    bx,	offset num_codes
 seg000:11FA		    xlat    byte ptr cs:[bx]
@@ -2793,11 +2811,13 @@ seg000:1203					    ; key62_int+129j
 seg000:1203					    ; key62_int+12Dj
 seg000:1203		    mov	    al,	ah
 seg000:1205		    jmp	    short cont_int
+seg000:1207 ;-----check	for valid function key
 seg000:1207 kb5:				    ; CODE XREF: key62_int+11Ej
 seg000:1207		    cmp	    al,	0Bh
 seg000:1209		    ja	    short kb7
 seg000:120B		    dec	    al
 seg000:120D		    jnz	    short kb6
+seg000:120F ;-----escape key, lock keyboard in function	lock
 seg000:120F		    test    ah,	80h
 seg000:1212		    jnz	    short kb8
 seg000:1214		    test    byte ptr ds:seg40.kb_flag_2, 80h
@@ -2809,9 +2829,11 @@ seg000:1227		    jz	    short kb8
 seg000:1229		    xor	    byte ptr ds:seg40.kb_flag_2, 10h
 seg000:122E		    and	    byte ptr ds:seg40.kb_flag_2, 1Fh
 seg000:1233		    iret
+seg000:1234 ;-----scan code in range 1 -> 0
 seg000:1234 kb6:				    ; CODE XREF: key62_int+147j
 seg000:1234		    add	    al,	3Ah ; ':'
 seg000:1236		    jmp	    short kb12
+seg000:1238 ;-----check	table for other	valid scan codes
 seg000:1238 kb7:				    ; CODE XREF: key62_int+143j
 seg000:1238		    push    cs
 seg000:1239		    pop	    es
@@ -2819,6 +2841,7 @@ seg000:123A		    mov	    di,	offset kb0
 seg000:123D		    mov	    cx,	0Ch
 seg000:1240		    repne scasb
 seg000:1242		    jz	    short kb10
+seg000:1244 ;-----illegal character
 seg000:1244 kb8:				    ; CODE XREF: key62_int+14Cj
 seg000:1244					    ; key62_int+153j
 seg000:1244					    ; key62_int+15Aj
@@ -2831,6 +2854,7 @@ seg000:124E		    jnz	    short kb9
 seg000:1250 kb85:				    ; CODE XREF: key62_int+1FCj
 seg000:1250		    and	    byte ptr ds:seg40.kb_flag_2, 1Fh
 seg000:1255		    mov	    byte ptr ds:seg40.cur_func,	0
+seg000:125A ;-----function break is not	set
 seg000:125A kb9:				    ; CODE XREF: key62_int+183j
 seg000:125A					    ; key62_int+188j
 seg000:125A		    mov	    al,	ah	    ; retreive original	scancode
@@ -2881,6 +2905,7 @@ seg000:12A3		    cmp	    al,	ds:seg40.cur_func
 seg000:12A7		    jnz	    short ret_int
 seg000:12A9		    and	    byte ptr ds:seg40.kb_flag_2, 0DFh
 seg000:12AE		    jmp	    short kb12_20
+seg000:12B0 ;-----valid	make key has pressed
 seg000:12B0 kb13:				    ; CODE XREF: key62_int+1B3j
 seg000:12B0		    test    byte ptr ds:seg40.kb_flag_2, 40h
 seg000:12B5		    jz	    short kb14_1
@@ -2888,6 +2913,7 @@ seg000:12B7		    cmp	    byte ptr ds:seg40.cur_func,	0
 seg000:12BC		    jz	    short kb14_1
 seg000:12BE		    cmp	    ds:seg40.cur_func, al
 seg000:12C2		    jnz	    short kb85
+seg000:12C4 ;-----check	for scan code generation sequence
 seg000:12C4 kb14_1:				    ; CODE XREF: key62_int+1EFj
 seg000:12C4					    ; key62_int+1F6j
 seg000:12C4		    mov	    ds:seg40.cur_func, al
@@ -2954,57 +2980,61 @@ seg000:131E ; input
 seg000:131E ;	   al= scan code of key	which triggered	non-maskable interrupt
 seg000:131E ; output
 seg000:131E ;	   carry bit = 1 if no action is to be taken
-seg000:131E ;	   carry bit = 0 means scan code i n al	should be processed
+seg000:131E ;	   carry bit = 0 means scan code in al should be processed
 seg000:131E ;			 further
 seg000:131E ;	   modifications to the	variables cur_char and var_delay are
-seg000:131E ;	   made. also the putchar bit in kb_flag-_ is toggled when
+seg000:131E ;	   made. also the putchar bit in kb_flag_2 is toggled when
 seg000:131E ;	   the keyboard	is in half rate	mode
 seg000:131E ; -----------------------------------------------------
 seg000:131E tpm		    proc near		    ; CODE XREF: key62_int+7p
 seg000:131E		    push    bx
-seg000:131F		    cmp	    ds:seg40.cur_char, al
-seg000:1323		    jz	    short tp2
-seg000:1325		    test    al,	80h
-seg000:1327		    jz	    short tp0
-seg000:1329		    and	    al,	7Fh
-seg000:132B		    cmp	    ds:seg40.cur_char, al
-seg000:132F		    mov	    al,	ah
-seg000:1331		    jnz	    short tp
-seg000:1333		    mov	    byte ptr ds:seg40.cur_char,	0
+seg000:131F		    cmp	    ds:seg40.cur_char, al ; is this a new char?
+seg000:1323		    jz	    short tp2	    ; jump if same character
+seg000:1325 ;-----new character	check for break	sequences
+seg000:1325		    test    al,	80h	    ; is the new key a break key?
+seg000:1327		    jz	    short tp0	    ; jump if not a break key
+seg000:1329		    and	    al,	7Fh	    ; clear break bit
+seg000:132B		    cmp	    ds:seg40.cur_char, al ; is the new character the break of the last make?
+seg000:132F		    mov	    al,	ah	    ; retreive original	character
+seg000:1331		    jnz	    short tp	    ; jump if not the same character
+seg000:1333		    mov	    byte ptr ds:seg40.cur_char,	0 ; clear current character
 seg000:1338 tp:					    ; CODE XREF: tpm+13j
 seg000:1338					    ; tpm+2Fj tpm+36j	tpm+5Cj
 seg000:1338					    ; tpm+68j
-seg000:1338		    clc
+seg000:1338		    clc			    ; clear carry bit
 seg000:1339		    pop	    bx
-seg000:133A		    retn
+seg000:133A		    retn		    ; return
+seg000:133B ;-----initialize new character
 seg000:133B tp0:				    ; CODE XREF: tpm+9j
-seg000:133B		    mov	    ds:seg40.cur_char, al
-seg000:133E		    and	    byte ptr ds:seg40.var_delay, 0F0h
-seg000:1343		    and	    byte ptr ds:seg40.kb_flag_2, 0FEh
-seg000:1348		    test    byte ptr ds:seg40.kb_flag_2, 2
-seg000:134D		    jz	    short tp
-seg000:134F		    or	    byte ptr ds:seg40.var_delay, 0Fh
+seg000:133B		    mov	    ds:seg40.cur_char, al ; save new character
+seg000:133E		    and	    byte ptr ds:seg40.var_delay, 0F0h ;	clear variable delay
+seg000:1343		    and	    byte ptr ds:seg40.kb_flag_2, 0FEh ;	initial	putchar	bit as zero
+seg000:1348		    test    byte ptr ds:seg40.kb_flag_2, 2 ; are we increasing the initial delay?
+seg000:134D		    jz	    short tp	    ; default delay
+seg000:134F		    or	    byte ptr ds:seg40.var_delay, 0Fh ; increase	the delay by 2x
 seg000:1354		    jmp	    short tp
+seg000:1356 ;-----check	if we are in typamatic mode and	if delay is over
 seg000:1356 tp2:				    ; CODE XREF: tpm+5j
-seg000:1356		    test    byte ptr ds:seg40.kb_flag_2, 8
-seg000:135B		    jnz	    short tp4
-seg000:135D		    mov	    bl,	ds:seg40.var_delay
-seg000:1361		    and	    bl,	0Fh
-seg000:1364		    or	    bl,	bl
-seg000:1366		    jz	    short tp3
-seg000:1368		    dec	    bl
+seg000:1356		    test    byte ptr ds:seg40.kb_flag_2, 8 ; if	typamatic turned off?
+seg000:135B		    jnz	    short tp4	    ; jump if typamatic	turned off
+seg000:135D		    mov	    bl,	ds:seg40.var_delay ; get var_delay
+seg000:1361		    and	    bl,	0Fh	    ; mask off high order (screen range)
+seg000:1364		    or	    bl,	bl	    ; is initial delay over?
+seg000:1366		    jz	    short tp3	    ; jump if delay is over
+seg000:1368		    dec	    bl		    ; decrease delay wait by another character
 seg000:136A		    and	    byte ptr ds:seg40.var_delay, 0F0h
 seg000:136F		    or	    ds:seg40.var_delay,	bl
 seg000:1373		    jmp	    short tp4
+seg000:1375 ;-----check	if time	to output char
 seg000:1375 tp3:				    ; CODE XREF: tpm+48j
-seg000:1375		    test    byte ptr ds:seg40.kb_flag_2, 4
-seg000:137A		    jz	    short tp
-seg000:137C		    xor	    byte ptr ds:seg40.kb_flag_2, 1
-seg000:1381		    test    byte ptr ds:seg40.kb_flag_2, 1
-seg000:1386		    jnz	    short tp
+seg000:1375		    test    byte ptr ds:seg40.kb_flag_2, 4 ; are we in half rate mode?
+seg000:137A		    jz	    short tp	    ; jump if we are in	normal mode
+seg000:137C		    xor	    byte ptr ds:seg40.kb_flag_2, 1 ; toggle bit
+seg000:1381		    test    byte ptr ds:seg40.kb_flag_2, 1 ; is	it time	to put out a char
+seg000:1386		    jnz	    short tp	    ; not time to output character
 seg000:1388 tp4:				    ; CODE XREF: tpm+3Dj
 seg000:1388					    ; tpm+55j
-seg000:1388		    stc
+seg000:1388		    stc			    ; skip this	character. set carry flag
 seg000:1389		    pop	    bx
 seg000:138A		    retn
 seg000:138A tpm		    endp
@@ -16711,6 +16741,18 @@ seg000:E033		    pop	    ax
 seg000:E034		    retn
 seg000:E034 real_vector_setup endp
 seg000:E035 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
+seg000:E035 ; -----------------------------------------------------
+seg000:E035 ; kb_noise
+seg000:E035 ;	   this	routine	is called when general beeps are required from
+seg000:E035 ;	   the system.
+seg000:E035 ; input
+seg000:E035 ;	   bx=lenght of	the tone
+seg000:E035 ;	   cx=contains the frequency
+seg000:E035 ; output
+seg000:E035 ;	   all registers are mantained.
+seg000:E035 ; hits
+seg000:E035 ;	   as cx gets larger the tone produced gets lower in pitch
+seg000:E035 ; -----------------------------------------------------
 seg000:E035 kb_noise	    proc near		    ; CODE XREF: kdbnmi+A1p
 seg000:E035					    ; key62_int+5Cp kb_int+19p
 seg000:E035					    ; kb_int+2D1p kb_int+2F5p
@@ -16719,25 +16761,25 @@ seg000:E035		    sti
 seg000:E036		    push    ax
 seg000:E037		    push    bx
 seg000:E038		    push    cx
-seg000:E039		    in	    al,	61h
-seg000:E03B		    push    ax
-seg000:E03C loc_FE03C:				    ; CODE XREF: kb_noise+18j
-seg000:E03C		    and	    al,	0FCh
-seg000:E03E		    out	    61h, al
-seg000:E040		    push    cx
-seg000:E041 loc_FE041:				    ; CODE XREF: kb_noise:loc_FE041j
-seg000:E041		    loop    loc_FE041
-seg000:E043		    or	    al,	2
-seg000:E045		    out	    61h, al
+seg000:E039		    in	    al,	61h	    ; get control info
+seg000:E03B		    push    ax		    ; save
+seg000:E03C loop01:				    ; CODE XREF: kb_noise+18j
+seg000:E03C		    and	    al,	0FCh	    ; turn off timer gate and speaker data
+seg000:E03E		    out	    61h, al	    ; output to	control
+seg000:E040		    push    cx		    ; half cycle time for tone
+seg000:E041 loop02:				    ; CODE XREF: kb_noise:loop02j
+seg000:E041		    loop    loop02	    ; speaker off
+seg000:E043		    or	    al,	2	    ; turn on speaker bit
+seg000:E045		    out	    61h, al	    ; output to	control
 seg000:E047		    pop	    cx
-seg000:E048		    push    cx
-seg000:E049 loc_FE049:				    ; CODE XREF: kb_noise:loc_FE049j
-seg000:E049		    loop    loc_FE049
-seg000:E04B		    dec	    bx
-seg000:E04C		    pop	    cx
-seg000:E04D		    jnz	    short loc_FE03C
-seg000:E04F		    pop	    ax
-seg000:E050		    out	    61h, al
+seg000:E048		    push    cx		    ; retreive frequency
+seg000:E049 loop03:				    ; CODE XREF: kb_noise:loop03j
+seg000:E049		    loop    loop03	    ; another half cycle
+seg000:E04B		    dec	    bx		    ; total time count
+seg000:E04C		    pop	    cx		    ; retrieve freq.
+seg000:E04D		    jnz	    short loop01    ; do another cycle
+seg000:E04F		    pop	    ax		    ; recover control
+seg000:E050		    out	    61h, al	    ; output the control
 seg000:E052		    pop	    cx
 seg000:E053		    pop	    bx
 seg000:E054		    pop	    ax
