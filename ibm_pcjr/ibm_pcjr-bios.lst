@@ -2826,41 +2826,41 @@ seg000:11DF		    test    byte ptr ds:seg40.kb_flag_2, 10010000b ; are we in func
 seg000:11E4		    jnz	    short kb5
 seg000:11E6 ;-----check	if num_state is	active
 seg000:11E6		    test    byte ptr ds:seg40.kb_flag, 100000b ; (num_state)
-seg000:11EB		    jz	    short kb4_0
-seg000:11ED		    cmp	    al,	0Bh
-seg000:11EF		    ja	    short kb4_0
-seg000:11F1		    dec	    al
-seg000:11F3		    jz	    short kb4_0
+seg000:11EB		    jz	    short kb4_0	    ; jump if not in num_state
+seg000:11ED		    cmp	    al,	key_num_0   ; are we in	numeric	keypad region?
+seg000:11EF		    ja	    short kb4_0	    ; jump if not in keypad
+seg000:11F1		    dec	    al		    ; check lower bound	of range
+seg000:11F3		    jz	    short kb4_0	    ; jump if not in range (esc	key)
 seg000:11F5 ;-----translate scan code to numeric keypad
-seg000:11F5		    dec	    al
+seg000:11F5		    dec	    al		    ; al is offset into	table
 seg000:11F7		    mov	    bx,	offset num_codes
-seg000:11FA		    xlat    byte ptr cs:[bx]
-seg000:11FC		    and	    ah,	80h
-seg000:11FF		    or	    al,	ah
-seg000:1201		    jmp	    short cont_int
+seg000:11FA		    xlat    byte ptr cs:[bx] ; new scan	code is	in al
+seg000:11FC		    and	    ah,	80h	    ; isolate break bit	on original scan code
+seg000:11FF		    or	    al,	ah	    ; update keypad scan code
+seg000:1201		    jmp	    short cont_int  ; continue with interrupt
 seg000:1203 kb4_0:				    ; CODE XREF: key62_int+125j
 seg000:1203					    ; key62_int+129j
 seg000:1203					    ; key62_int+12Dj
-seg000:1203		    mov	    al,	ah
+seg000:1203		    mov	    al,	ah	    ; get back break bit if set
 seg000:1205		    jmp	    short cont_int
 seg000:1207 ;-----check	for valid function key
 seg000:1207 kb5:				    ; CODE XREF: key62_int+11Ej
-seg000:1207		    cmp	    al,	0Bh
-seg000:1209		    ja	    short kb7
-seg000:120B		    dec	    al
-seg000:120D		    jnz	    short kb6
+seg000:1207		    cmp	    al,	key_num_0   ; check for	range of integers
+seg000:1209		    ja	    short kb7	    ; jump if not in range
+seg000:120B		    dec	    al		    ; check for	esc key	(=1)
+seg000:120D		    jnz	    short kb6	    ; not escape key, range of integers
 seg000:120F ;-----escape key, lock keyboard in function	lock
-seg000:120F		    test    ah,	80h
-seg000:1212		    jnz	    short kb8
-seg000:1214		    test    byte ptr ds:seg40.kb_flag_2, 80h
-seg000:1219		    jz	    short kb8
-seg000:121B		    test    byte ptr ds:seg40.kb_flag_2, 40h
-seg000:1220		    jnz	    short kb8
-seg000:1222		    test    byte ptr ds:seg40.kb_flag, 3
-seg000:1227		    jz	    short kb8
-seg000:1229		    xor	    byte ptr ds:seg40.kb_flag_2, 10h
-seg000:122E		    and	    byte ptr ds:seg40.kb_flag_2, 1Fh
-seg000:1233		    iret
+seg000:120F		    test    ah,	80h	    ; is this a	break code?
+seg000:1212		    jnz	    short kb8	    ; no processing for	escape break
+seg000:1214		    test    byte ptr ds:seg40.kb_flag_2, 80h ; toggles only when fn held concurrently (fn_flag)
+seg000:1219		    jz	    short kb8	    ; not held concurrently
+seg000:121B		    test    byte ptr ds:seg40.kb_flag_2, 40h ; has the function	key been released (fn_break)
+seg000:1220		    jnz	    short kb8	    ; continue if released. process as esc
+seg000:1222		    test    byte ptr ds:seg40.kb_flag, 3 ; either shift? (left_shift+right_shift)
+seg000:1227		    jz	    short kb8	    ; not held down
+seg000:1229		    xor	    byte ptr ds:seg40.kb_flag_2, 10h ; toggle state (fn_lock)
+seg000:122E		    and	    byte ptr ds:seg40.kb_flag_2, 1Fh ; turn off	other states (clear_flags)
+seg000:1233		    iret		    ; return from interrupt
 seg000:1234 ;-----scan code in range 1 -> 0
 seg000:1234 kb6:				    ; CODE XREF: key62_int+147j
 seg000:1234		    add	    al,	58	    ; generate correct scan code
@@ -3888,44 +3888,70 @@ seg000:1936 b13_2:				    ; CODE XREF: fake+Dj
 seg000:1936		    retn
 seg000:1936 fake	    endp
 seg000:1937 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
+seg000:1937 ; -----------------------------------------------------
+seg000:1937 ; new_int9
+seg000:1937 ;	   this	routine	is the interrupt 9 handler when	the machine is
+seg000:1937 ;	   first powered on and	cassette basic is given	control. it
+seg000:1937 ;	   handles the first keystrokes	entered	from the keyboard and
+seg000:1937 ;	   performs "special" actions as follows:
+seg000:1937 ;		   if esc is the first key enetered mini-welcome is
+seg000:1937 ;		      executed
+seg000:1937 ;		   if ctrl-esc is the first sequence "load cas1",r" is
+seg000:1937 ;		      executed giving the user the ability to boot
+seg000:1937 ;		      from cassette
+seg000:1937 ;	   after these keystrokes or after any other keystrokes	the
+seg000:1937 ;	   interrupt 9 vector is changed to point at the real
+seg000:1937 ;	   interrupt 9 routine.
+seg000:1937 ; -----------------------------------------------------
 seg000:1937 new_int_9	    proc far		    ; DATA XREF: bas_ent+4o
 seg000:1937		    cmp	    al,	1	    ; is this an escape	key?
 seg000:1939		    jz	    short esc_key   ; jump if al=esc key
-seg000:193B		    cmp	    al,	29	    ; else, is this a control key?
-seg000:193D		    jz	    short ctrl_key
-seg000:193F		    call    real_vector_setup
+seg000:193B		    cmp	    al,	key_ctl	    ; else, is this a control key?
+seg000:193D		    jz	    short ctrl_key  ; jump if al=ctrl key
+seg000:193F		    call    real_vector_setup ;	otherwise initialize real int 9	vector
 seg000:1942		    int	    9		    ; pass the scan code in al
-seg000:1944		    iret
+seg000:1944		    iret		    ; return to	interrupt 0x48
 seg000:1945 ctrl_key:				    ; CODE XREF: new_int_9+6j
-seg000:1945		    or	    byte ptr ds:seg40.kb_flag, 4
-seg000:194A		    iret
+seg000:1945		    or	    byte ptr ds:seg40.kb_flag, 4 ; turn	on ctrl	shift in kb_flag
+seg000:194A		    iret		    ; return to	interrupt
 seg000:194B esc_key:				    ; CODE XREF: new_int_9+2j
-seg000:194B		    test    byte ptr ds:seg40.kb_flag, 4
-seg000:1950		    jz	    short esc_only
-seg000:1952		    mov	    byte ptr ds:seg40.kb_flag, 0
+seg000:194B		    test    byte ptr ds:seg40.kb_flag, 4 ; has control shift occured?
+seg000:1950		    jz	    short esc_only  ; no. escape only
+seg000:1952 ;control escape has	occured, put message in	buffer for cassette
+seg000:1952 ;load
+seg000:1952		    mov	    byte ptr ds:seg40.kb_flag, 0 ; zero	out control state
 seg000:1957		    push    ds
-seg000:1958		    pop	    es
-seg000:1959		    push    ds
-seg000:195A		    push    cs
+seg000:1958		    pop	    es		    ; initialize es for	bios data
+seg000:1959		    push    ds		    ; save old ds
+seg000:195A		    push    cs		    ; point ds at code segment
 seg000:195B		    pop	    ds
 seg000:195C		    mov	    si,	offset cas_load	; get message
 seg000:195F		    mov	    di,	1Eh	    ; point at keyboard	buffer
 seg000:1962		    mov	    cx,	0Fh	    ; lenght of	cassette message
 seg000:1965		    nop
 seg000:1966 t_loop:				    ; CODE XREF: new_int_9+31j
-seg000:1966		    lodsb
-seg000:1967		    stosw
+seg000:1966		    lodsb		    ; get ascii	character from message
+seg000:1967		    stosw		    ; put in keyboard buffer
 seg000:1968		    loop    t_loop
-seg000:196A		    pop	    ds
-seg000:196B		    mov	    word ptr ds:seg40.buffer_head, 1Eh
-seg000:1971		    mov	    word ptr ds:seg40.buffer_tail, 3Ch ; '<'
+seg000:196A		    pop	    ds		    ; retreive bios data segment
+seg000:196B ;-----initialize queue so message will be removed from buffer
+seg000:196B		    mov	    word ptr ds:seg40.buffer_head, 1Eh ; (kb_buffer)
+seg000:1971		    mov	    word ptr ds:seg40.buffer_tail, 3Ch ; '<' ; (kb_buffer+cas_lenght*2)
+seg000:1977 ;----------------------------------------------------
+seg000:1977 ;***note***
+seg000:1977 ;	    it is assumed that the lenght of the cassette message is
+seg000:1977 ;	    less than or equal to the lenght of	the buffer. if this is
+seg000:1977 ;	    not	the case the buffer will eventually consume memory.
+seg000:1977 ;----------------------------------------------------
 seg000:1977		    call    real_vector_setup
 seg000:197A		    iret
 seg000:197B esc_only:				    ; CODE XREF: new_int_9+19j
 seg000:197B		    call    real_vector_setup
-seg000:197E		    mov	    cx,	2000h
-seg000:1981		    jmp	    cx
+seg000:197E		    mov	    cx,	offset mini
+seg000:1981		    jmp	    cx		    ; enter the	world of keyboard caper
 seg000:1981 new_int_9	    endp
+seg000:1983 ;-----message for output when control-escape is entered as first
+seg000:1983 ;	  key sequence
 seg000:1983 cas_load	    db 'LOAD "CAS1:",R',0Dh ; DATA XREF: new_int_9+25o
 seg000:1992 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
 seg000:1992 write_tty	    proc far		    ; CODE XREF: video_io+38j
@@ -4956,7 +4982,8 @@ seg000:1F5C unk_F1F5C	    db	  2		    ; DATA XREF: int_89_diag_joystick+37Bo
 seg000:1F5D		    db 0DBh ; Ы		    ; full block
 seg000:1F5E		    db 5, 74h, 5, 74h, 5, 74h, 5, 74h, 5, 0FCh
 seg000:1F68		    db 97h dup(0), 0ABh
-seg000:2000		    jmp	    short sub_F2036
+seg000:2000 mini:				    ; DATA XREF: new_int_9+47o
+seg000:2000		    jmp	    short mini_welcome_init
 seg000:2002		    nop
 seg000:2003 diag_kbd_opt_j:			    ; CODE XREF: int_8b_diag_keyboard+2Dp
 seg000:2003					    ; DATA XREF: int_8b_diag_keyboard:off_F5F71o
@@ -4969,7 +4996,7 @@ seg000:2008		    nop
 seg000:2009		    call    diag_music_setup_int_1c
 seg000:200C		    retf
 seg000:200D ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
-seg000:200D diag_int_iret   proc far		    ; DATA XREF: sub_F2036+3Co
+seg000:200D diag_int_iret   proc far		    ; DATA XREF: mini_welcome_init+3Co
 seg000:200D		    iret
 seg000:200D diag_int_iret   endp
 seg000:200E ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
@@ -4989,8 +5016,8 @@ seg000:202D		    mov	    byte ptr es:seg60_diag.field_4E0, 0FFh
 seg000:2033		    jmp	    diag_kbd_init
 seg000:2033 diag_kdb_init_k endp
 seg000:2036 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
-seg000:2036 sub_F2036	    proc near		    ; CODE XREF: seg000:2000j
-seg000:2036					    ; sub_F2036+23Bj
+seg000:2036 mini_welcome_init proc near		    ; CODE XREF: seg000:minij
+seg000:2036					    ; mini_welcome_init+23Bj
 seg000:2036		    mov	    ax,	30h ; '0'
 seg000:2039		    mov	    ss,	ax	    ; ss = 0x30
 seg000:203B		    mov	    sp,	100h	    ; stack from 30:ff to 30:00	(1023 to 768). Could overwrite some int	vectors???
@@ -5048,7 +5075,7 @@ seg000:20BA		    mov	    byte ptr es:seg4c.flag1, 0
 seg000:20C0		    pop	    es
 seg000:20C1		    mov	    cl,	2
 seg000:20C3		    mov	    bp,	offset row_cols_times_array_a
-seg000:20C6 loc_F20C6:				    ; CODE XREF: sub_F2036+B0j
+seg000:20C6 loc_F20C6:				    ; CODE XREF: mini_welcome_init+B0j
 seg000:20C6		    mov	    dx,	ds:[bp+0]
 seg000:20CA		    mov	    ah,	2
 seg000:20CC		    mov	    bh,	0
@@ -5057,7 +5084,7 @@ seg000:20CE					    ; DH,DL = row, column (0,0 = upper left)
 seg000:20CE					    ; BH = page	number
 seg000:20D0		    push    cx
 seg000:20D1		    mov	    cx,	ds:[bp+2]   ; times to write
-seg000:20D5 loc_F20D5:				    ; CODE XREF: sub_F2036+AAj
+seg000:20D5 loc_F20D5:				    ; CODE XREF: mini_welcome_init+AAj
 seg000:20D5		    mov	    al,	80h ; 'Ђ'   ; char to write
 seg000:20D7		    call    diag_write_char_in_both_buffers
 seg000:20DA		    inc	    dl
@@ -5078,7 +5105,7 @@ seg000:20EF		    mov	    al,	82h ; '‚'
 seg000:20F1		    call    diag_write_char_in_both_buffers
 seg000:20F4		    mov	    cl,	2
 seg000:20F6		    mov	    bp,	offset row_cols_times_array_b
-seg000:20F9 loc_F20F9:				    ; CODE XREF: sub_F2036+E1j
+seg000:20F9 loc_F20F9:				    ; CODE XREF: mini_welcome_init+E1j
 seg000:20F9		    mov	    dx,	ds:[bp+0]   ; get row/col
 seg000:20FD		    mov	    ah,	2
 seg000:20FF		    int	    10h		    ; -	VIDEO -	SET CURSOR POSITION
@@ -5086,7 +5113,7 @@ seg000:20FF					    ; DH,DL = row, column (0,0 = upper left)
 seg000:20FF					    ; BH = page	number
 seg000:2101		    push    cx
 seg000:2102		    mov	    cx,	ds:[bp+2]   ; times to write
-seg000:2106 loc_F2106:				    ; CODE XREF: sub_F2036+DBj
+seg000:2106 loc_F2106:				    ; CODE XREF: mini_welcome_init+DBj
 seg000:2106		    mov	    al,	81h ; 'Ѓ'
 seg000:2108		    call    diag_write_char_in_both_buffers
 seg000:210B		    inc	    dh
@@ -5121,28 +5148,21 @@ seg000:2148		    mov	    cx,	28h ; '('
 seg000:214B		    call    diag_sprite_anim?
 seg000:214E		    call    sub_F3206
 seg000:2151		    mov	    cx,	4000h
-seg000:2154 loc_F2154:				    ; CODE XREF: sub_F2036:loc_F2154j
-seg000:2154		    loop    loc_F2154
-seg000:2156		    mov	    al,	9
-seg000:2158		    out	    61h, al	    ; PC/XT PPI	port B bits:
-seg000:2158					    ; 0: Tmr 2 gate НЛН OR 03H=spkr ON
-seg000:2158					    ; 1: Tmr 2 data Нј	AND 0fcH=spkr OFF
-seg000:2158					    ; 3: 1=read	high switches
-seg000:2158					    ; 4: 0=enable RAM parity checking
-seg000:2158					    ; 5: 0=enable I/O channel check
-seg000:2158					    ; 6: 0=hold	keyboard clock low
-seg000:2158					    ; 7: 0=enable kbrd
+seg000:2154 delay:				    ; CODE XREF: mini_welcome_init:delayj
+seg000:2154		    loop    delay	    ; delay
+seg000:2156		    mov	    al,	1001b	    ; timer 2 gate, speaker off, graphics mode,	casette	off, 8253 timer	2
+seg000:2158		    out	    61h, al
 seg000:215A		    mov	    bx,	40h ; '@'
 seg000:215D		    mov	    cx,	20h ; ' '
 seg000:2160		    call    sub_F24A1
-seg000:2163 loc_F2163:				    ; CODE XREF: sub_F2036+1D8j
-seg000:2163					    ; sub_F2036:loc_F221Bj
+seg000:2163 loc_F2163:				    ; CODE XREF: mini_welcome_init+1D8j
+seg000:2163					    ; mini_welcome_init:loc_F221Bj
 seg000:2163		    mov	    ah,	0
 seg000:2165		    int	    16h		    ; KEYBOARD - READ CHAR FROM	BUFFER,	WAIT IF	EMPTY
 seg000:2165					    ; Return: AH = scan	code, AL = character
-seg000:2167		    mov	    ch,	ah
+seg000:2167		    mov	    ch,	ah	    ; ch = scan	code
 seg000:2169		    mov	    byte ptr es:seg60_diag.field_4C8, 0
-seg000:216F		    call    sub_F2274
+seg000:216F		    call    diag_move_sprite_with_cursor?
 seg000:2172		    cmp	    dx,	700h
 seg000:2176		    jz	    short loc_F21B7
 seg000:2178		    cmp	    dx,	900h
@@ -5167,12 +5187,12 @@ seg000:21AE		    cmp	    dx,	0A02h
 seg000:21B2		    jz	    short loc_F21B7
 seg000:21B4		    jmp	    short loc_F2211
 seg000:21B6		    nop
-seg000:21B7 loc_F21B7:				    ; CODE XREF: sub_F2036+140j
-seg000:21B7					    ; sub_F2036+146j
-seg000:21B7					    ; sub_F2036+14Cj
-seg000:21B7					    ; sub_F2036+152j
-seg000:21B7					    ; sub_F2036+158j
-seg000:21B7					    ; sub_F2036+15Ej ...
+seg000:21B7 loc_F21B7:				    ; CODE XREF: mini_welcome_init+140j
+seg000:21B7					    ; mini_welcome_init+146j
+seg000:21B7					    ; mini_welcome_init+14Cj
+seg000:21B7					    ; mini_welcome_init+152j
+seg000:21B7					    ; mini_welcome_init+158j
+seg000:21B7					    ; mini_welcome_init+15Ej ...
 seg000:21B7		    mov	    byte ptr es:seg60_diag.field_4D8, 1
 seg000:21BD		    push    dx
 seg000:21BE		    call    diag_sprite_replace
@@ -5203,7 +5223,7 @@ seg000:21F0		    int	    10h		    ; -	VIDEO -	SET CURSOR POSITION
 seg000:21F0					    ; DH,DL = row, column (0,0 = upper left)
 seg000:21F0					    ; BH = page	number
 seg000:21F2		    mov	    cx,	3
-seg000:21F5 loc_F21F5:				    ; CODE XREF: sub_F2036+1CCj
+seg000:21F5 loc_F21F5:				    ; CODE XREF: mini_welcome_init+1CCj
 seg000:21F5		    mov	    al,	20h ; ' '
 seg000:21F7		    call    diag_write_char_in_both_buffers
 seg000:21FA		    inc	    dl
@@ -5218,14 +5238,14 @@ seg000:2205		    call    sub_F25C0
 seg000:2208		    mov	    bp,	766h
 seg000:220B		    call    diag_sprite_or
 seg000:220E		    jmp	    loc_F2163
-seg000:2211 loc_F2211:				    ; CODE XREF: sub_F2036+17Ej
+seg000:2211 loc_F2211:				    ; CODE XREF: mini_welcome_init+17Ej
 seg000:2211		    cmp	    dh,	11h
 seg000:2214		    jnz	    short loc_F221B
 seg000:2216		    cmp	    dl,	13h
 seg000:2219		    jz	    short loc_F221E
-seg000:221B loc_F221B:				    ; CODE XREF: sub_F2036+1DEj
+seg000:221B loc_F221B:				    ; CODE XREF: mini_welcome_init+1DEj
 seg000:221B		    jmp	    loc_F2163
-seg000:221E loc_F221E:				    ; CODE XREF: sub_F2036+1E3j
+seg000:221E loc_F221E:				    ; CODE XREF: mini_welcome_init+1E3j
 seg000:221E		    call    diag_kbd_init_video
 seg000:2221		    mov	    bx,	offset song_kbd_f1
 seg000:2224		    call    diag_music_setup_int_1c
@@ -5239,7 +5259,7 @@ seg000:2231					    ; BH = 00h,	BL = border color
 seg000:2231					    ; BH = 01h,	BL = palette (0-3)
 seg000:2233		    mov	    cx,	9
 seg000:2236		    mov	    dx,	0
-seg000:2239 loc_F2239:				    ; CODE XREF: sub_F2036+21Bj
+seg000:2239 loc_F2239:				    ; CODE XREF: mini_welcome_init+21Bj
 seg000:2239		    push    cx
 seg000:223A		    push    dx
 seg000:223B		    mov	    ah,	0Bh
@@ -5266,33 +5286,36 @@ seg000:2266		    mov	    ds:7Eh, si	    ; restore int 0x1f seg
 seg000:226A		    pop	    ds		    ; ds = cs (restored)
 seg000:226B		    call    diag_kbd_init
 seg000:226E		    call    diag_kbd_init_video
-seg000:2271		    jmp	    sub_F2036
-seg000:2271 sub_F2036	    endp
+seg000:2271		    jmp	    mini_welcome_init
+seg000:2271 mini_welcome_init endp
 seg000:2274 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
-seg000:2274 sub_F2274	    proc near		    ; CODE XREF: sub_F2036+139p
+seg000:2274 ; input:
+seg000:2274 ;	 ah = scan code
+seg000:2274 ;	 dl = ?
+seg000:2274 diag_move_sprite_with_cursor? proc near ; CODE XREF: mini_welcome_init+139p
 seg000:2274					    ; diag_kdb_eval_scancode+2F4p
 seg000:2274					    ; diag_kdb_eval_scancode+30Ep
 seg000:2274					    ; diag_kdb_eval_scancode+3EDp
 seg000:2274					    ; diag_kdb_eval_scancode+43Cp
-seg000:2274		    cmp	    ah,	48h ; 'H'
-seg000:2277		    jnz	    short loc_F227C
-seg000:2279		    jmp	    loc_F235D
-seg000:227C loc_F227C:				    ; CODE XREF: sub_F2274+3j
-seg000:227C		    cmp	    ah,	50h ; 'P'
-seg000:227F		    jnz	    short loc_F2284
-seg000:2281		    jmp	    loc_F23F4
-seg000:2284 loc_F2284:				    ; CODE XREF: sub_F2274+Bj
-seg000:2284		    cmp	    ah,	4Bh ; 'K'
-seg000:2287		    jz	    short loc_F22F6
-seg000:2289		    cmp	    ah,	4Dh ; 'M'
-seg000:228C		    jz	    short loc_F228F
+seg000:2274		    cmp	    ah,	key_up_arrow
+seg000:2277		    jnz	    short l0
+seg000:2279		    jmp	    up_arrow
+seg000:227C l0:					    ; CODE XREF: diag_move_sprite_with_cursor?+3j
+seg000:227C		    cmp	    ah,	key_down_arrow
+seg000:227F		    jnz	    short l1
+seg000:2281		    jmp	    down_arrow
+seg000:2284 l1:					    ; CODE XREF: diag_move_sprite_with_cursor?+Bj
+seg000:2284		    cmp	    ah,	key_left_arrow
+seg000:2287		    jz	    short left_arrow
+seg000:2289		    cmp	    ah,	key_right_arrow
+seg000:228C		    jz	    short right_arrow
 seg000:228E		    retn
-seg000:228F loc_F228F:				    ; CODE XREF: sub_F2274+18j
+seg000:228F right_arrow:			    ; CODE XREF: diag_move_sprite_with_cursor?+18j
 seg000:228F		    cmp	    dl,	23h ; '#'
 seg000:2292		    jl	    short loc_F2297
 seg000:2294		    jmp	    loc_F247B
-seg000:2297 loc_F2297:				    ; CODE XREF: sub_F2274+1Ej
-seg000:2297		    cmp	    byte ptr es:4C8h, 0
+seg000:2297 loc_F2297:				    ; CODE XREF: diag_move_sprite_with_cursor?+1Ej
+seg000:2297		    cmp	    byte ptr es:seg60_diag.field_4C8, 0
 seg000:229D		    jnz	    short loc_F22B6
 seg000:229F		    cmp	    dl,	8
 seg000:22A2		    jl	    short loc_F22B6
@@ -5303,16 +5326,16 @@ seg000:22AC		    jle	    short loc_F22B6
 seg000:22AE		    cmp	    dh,	20h ; ' '
 seg000:22B1		    jge	    short loc_F22B6
 seg000:22B3		    jmp	    loc_F247B
-seg000:22B6 loc_F22B6:				    ; CODE XREF: sub_F2274+29j
-seg000:22B6					    ; sub_F2274+2Ej
-seg000:22B6					    ; sub_F2274+33j
-seg000:22B6					    ; sub_F2274+38j
-seg000:22B6					    ; sub_F2274+3Dj
+seg000:22B6 loc_F22B6:				    ; CODE XREF: diag_move_sprite_with_cursor?+29j
+seg000:22B6					    ; diag_move_sprite_with_cursor?+2Ej
+seg000:22B6					    ; diag_move_sprite_with_cursor?+33j
+seg000:22B6					    ; diag_move_sprite_with_cursor?+38j
+seg000:22B6					    ; diag_move_sprite_with_cursor?+3Dj
 seg000:22B6		    call    diag_sprite_replace
 seg000:22B9		    add	    dl,	1
-seg000:22BC		    cmp	    byte ptr es:0, 0
+seg000:22BC		    cmp	    byte ptr es:seg60_diag, 0
 seg000:22C2		    jz	    short loc_F22DD
-seg000:22C4		    mov	    byte ptr es:0, 0
+seg000:22C4		    mov	    byte ptr es:seg60_diag, 0
 seg000:22CA		    call    sub_F25C0
 seg000:22CD		    mov	    bp,	626h
 seg000:22D0		    call    diag_sprite_or
@@ -5320,21 +5343,21 @@ seg000:22D3		    mov	    bx,	5
 seg000:22D6		    mov	    cx,	80h ; 'Ђ'
 seg000:22D9		    call    sub_F24A1
 seg000:22DC		    retn
-seg000:22DD loc_F22DD:				    ; CODE XREF: sub_F2274+4Ej
+seg000:22DD loc_F22DD:				    ; CODE XREF: diag_move_sprite_with_cursor?+4Ej
 seg000:22DD		    call    sub_F25C0
 seg000:22E0		    mov	    bp,	766h
 seg000:22E3		    call    diag_sprite_or
 seg000:22E6		    mov	    bx,	2
 seg000:22E9		    mov	    cx,	80h ; 'Ђ'
 seg000:22EC		    call    sub_F24A1
-seg000:22EF		    mov	    byte ptr es:0, 1
+seg000:22EF		    mov	    byte ptr es:seg60_diag, 1
 seg000:22F5		    retn
-seg000:22F6 loc_F22F6:				    ; CODE XREF: sub_F2274+13j
+seg000:22F6 left_arrow:				    ; CODE XREF: diag_move_sprite_with_cursor?+13j
 seg000:22F6		    cmp	    dl,	0
 seg000:22F9		    jg	    short loc_F22FE
 seg000:22FB		    jmp	    loc_F247B
-seg000:22FE loc_F22FE:				    ; CODE XREF: sub_F2274+85j
-seg000:22FE		    cmp	    byte ptr es:4C8h, 0
+seg000:22FE loc_F22FE:				    ; CODE XREF: diag_move_sprite_with_cursor?+85j
+seg000:22FE		    cmp	    byte ptr es:seg60_diag.field_4C8, 0
 seg000:2304		    jnz	    short loc_F231D
 seg000:2306		    cmp	    dl,	1Eh
 seg000:2309		    jg	    short loc_F231D
@@ -5345,16 +5368,16 @@ seg000:2313		    jle	    short loc_F231D
 seg000:2315		    cmp	    dh,	20h ; ' '
 seg000:2318		    jge	    short loc_F231D
 seg000:231A		    jmp	    loc_F247B
-seg000:231D loc_F231D:				    ; CODE XREF: sub_F2274+90j
-seg000:231D					    ; sub_F2274+95j
-seg000:231D					    ; sub_F2274+9Aj
-seg000:231D					    ; sub_F2274+9Fj
-seg000:231D					    ; sub_F2274+A4j
+seg000:231D loc_F231D:				    ; CODE XREF: diag_move_sprite_with_cursor?+90j
+seg000:231D					    ; diag_move_sprite_with_cursor?+95j
+seg000:231D					    ; diag_move_sprite_with_cursor?+9Aj
+seg000:231D					    ; diag_move_sprite_with_cursor?+9Fj
+seg000:231D					    ; diag_move_sprite_with_cursor?+A4j
 seg000:231D		    call    diag_sprite_replace
 seg000:2320		    sub	    dl,	1
-seg000:2323		    cmp	    byte ptr es:1, 0
+seg000:2323		    cmp	    byte ptr es:seg60_diag.field_1, 0
 seg000:2329		    jz	    short loc_F2344
-seg000:232B		    mov	    byte ptr es:1, 0
+seg000:232B		    mov	    byte ptr es:seg60_diag.field_1, 0
 seg000:2331		    call    sub_F25C0
 seg000:2334		    mov	    bp,	9E6h
 seg000:2337		    call    diag_sprite_or
@@ -5362,20 +5385,20 @@ seg000:233A		    mov	    bx,	5
 seg000:233D		    mov	    cx,	80h ; 'Ђ'
 seg000:2340		    call    sub_F24A1
 seg000:2343		    retn
-seg000:2344 loc_F2344:				    ; CODE XREF: sub_F2274+B5j
+seg000:2344 loc_F2344:				    ; CODE XREF: diag_move_sprite_with_cursor?+B5j
 seg000:2344		    call    sub_F25C0
 seg000:2347		    mov	    bp,	8A6h
 seg000:234A		    call    diag_sprite_or
 seg000:234D		    mov	    bx,	2
 seg000:2350		    mov	    cx,	80h ; 'Ђ'
 seg000:2353		    call    sub_F24A1
-seg000:2356		    mov	    byte ptr es:1, 1
+seg000:2356		    mov	    byte ptr es:seg60_diag.field_1, 1
 seg000:235C		    retn
-seg000:235D loc_F235D:				    ; CODE XREF: sub_F2274+5j
+seg000:235D up_arrow:				    ; CODE XREF: diag_move_sprite_with_cursor?+5j
 seg000:235D		    cmp	    dh,	0
 seg000:2360		    jnz	    short loc_F2365
 seg000:2362		    jmp	    loc_F247B
-seg000:2365 loc_F2365:				    ; CODE XREF: sub_F2274+ECj
+seg000:2365 loc_F2365:				    ; CODE XREF: diag_move_sprite_with_cursor?+ECj
 seg000:2365		    cmp	    byte ptr es:4C8h, 0
 seg000:236B		    jnz	    short loc_F2391
 seg000:236D		    cmp	    dh,	20h ; ' '
@@ -5386,30 +5409,30 @@ seg000:2377		    cmp	    dl,	8
 seg000:237A		    jle	    short loc_F2391
 seg000:237C		    cmp	    dl,	1Eh
 seg000:237F		    jge	    short loc_F2391
-seg000:2381		    cmp	    byte ptr es:4D8h, 0
+seg000:2381		    cmp	    byte ptr es:seg60_diag.field_4D8, 0
 seg000:2387		    jz	    short loc_F238E
 seg000:2389		    cmp	    dl,	13h
 seg000:238C		    jz	    short loc_F2391
-seg000:238E loc_F238E:				    ; CODE XREF: sub_F2274+113j
+seg000:238E loc_F238E:				    ; CODE XREF: diag_move_sprite_with_cursor?+113j
 seg000:238E		    jmp	    loc_F247B
-seg000:2391 loc_F2391:				    ; CODE XREF: sub_F2274+F7j
-seg000:2391					    ; sub_F2274+FCj
-seg000:2391					    ; sub_F2274+101j
-seg000:2391					    ; sub_F2274+106j
-seg000:2391					    ; sub_F2274+10Bj
-seg000:2391					    ; sub_F2274+118j
+seg000:2391 loc_F2391:				    ; CODE XREF: diag_move_sprite_with_cursor?+F7j
+seg000:2391					    ; diag_move_sprite_with_cursor?+FCj
+seg000:2391					    ; diag_move_sprite_with_cursor?+101j
+seg000:2391					    ; diag_move_sprite_with_cursor?+106j
+seg000:2391					    ; diag_move_sprite_with_cursor?+10Bj
+seg000:2391					    ; diag_move_sprite_with_cursor?+118j
 seg000:2391		    call    diag_sprite_replace
 seg000:2394		    dec	    dh
 seg000:2396		    cmp	    dx,	1113h
 seg000:239A		    jnz	    short loc_F23A2
-seg000:239C		    mov	    byte ptr es:4E1h, 0B3h ; 'і'
-seg000:23A2 loc_F23A2:				    ; CODE XREF: sub_F2274+126j
+seg000:239C		    mov	    byte ptr es:seg60_diag.field_4E1, 0B3h ; 'і'
+seg000:23A2 loc_F23A2:				    ; CODE XREF: diag_move_sprite_with_cursor?+126j
 seg000:23A2		    call    sub_F25C0
 seg000:23A5		    mov	    bp,	4E6h
 seg000:23A8		    call    diag_sprite_or
-seg000:23AB		    cmp	    byte ptr es:4CFh, 0
+seg000:23AB		    cmp	    byte ptr es:seg60_diag.field_4CF, 0
 seg000:23B1		    jz	    short locret_F23F3
-seg000:23B3		    mov	    bx,	363h
+seg000:23B3		    mov	    bx,	seg60_diag+363h
 seg000:23B6		    mov	    al,	es:[bx]
 seg000:23B9		    cmp	    al,	0
 seg000:23BB		    jnz	    short locret_F23F3
@@ -5429,11 +5452,11 @@ seg000:23D2		    int	    10h		    ; -	VIDEO -	SET CURSOR POSITION
 seg000:23D2					    ; DH,DL = row, column (0,0 = upper left)
 seg000:23D2					    ; BH = page	number
 seg000:23D4		    mov	    al,	20h ; ' '
-seg000:23D6		    mov	    byte ptr es:4C7h, 0
+seg000:23D6		    mov	    byte ptr es:seg60_diag.field_4C7, 0
 seg000:23DC		    call    diag_write_char_in_both_buffers
-seg000:23DF		    mov	    byte ptr es:4C7h, 1
+seg000:23DF		    mov	    byte ptr es:seg60_diag.field_4C7, 1
 seg000:23E5 loc_F23E5:
-seg000:23E5		    mov	    byte ptr es:4D0h, 1
+seg000:23E5		    mov	    byte ptr es:seg60_diag.field_4D0, 1
 seg000:23EB		    pop	    dx
 seg000:23EC		    mov	    ah,	2
 seg000:23EE		    mov	    bh,	0
@@ -5441,16 +5464,16 @@ seg000:23F0		    int	    10h		    ; -	VIDEO -	SET CURSOR POSITION
 seg000:23F0					    ; DH,DL = row, column (0,0 = upper left)
 seg000:23F0					    ; BH = page	number
 seg000:23F2		    pop	    dx
-seg000:23F3 locret_F23F3:			    ; CODE XREF: sub_F2274+13Dj
-seg000:23F3					    ; sub_F2274+147j
-seg000:23F3					    ; sub_F2274+14Dj
+seg000:23F3 locret_F23F3:			    ; CODE XREF: diag_move_sprite_with_cursor?+13Dj
+seg000:23F3					    ; diag_move_sprite_with_cursor?+147j
+seg000:23F3					    ; diag_move_sprite_with_cursor?+14Dj
 seg000:23F3		    retn
-seg000:23F4 loc_F23F4:				    ; CODE XREF: sub_F2274+Dj
+seg000:23F4 down_arrow:				    ; CODE XREF: diag_move_sprite_with_cursor?+Dj
 seg000:23F4		    cmp	    dh,	28h ; '('
 seg000:23F7		    jnz	    short loc_F23FC
 seg000:23F9		    jmp	    loc_F247B
-seg000:23FC loc_F23FC:				    ; CODE XREF: sub_F2274+183j
-seg000:23FC		    cmp	    byte ptr es:4C8h, 0
+seg000:23FC loc_F23FC:				    ; CODE XREF: diag_move_sprite_with_cursor?+183j
+seg000:23FC		    cmp	    byte ptr es:seg60_diag.field_4C8, 0
 seg000:2402		    jnz	    short loc_F2428
 seg000:2404		    cmp	    dh,	8
 seg000:2407		    jl	    short loc_F2428
@@ -5460,25 +5483,25 @@ seg000:240E		    cmp	    dl,	8
 seg000:2411		    jle	    short loc_F2428
 seg000:2413		    cmp	    dl,	1Eh
 seg000:2416		    jge	    short loc_F2428
-seg000:2418		    cmp	    byte ptr es:4D8h, 0
+seg000:2418		    cmp	    byte ptr es:seg60_diag.field_4D8, 0
 seg000:241E		    jz	    short loc_F2425
 seg000:2420		    cmp	    dl,	13h
 seg000:2423		    jz	    short loc_F2428
-seg000:2425 loc_F2425:				    ; CODE XREF: sub_F2274+1AAj
+seg000:2425 loc_F2425:				    ; CODE XREF: diag_move_sprite_with_cursor?+1AAj
 seg000:2425		    jmp	    short loc_F247B
 seg000:2427		    nop
-seg000:2428 loc_F2428:				    ; CODE XREF: sub_F2274+18Ej
-seg000:2428					    ; sub_F2274+193j
-seg000:2428					    ; sub_F2274+198j
-seg000:2428					    ; sub_F2274+19Dj
-seg000:2428					    ; sub_F2274+1A2j
-seg000:2428					    ; sub_F2274+1AFj
+seg000:2428 loc_F2428:				    ; CODE XREF: diag_move_sprite_with_cursor?+18Ej
+seg000:2428					    ; diag_move_sprite_with_cursor?+193j
+seg000:2428					    ; diag_move_sprite_with_cursor?+198j
+seg000:2428					    ; diag_move_sprite_with_cursor?+19Dj
+seg000:2428					    ; diag_move_sprite_with_cursor?+1A2j
+seg000:2428					    ; diag_move_sprite_with_cursor?+1AFj
 seg000:2428		    call    diag_sprite_replace
 seg000:242B		    inc	    dh
 seg000:242D		    call    sub_F25C0
 seg000:2430		    mov	    bp,	4E6h
 seg000:2433		    call    diag_sprite_or
-seg000:2436		    cmp	    byte ptr es:4CDh, 0
+seg000:2436		    cmp	    byte ptr es:seg60_diag.field_4CD, 0
 seg000:243C		    jz	    short locret_F247A
 seg000:243E		    push    dx
 seg000:243F		    mov	    ah,	3
@@ -5498,11 +5521,11 @@ seg000:2456		    int	    10h		    ; -	VIDEO -	SET CURSOR POSITION
 seg000:2456					    ; DH,DL = row, column (0,0 = upper left)
 seg000:2456					    ; BH = page	number
 seg000:2458		    mov	    al,	42h ; 'B'
-seg000:245A		    mov	    byte ptr es:4C7h, 0
+seg000:245A		    mov	    byte ptr es:seg60_diag.field_4C7, 0
 seg000:2460		    call    diag_write_char_in_both_buffers
-seg000:2463		    mov	    byte ptr es:4C7h, 1
-seg000:2469		    mov	    byte ptr es:4CEh, 1
-seg000:246F loc_F246F:				    ; CODE XREF: sub_F2274+1D9j
+seg000:2463		    mov	    byte ptr es:seg60_diag.field_4C7, 1
+seg000:2469		    mov	    byte ptr es:seg60_diag.field_4CE, 1
+seg000:246F loc_F246F:				    ; CODE XREF: diag_move_sprite_with_cursor?+1D9j
 seg000:246F		    pop	    ax
 seg000:2470		    push    dx
 seg000:2471		    mov	    dx,	ax
@@ -5512,25 +5535,25 @@ seg000:2477		    int	    10h		    ; -	VIDEO -	SET CURSOR POSITION
 seg000:2477					    ; DH,DL = row, column (0,0 = upper left)
 seg000:2477					    ; BH = page	number
 seg000:2479		    pop	    dx
-seg000:247A locret_F247A:			    ; CODE XREF: sub_F2274+1C8j
+seg000:247A locret_F247A:			    ; CODE XREF: diag_move_sprite_with_cursor?+1C8j
 seg000:247A		    retn
-seg000:247B loc_F247B:				    ; CODE XREF: sub_F2274+20j
-seg000:247B					    ; sub_F2274+3Fj
-seg000:247B					    ; sub_F2274+87j
-seg000:247B					    ; sub_F2274+A6j
-seg000:247B					    ; sub_F2274+EEj
-seg000:247B					    ; sub_F2274:loc_F238Ej ...
+seg000:247B loc_F247B:				    ; CODE XREF: diag_move_sprite_with_cursor?+20j
+seg000:247B					    ; diag_move_sprite_with_cursor?+3Fj
+seg000:247B					    ; diag_move_sprite_with_cursor?+87j
+seg000:247B					    ; diag_move_sprite_with_cursor?+A6j
+seg000:247B					    ; diag_move_sprite_with_cursor?+EEj
+seg000:247B					    ; diag_move_sprite_with_cursor?:loc_F238Ej	...
 seg000:247B		    mov	    bx,	40h ; '@'
 seg000:247E		    mov	    cx,	20h ; ' '
 seg000:2481		    call    sub_F24A1
 seg000:2484		    retn
-seg000:2484 sub_F2274	    endp
+seg000:2484 diag_move_sprite_with_cursor? endp
 seg000:2485 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
 seg000:2485 ; input
 seg000:2485 ;	   cx =	times to repeat
 seg000:2485 ;	   dx =	?
-seg000:2485 diag_sprite_anim? proc near		    ; CODE XREF: sub_F2036+115p
-seg000:2485					    ; sub_F2036+210p
+seg000:2485 diag_sprite_anim? proc near		    ; CODE XREF: mini_welcome_init+115p
+seg000:2485					    ; mini_welcome_init+210p
 seg000:2485					    ; diag_sprite_anim?+10j
 seg000:2485					    ; diag_kbd_init+A9p
 seg000:2485					    ; diag_kdb_eval_scancode+11Ap
@@ -5549,12 +5572,12 @@ seg000:249D		    call    diag_sprite_or
 seg000:24A0		    retn
 seg000:24A0 diag_sprite_anim? endp
 seg000:24A1 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
-seg000:24A1 sub_F24A1	    proc near		    ; CODE XREF: sub_F2036+12Ap
-seg000:24A1					    ; sub_F2274+65p
-seg000:24A1					    ; sub_F2274+78p
-seg000:24A1					    ; sub_F2274+CCp
-seg000:24A1					    ; sub_F2274+DFp
-seg000:24A1					    ; sub_F2274+20Dp ...
+seg000:24A1 sub_F24A1	    proc near		    ; CODE XREF: mini_welcome_init+12Ap
+seg000:24A1					    ; diag_move_sprite_with_cursor?+65p
+seg000:24A1					    ; diag_move_sprite_with_cursor?+78p
+seg000:24A1					    ; diag_move_sprite_with_cursor?+CCp
+seg000:24A1					    ; diag_move_sprite_with_cursor?+DFp
+seg000:24A1					    ; diag_move_sprite_with_cursor?+20Dp ...
 seg000:24A1		    in	    al,	61h
 seg000:24A3		    push    ax
 seg000:24A4 l0:					    ; CODE XREF: sub_F24A1+14j
@@ -5581,12 +5604,12 @@ seg000:24BB ; input
 seg000:24BB ;	   al =	char to	print
 seg000:24BB ;	   dh =	row for	cursor
 seg000:24BB ;	   dl =	column for cursor
-seg000:24BB diag_write_char_in_both_buffers proc near ;	CODE XREF: sub_F2036+A1p
-seg000:24BB					    ; sub_F2036+BBp
-seg000:24BB					    ; sub_F2036+D2p
-seg000:24BB					    ; sub_F2036+ECp
-seg000:24BB					    ; sub_F2036+F8p
-seg000:24BB					    ; sub_F2036+196p ...
+seg000:24BB diag_write_char_in_both_buffers proc near ;	CODE XREF: mini_welcome_init+A1p
+seg000:24BB					    ; mini_welcome_init+BBp
+seg000:24BB					    ; mini_welcome_init+D2p
+seg000:24BB					    ; mini_welcome_init+ECp
+seg000:24BB					    ; mini_welcome_init+F8p
+seg000:24BB					    ; mini_welcome_init+196p ...
 seg000:24BB		    push    bx
 seg000:24BC		    push    cx
 seg000:24BD		    push    dx
@@ -5620,9 +5643,9 @@ seg000:24EC		    pop	    bx
 seg000:24ED		    retn
 seg000:24ED diag_write_char_in_both_buffers endp
 seg000:24EE ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
-seg000:24EE diag_kbd_init_video	proc near	    ; CODE XREF: sub_F2036+19p
-seg000:24EE					    ; sub_F2036:loc_F221Ep
-seg000:24EE					    ; sub_F2036+238p
+seg000:24EE diag_kbd_init_video	proc near	    ; CODE XREF: mini_welcome_init+19p
+seg000:24EE					    ; mini_welcome_init:loc_F221Ep
+seg000:24EE					    ; mini_welcome_init+238p
 seg000:24EE					    ; diag_kbd_init+53p
 seg000:24EE		    mov	    bl,	2
 seg000:24F0		    mov	    bh,	3
@@ -5659,7 +5682,7 @@ seg000:2527		    pop	    es
 seg000:2528		    retn
 seg000:2528 clear_video_buffer_16k endp
 seg000:2529 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
-seg000:2529 diag_unpack_sprites	proc near	    ; CODE XREF: sub_F2036+11p
+seg000:2529 diag_unpack_sprites	proc near	    ; CODE XREF: mini_welcome_init+11p
 seg000:2529					    ; diag_kbd_init+9p
 seg000:2529		    mov	    di,	4E6h	    ; dst -> 60:04e6
 seg000:252C		    mov	    cx,	1600	    ; to  -> 60:0b26
@@ -5704,7 +5727,7 @@ seg000:2578		    add	    di,	16	    ; go forward 16
 seg000:257B		    loop    l1
 seg000:257D		    retn
 seg000:257D diag_unpack_sprites	endp
-seg000:257E diag_int_1f	    db 0FFh		    ; DATA XREF: sub_F2036+44o
+seg000:257E diag_int_1f	    db 0FFh		    ; DATA XREF: mini_welcome_init+44o
 seg000:257E					    ; charset
 seg000:257F		    db	  0
 seg000:2580		    db	  0
@@ -5745,8 +5768,9 @@ seg000:25A2		    db	0Fh
 seg000:25A3		    db	0Fh
 seg000:25A4		    db 0FFh
 seg000:25A5		    db 0FFh
-seg000:25A6 row_cols_times_array_a dw 80Ch, 13h, 100Ch,	13h ; DATA XREF: sub_F2036+8Do
-seg000:25AE row_cols_times_array_b dw 90Ch, 7, 81Fh, 8 ; DATA XREF: sub_F2036+C0o
+seg000:25A6 row_cols_times_array_a dw 80Ch, 13h, 100Ch,	13h
+seg000:25A6					    ; DATA XREF: mini_welcome_init+8Do
+seg000:25AE row_cols_times_array_b dw 90Ch, 7, 81Fh, 8 ; DATA XREF: mini_welcome_init+C0o
 seg000:25B6		    db	  0
 seg000:25B7		    db	  0
 seg000:25B8		    db	  0
@@ -5760,12 +5784,12 @@ seg000:25BF		    db	  0
 seg000:25C0 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
 seg000:25C0 ; input
 seg000:25C0 ;	   dx =	?
-seg000:25C0 sub_F25C0	    proc near		    ; CODE XREF: sub_F2036+199p
-seg000:25C0					    ; sub_F2036+1CFp
-seg000:25C0					    ; sub_F2274+56p
-seg000:25C0					    ; sub_F2274:loc_F22DDp
-seg000:25C0					    ; sub_F2274+BDp
-seg000:25C0					    ; sub_F2274:loc_F2344p ...
+seg000:25C0 sub_F25C0	    proc near		    ; CODE XREF: mini_welcome_init+199p
+seg000:25C0					    ; mini_welcome_init+1CFp
+seg000:25C0					    ; diag_move_sprite_with_cursor?+56p
+seg000:25C0					    ; diag_move_sprite_with_cursor?:loc_F22DDp
+seg000:25C0					    ; diag_move_sprite_with_cursor?+BDp
+seg000:25C0					    ; diag_move_sprite_with_cursor?:loc_F2344p	...
 seg000:25C0		    push    dx
 seg000:25C1		    cmp	    byte ptr es:seg60_diag.field_2, 0
 seg000:25C7		    jz	    short l0
@@ -5797,12 +5821,12 @@ seg000:2601		    pop	    dx
 seg000:2602		    retn
 seg000:2602 sub_F25C0	    endp
 seg000:2603 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
-seg000:2603 diag_sprite_replace	proc near	    ; CODE XREF: sub_F2036+188p
-seg000:2603					    ; sub_F2036+1A2p
-seg000:2603					    ; sub_F2036+213p
-seg000:2603					    ; sub_F2274:loc_F22B6p
-seg000:2603					    ; sub_F2274:loc_F231Dp
-seg000:2603					    ; sub_F2274:loc_F2391p ...
+seg000:2603 diag_sprite_replace	proc near	    ; CODE XREF: mini_welcome_init+188p
+seg000:2603					    ; mini_welcome_init+1A2p
+seg000:2603					    ; mini_welcome_init+213p
+seg000:2603					    ; diag_move_sprite_with_cursor?:loc_F22B6p
+seg000:2603					    ; diag_move_sprite_with_cursor?:loc_F231Dp
+seg000:2603					    ; diag_move_sprite_with_cursor?:loc_F2391p	...
 seg000:2603		    push    dx
 seg000:2604		    cmp	    byte ptr es:seg60_diag.field_2, 0
 seg000:260A		    jz	    short l0
@@ -5840,12 +5864,12 @@ seg000:2648 ; input
 seg000:2648 ;	  dh = row for dst
 seg000:2648 ;	  dl = col for dst
 seg000:2648 ;	  bp = offset for src
-seg000:2648 diag_sprite_or  proc near		    ; CODE XREF: sub_F2036+19Fp
-seg000:2648					    ; sub_F2036+1D5p
-seg000:2648					    ; sub_F2274+5Cp
-seg000:2648					    ; sub_F2274+6Fp
-seg000:2648					    ; sub_F2274+C3p
-seg000:2648					    ; sub_F2274+D6p ...
+seg000:2648 diag_sprite_or  proc near		    ; CODE XREF: mini_welcome_init+19Fp
+seg000:2648					    ; mini_welcome_init+1D5p
+seg000:2648					    ; diag_move_sprite_with_cursor?+5Cp
+seg000:2648					    ; diag_move_sprite_with_cursor?+6Fp
+seg000:2648					    ; diag_move_sprite_with_cursor?+C3p
+seg000:2648					    ; diag_move_sprite_with_cursor?+D6p ...
 seg000:2648		    push    dx
 seg000:2649		    push    ds
 seg000:264A		    mov	    ax,	cs
@@ -6042,7 +6066,7 @@ seg000:27F4		    db 0, 0, 0,	0, 0, 0, 0, 0, 0, 0
 seg000:2980 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
 seg000:2980 diag_kbd_init   proc near		    ; CODE XREF: diag_kbd_init_j+11j
 seg000:2980					    ; diag_kdb_init_k+11j
-seg000:2980					    ; sub_F2036+235p
+seg000:2980					    ; mini_welcome_init+235p
 seg000:2980					    ; diag_kbd_init:l29j
 seg000:2980		    mov	    ax,	cs
 seg000:2982		    mov	    ds,	ax	    ; ds = cs
@@ -6727,7 +6751,7 @@ seg000:2ED2		    cmp	    byte ptr es:seg60_diag.field_4C9, 0
 seg000:2ED8		    jz	    short l54
 seg000:2EDA		    push    dx
 seg000:2EDB		    mov	    dx,	es:seg60_diag.field_6
-seg000:2EE0		    call    sub_F2274
+seg000:2EE0		    call    diag_move_sprite_with_cursor?
 seg000:2EE3		    mov	    es:seg60_diag.field_6, dx
 seg000:2EE8		    pop	    dx
 seg000:2EE9		    jmp	    l69
@@ -6736,7 +6760,7 @@ seg000:2EEC		    cmp	    byte ptr es:seg60_diag.field_4C9, 0
 seg000:2EF2		    jz	    short l54
 seg000:2EF4		    push    dx
 seg000:2EF5		    mov	    dx,	es:seg60_diag.field_6
-seg000:2EFA		    call    sub_F2274
+seg000:2EFA		    call    diag_move_sprite_with_cursor?
 seg000:2EFD		    mov	    es:seg60_diag.field_6, dx
 seg000:2F02		    pop	    dx
 seg000:2F03		    jmp	    l69
@@ -6860,7 +6884,7 @@ seg000:2FCB		    cmp	    byte ptr es:seg60_diag.field_4C9, 0
 seg000:2FD1		    jz	    short l63
 seg000:2FD3		    push    dx
 seg000:2FD4		    mov	    dx,	es:seg60_diag.field_6
-seg000:2FD9		    call    sub_F2274
+seg000:2FD9		    call    diag_move_sprite_with_cursor?
 seg000:2FDC		    mov	    es:seg60_diag.field_6, dx
 seg000:2FE1		    pop	    dx
 seg000:2FE2		    jmp	    l69
@@ -6904,7 +6928,7 @@ seg000:301A		    cmp	    byte ptr es:4C9h, 0
 seg000:3020		    jz	    short l66
 seg000:3022		    push    dx
 seg000:3023		    mov	    dx,	es:seg60_diag.field_6
-seg000:3028		    call    sub_F2274
+seg000:3028		    call    diag_move_sprite_with_cursor?
 seg000:302B		    mov	    es:seg60_diag.field_6, dx
 seg000:3030		    pop	    dx
 seg000:3031		    jmp	    short l69
@@ -7197,7 +7221,7 @@ seg000:3204		    pop	    es		    ; restore es
 seg000:3205		    iret
 seg000:3205 diag_control_break_handler endp
 seg000:3206 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
-seg000:3206 sub_F3206	    proc near		    ; CODE XREF: sub_F2036+118p
+seg000:3206 sub_F3206	    proc near		    ; CODE XREF: mini_welcome_init+118p
 seg000:3206					    ; diag_kbd_init+234p
 seg000:3206					    ; diag_kbd_init:exitp
 seg000:3206					    ; diag_kdb_eval_scancode:l32p
@@ -7978,8 +8002,8 @@ seg000:3900 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
 seg000:3900 ; ax = ???
 seg000:3900 ; bx = pointer to notes to play
 seg000:3900 diag_music_setup_int_1c proc near	    ; CODE XREF: seg000:2009p
-seg000:3900					    ; sub_F2036+10Cp
-seg000:3900					    ; sub_F2036+1EEp
+seg000:3900					    ; mini_welcome_init+10Cp
+seg000:3900					    ; mini_welcome_init+1EEp
 seg000:3900					    ; diag_kdb_eval_scancode:play_songp
 seg000:3900					    ; diag_kdb_eval_scancode+10Cp
 seg000:3900					    ; sub_F3380+13p ...
@@ -8299,7 +8323,7 @@ seg000:3AF5		    db	3Ah ; :
 seg000:3AF6		    db 0F8h ; ш
 seg000:3AF7		    db	3Ah ; :
 seg000:3AF8 song_kbd_f1	    db 17h, 52h, 8Bh, 4, 4Fh, 86h, 4, 19h, 4Dh,	86h, 2,	1Ch
-seg000:3AF8					    ; DATA XREF: sub_F2036+1EBo
+seg000:3AF8					    ; DATA XREF: mini_welcome_init+1EBo
 seg000:3AF8					    ; diag_kdb_eval_scancode:play_song_0o
 seg000:3AF8					    ; diag_kdb_eval_scancode+109o
 seg000:3AF8		    db 2, 1Bh, 50h, 8Ah, 2, 19h, 2, 1Eh, 4Fh, 8Bh, 4, 17h
@@ -8324,7 +8348,7 @@ seg000:3BA9		    db 1, 1Eh, 1, 1Ch, 1, 20h, 1, 1Eh, 1, 21h, 1, 20h, 1, 23h
 seg000:3BA9		    db 1, 21h, 1, 25h, 1, 23h, 1, 27h, 1, 0, 40h, 80h, 0C0h
 seg000:3BA9		    db 3Ah, 1, 0, 3Bh, 39h, 3Ch
 seg000:3BF3 song_kdb_unk1   db 28h, 1, 23h, 1, 27h, 1, 21h, 1, 25h, 1, 20h, 1, 23h
-seg000:3BF3					    ; DATA XREF: sub_F2036+109o
+seg000:3BF3					    ; DATA XREF: mini_welcome_init+109o
 seg000:3BF3					    ; sub_F3380:l1o
 seg000:3BF3		    db 1, 1Eh, 1, 21h, 1, 1Ch, 1, 20h, 1, 1Bh, 1, 1Eh, 1, 19h
 seg000:3BF3		    db 1, 1Ch, 1, 17h, 1, 1Bh, 1, 15h, 1, 19h, 1, 14h, 1, 17h
