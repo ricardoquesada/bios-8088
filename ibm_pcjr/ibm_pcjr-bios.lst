@@ -5029,7 +5029,7 @@ seg000:2047		    call    diag_unpack_sprites
 seg000:204A		    mov	    ax,	4	    ; 320x200 4	colors
 seg000:204D		    int	    10h		    ; -	VIDEO -	SET VIDEO MODE
 seg000:204D					    ; AL = mode
-seg000:204F		    call    diag_kbd_init_video
+seg000:204F		    call    diag_init_video
 seg000:2052		    mov	    ah,	0Bh
 seg000:2054		    mov	    bx,	1
 seg000:2057		    int	    10h		    ; -	VIDEO -	SET COLOR PALETTE
@@ -5047,12 +5047,12 @@ seg000:2066					    ; AL = display page, 0-7  for modes	0 & 1, 0-3  for	modes 2	
 seg000:2068		    mov	    al,	0
 seg000:206A		    mov	    cx,	4E2h
 seg000:206D		    mov	    di,	0
-seg000:2070		    rep	stosb
+seg000:2070		    rep	stosb		    ; clean 60:0000 -> 60:04e2 (diag tmp buffer?)
 seg000:2072		    mov	    bx,	offset diag_int_iret
 seg000:2075		    push    ds
 seg000:2076		    sub	    ax,	ax
 seg000:2078		    mov	    ds,	ax	    ; ds = 0
-seg000:207A		    mov	    dx,	offset diag_int_1f
+seg000:207A		    mov	    dx,	offset diag_int_1f ; charset 128-255
 seg000:207D		    mov	    ax,	cs	    ; ax = segment cs
 seg000:207F		    mov	    di,	ds:7Ch	    ; old int 0x1f offset
 seg000:2083		    mov	    si,	ds:7Eh	    ; old int 0x1f segment
@@ -5073,10 +5073,11 @@ seg000:20B5		    mov	    ax,	4Ch ; 'L'
 seg000:20B8		    mov	    es,	ax	    ; es = 0x4c
 seg000:20BA		    mov	    byte ptr es:seg4c.flag1, 0
 seg000:20C0		    pop	    es
-seg000:20C1		    mov	    cl,	2
+seg000:20C1		    mov	    cl,	2	    ; two items
 seg000:20C3		    mov	    bp,	offset row_cols_times_array_a
-seg000:20C6 loc_F20C6:				    ; CODE XREF: mini_welcome_init+B0j
-seg000:20C6		    mov	    dx,	ds:[bp+0]
+seg000:20C6 ;-----write	top and	bottom boders using char 0x80
+seg000:20C6 l0:					    ; CODE XREF: mini_welcome_init+B0j
+seg000:20C6		    mov	    dx,	ds:[bp+0]   ; dh = rows, dl = cols
 seg000:20CA		    mov	    ah,	2
 seg000:20CC		    mov	    bh,	0
 seg000:20CE		    int	    10h		    ; -	VIDEO -	SET CURSOR POSITION
@@ -5084,28 +5085,30 @@ seg000:20CE					    ; DH,DL = row, column (0,0 = upper left)
 seg000:20CE					    ; BH = page	number
 seg000:20D0		    push    cx
 seg000:20D1		    mov	    cx,	ds:[bp+2]   ; times to write
-seg000:20D5 loc_F20D5:				    ; CODE XREF: mini_welcome_init+AAj
-seg000:20D5		    mov	    al,	80h ; 'Ђ'   ; char to write
+seg000:20D5 l1:					    ; CODE XREF: mini_welcome_init+AAj
+seg000:20D5		    mov	    al,	80h ; 'Ђ'   ; char to write. horizontal dash for top and bottom borders
 seg000:20D7		    call    diag_write_char_in_both_buffers
-seg000:20DA		    inc	    dl
+seg000:20DA		    inc	    dl		    ; col++
 seg000:20DC		    mov	    ah,	2
 seg000:20DE		    int	    10h		    ; -	VIDEO -	SET CURSOR POSITION
 seg000:20DE					    ; DH,DL = row, column (0,0 = upper left)
 seg000:20DE					    ; BH = page	number
-seg000:20E0		    loop    loc_F20D5
+seg000:20E0		    loop    l1
 seg000:20E2		    pop	    cx
-seg000:20E3		    add	    bp,	4
-seg000:20E6		    loop    loc_F20C6
+seg000:20E3		    add	    bp,	4	    ; next item
+seg000:20E6		    loop    l0
+seg000:20E8 ;-----write	"top/left corner" char
 seg000:20E8		    mov	    ah,	2
-seg000:20EA		    mov	    dx,	80Ch
+seg000:20EA		    mov	    dx,	80Ch	    ; row = 8, col = 12
 seg000:20ED		    int	    10h		    ; -	VIDEO -	SET CURSOR POSITION
 seg000:20ED					    ; DH,DL = row, column (0,0 = upper left)
 seg000:20ED					    ; BH = page	number
-seg000:20EF		    mov	    al,	82h ; '‚'
+seg000:20EF		    mov	    al,	82h ; '‚'   ; "corner" char
 seg000:20F1		    call    diag_write_char_in_both_buffers
+seg000:20F4 ;-----write	left/right borders using char 0x81
 seg000:20F4		    mov	    cl,	2
 seg000:20F6		    mov	    bp,	offset row_cols_times_array_b
-seg000:20F9 loc_F20F9:				    ; CODE XREF: mini_welcome_init+E1j
+seg000:20F9 l2:					    ; CODE XREF: mini_welcome_init+E1j
 seg000:20F9		    mov	    dx,	ds:[bp+0]   ; get row/col
 seg000:20FD		    mov	    ah,	2
 seg000:20FF		    int	    10h		    ; -	VIDEO -	SET CURSOR POSITION
@@ -5113,25 +5116,27 @@ seg000:20FF					    ; DH,DL = row, column (0,0 = upper left)
 seg000:20FF					    ; BH = page	number
 seg000:2101		    push    cx
 seg000:2102		    mov	    cx,	ds:[bp+2]   ; times to write
-seg000:2106 loc_F2106:				    ; CODE XREF: mini_welcome_init+DBj
-seg000:2106		    mov	    al,	81h ; 'Ѓ'
+seg000:2106 l3:					    ; CODE XREF: mini_welcome_init+DBj
+seg000:2106		    mov	    al,	81h ; 'Ѓ'   ; char to write: vertical dash
 seg000:2108		    call    diag_write_char_in_both_buffers
 seg000:210B		    inc	    dh
 seg000:210D		    mov	    ah,	2
 seg000:210F		    int	    10h		    ; -	VIDEO -	SET CURSOR POSITION
 seg000:210F					    ; DH,DL = row, column (0,0 = upper left)
 seg000:210F					    ; BH = page	number
-seg000:2111		    loop    loc_F2106
+seg000:2111		    loop    l3
 seg000:2113		    pop	    cx
-seg000:2114		    add	    bp,	4
-seg000:2117		    loop    loc_F20F9
+seg000:2114		    add	    bp,	4	    ; next item
+seg000:2117		    loop    l2
+seg000:2119 ;-----write	bottom/right corner char
 seg000:2119		    mov	    ah,	2
-seg000:211B		    mov	    dx,	101Fh
+seg000:211B		    mov	    dx,	101Fh	    ; row = 16,	col = 31
 seg000:211E		    int	    10h		    ; -	VIDEO -	SET CURSOR POSITION
 seg000:211E					    ; DH,DL = row, column (0,0 = upper left)
 seg000:211E					    ; BH = page	number
-seg000:2120		    mov	    al,	83h ; 'ѓ'
+seg000:2120		    mov	    al,	83h ; 'ѓ'   ; bottom/right char
 seg000:2122		    call    diag_write_char_in_both_buffers
+seg000:2125 ;----write "key" char
 seg000:2125		    mov	    ah,	2
 seg000:2127		    mov	    dx,	603h
 seg000:212A		    int	    10h		    ; -	VIDEO -	SET CURSOR POSITION
@@ -5139,14 +5144,17 @@ seg000:212A					    ; DH,DL = row, column (0,0 = upper left)
 seg000:212A					    ; BH = page	number
 seg000:212C		    mov	    al,	84h ; '„'
 seg000:212E		    call    diag_write_char_in_both_buffers
+seg000:2131 ;-------?
 seg000:2131		    mov	    word ptr es:seg60_diag.row_col_2, 0
 seg000:2138		    mov	    word ptr es:seg60_diag.row_col_1, 0
 seg000:213F		    mov	    bx,	offset song_kdb_unk1
 seg000:2142		    call    diag_music_setup_int_1c
-seg000:2145		    mov	    dx,	22h ; '"'
-seg000:2148		    mov	    cx,	28h ; '('
-seg000:214B		    call    diag_sprite_anim?
-seg000:214E		    call    sub_F3206
+seg000:2145 ;-----animate sprite to bottom of screen
+seg000:2145		    mov	    dx,	22h ; '"'   ; row = 0, col = 34
+seg000:2148		    mov	    cx,	40	    ; #	of rows	to move	the sprite down
+seg000:214B		    call    diag_sprite_move_down_n_rows
+seg000:214E ;-----?
+seg000:214E		    call    diag_init_seg4c_flag1
 seg000:2151		    mov	    cx,	4000h
 seg000:2154 delay:				    ; CODE XREF: mini_welcome_init:delayj
 seg000:2154		    loop    delay	    ; delay
@@ -5154,9 +5162,9 @@ seg000:2156		    mov	    al,	1001b	    ; timer 2 gate, speaker off, graphics mod
 seg000:2158		    out	    61h, al
 seg000:215A		    mov	    bx,	40h ; '@'
 seg000:215D		    mov	    cx,	20h ; ' '
-seg000:2160		    call    sub_F24A1
-seg000:2163 loc_F2163:				    ; CODE XREF: mini_welcome_init+1D8j
-seg000:2163					    ; mini_welcome_init:loc_F221Bj
+seg000:2160		    call    diag_play_beep
+seg000:2163 l4:					    ; CODE XREF: mini_welcome_init+1D8j
+seg000:2163					    ; mini_welcome_init:l8j
 seg000:2163		    mov	    ah,	0
 seg000:2165		    int	    16h		    ; KEYBOARD - READ CHAR FROM	BUFFER,	WAIT IF	EMPTY
 seg000:2165					    ; Return: AH = scan	code, AL = character
@@ -5164,30 +5172,30 @@ seg000:2167		    mov	    ch,	ah	    ; ch = scan	code
 seg000:2169		    mov	    byte ptr es:seg60_diag.field_4C8, 0
 seg000:216F		    call    diag_move_sprite_with_cursor?
 seg000:2172		    cmp	    dx,	700h
-seg000:2176		    jz	    short loc_F21B7
+seg000:2176		    jz	    short l5
 seg000:2178		    cmp	    dx,	900h
-seg000:217C		    jz	    short loc_F21B7
+seg000:217C		    jz	    short l5
 seg000:217E		    cmp	    dx,	601h
-seg000:2182		    jz	    short loc_F21B7
+seg000:2182		    jz	    short l5
 seg000:2184		    cmp	    dx,	0A01h
-seg000:2188		    jz	    short loc_F21B7
+seg000:2188		    jz	    short l5
 seg000:218A		    cmp	    dx,	0B01h
-seg000:218E		    jz	    short loc_F21B7
+seg000:218E		    jz	    short l5
 seg000:2190		    cmp	    dx,	0C01h
-seg000:2194		    jz	    short loc_F21B7
+seg000:2194		    jz	    short l5
 seg000:2196		    cmp	    dx,	602h
-seg000:219A		    jz	    short loc_F21B7
+seg000:219A		    jz	    short l5
 seg000:219C		    cmp	    dx,	702h
-seg000:21A0		    jz	    short loc_F21B7
+seg000:21A0		    jz	    short l5
 seg000:21A2		    cmp	    dx,	802h
-seg000:21A6		    jz	    short loc_F21B7
+seg000:21A6		    jz	    short l5
 seg000:21A8		    cmp	    dx,	902h
-seg000:21AC		    jz	    short loc_F21B7
+seg000:21AC		    jz	    short l5
 seg000:21AE		    cmp	    dx,	0A02h
-seg000:21B2		    jz	    short loc_F21B7
-seg000:21B4		    jmp	    short loc_F2211
+seg000:21B2		    jz	    short l5
+seg000:21B4		    jmp	    short l7
 seg000:21B6		    nop
-seg000:21B7 loc_F21B7:				    ; CODE XREF: mini_welcome_init+140j
+seg000:21B7 l5:					    ; CODE XREF: mini_welcome_init+140j
 seg000:21B7					    ; mini_welcome_init+146j
 seg000:21B7					    ; mini_welcome_init+14Cj
 seg000:21B7					    ; mini_welcome_init+152j
@@ -5204,8 +5212,8 @@ seg000:21C8					    ; DH,DL = row, column (0,0 = upper left)
 seg000:21C8					    ; BH = page	number
 seg000:21CA		    mov	    al,	20h ; ' '
 seg000:21CC		    call    diag_write_char_in_both_buffers
-seg000:21CF		    call    sub_F25C0
-seg000:21D2		    mov	    bp,	4E6h	    ; src offset: row 7, col 67	?
+seg000:21CF		    call    diag_copy_sprite_to_tmp_buffer?
+seg000:21D2		    mov	    bp,	seg60_diag.spr_front ; 0x60:bp -> src
 seg000:21D5		    call    diag_sprite_or
 seg000:21D8		    call    diag_sprite_replace
 seg000:21DB		    mov	    ah,	2
@@ -5223,7 +5231,7 @@ seg000:21F0		    int	    10h		    ; -	VIDEO -	SET CURSOR POSITION
 seg000:21F0					    ; DH,DL = row, column (0,0 = upper left)
 seg000:21F0					    ; BH = page	number
 seg000:21F2		    mov	    cx,	3
-seg000:21F5 loc_F21F5:				    ; CODE XREF: mini_welcome_init+1CCj
+seg000:21F5 l6:					    ; CODE XREF: mini_welcome_init+1CCj
 seg000:21F5		    mov	    al,	20h ; ' '
 seg000:21F7		    call    diag_write_char_in_both_buffers
 seg000:21FA		    inc	    dl
@@ -5232,24 +5240,29 @@ seg000:21FE		    mov	    bh,	0
 seg000:2200		    int	    10h		    ; -	VIDEO -	SET CURSOR POSITION
 seg000:2200					    ; DH,DL = row, column (0,0 = upper left)
 seg000:2200					    ; BH = page	number
-seg000:2202		    loop    loc_F21F5
+seg000:2202		    loop    l6
 seg000:2204		    pop	    dx
-seg000:2205		    call    sub_F25C0
-seg000:2208		    mov	    bp,	766h
+seg000:2205		    call    diag_copy_sprite_to_tmp_buffer?
+seg000:2208		    mov	    bp,	seg60_diag.spr_right_1 ; 0x60:bp -> source
 seg000:220B		    call    diag_sprite_or
-seg000:220E		    jmp	    loc_F2163
-seg000:2211 loc_F2211:				    ; CODE XREF: mini_welcome_init+17Ej
-seg000:2211		    cmp	    dh,	11h
-seg000:2214		    jnz	    short loc_F221B
-seg000:2216		    cmp	    dl,	13h
-seg000:2219		    jz	    short loc_F221E
-seg000:221B loc_F221B:				    ; CODE XREF: mini_welcome_init+1DEj
-seg000:221B		    jmp	    loc_F2163
-seg000:221E loc_F221E:				    ; CODE XREF: mini_welcome_init+1E3j
-seg000:221E		    call    diag_kbd_init_video
+seg000:220E		    jmp	    l4
+seg000:2211 l7:					    ; CODE XREF: mini_welcome_init+17Ej
+seg000:2211		    cmp	    dh,	17	    ; row = 17 ?
+seg000:2214		    jnz	    short l8
+seg000:2216		    cmp	    dl,	19	    ; col = 19 ?
+seg000:2219		    jz	    short mini_welcome_part_2 ;	if so, go to "mini welcome part	2"
+seg000:221B l8:					    ; CODE XREF: mini_welcome_init+1DEj
+seg000:221B		    jmp	    l4
+seg000:221E ;----------------------------------------------------
+seg000:221E ; moves the	sprite down nine times from left to right
+seg000:221E ; changing the background color each time
+seg000:221E ; and playing music
+seg000:221E ;-----------------------------------------------------
+seg000:221E mini_welcome_part_2:		    ; CODE XREF: mini_welcome_init+1E3j
+seg000:221E		    call    diag_init_video
 seg000:2221		    mov	    bx,	offset song_kbd_f1
 seg000:2224		    call    diag_music_setup_int_1c
-seg000:2227		    mov	    ax,	4
+seg000:2227		    mov	    ax,	4	    ; 320x200 4	color
 seg000:222A		    int	    10h		    ; -	VIDEO -	SET VIDEO MODE
 seg000:222A					    ; AL = mode
 seg000:222C		    mov	    ah,	0Bh
@@ -5257,26 +5270,27 @@ seg000:222E		    mov	    bx,	100h
 seg000:2231		    int	    10h		    ; -	VIDEO -	SET COLOR PALETTE
 seg000:2231					    ; BH = 00h,	BL = border color
 seg000:2231					    ; BH = 01h,	BL = palette (0-3)
-seg000:2233		    mov	    cx,	9
-seg000:2236		    mov	    dx,	0
-seg000:2239 loc_F2239:				    ; CODE XREF: mini_welcome_init+21Bj
+seg000:2233		    mov	    cx,	9	    ; go down 9	times, also used as background color
+seg000:2236		    mov	    dx,	0	    ; col = 0, row = 0
+seg000:2239 l10:				    ; CODE XREF: mini_welcome_init+21Bj
 seg000:2239		    push    cx
 seg000:223A		    push    dx
 seg000:223B		    mov	    ah,	0Bh
-seg000:223D		    mov	    bx,	cx
+seg000:223D		    mov	    bx,	cx	    ; background color
 seg000:223F		    int	    10h		    ; -	VIDEO -	SET COLOR PALETTE
 seg000:223F					    ; BH = 00h,	BL = border color
 seg000:223F					    ; BH = 01h,	BL = palette (0-3)
 seg000:2241		    pop	    dx
 seg000:2242		    push    dx
-seg000:2243		    mov	    cx,	28h ; '('
-seg000:2246		    call    diag_sprite_anim?
+seg000:2243		    mov	    cx,	40	    ; rows to move the sprite down
+seg000:2246		    call    diag_sprite_move_down_n_rows
 seg000:2249		    call    diag_sprite_replace
 seg000:224C		    pop	    dx
-seg000:224D		    add	    dx,	4
+seg000:224D		    add	    dx,	4	    ; row += 4	(9 * 4 = 36)
 seg000:2250		    pop	    cx
-seg000:2251		    loop    loc_F2239
-seg000:2253		    mov	    di,	es:seg60_diag.old_int_1f_off
+seg000:2251		    loop    l10
+seg000:2253 ;-----restore charset ptr (int 0x1f) and start again
+seg000:2253		    mov	    di,	es:seg60_diag.old_int_1f_off ; restores	0x1f (charset 128-255)
 seg000:2258		    mov	    si,	es:seg60_diag.old_int_1f_seg
 seg000:225D		    push    ds
 seg000:225E		    sub	    ax,	ax
@@ -5285,13 +5299,14 @@ seg000:2262		    mov	    ds:7Ch, di	    ; restore int 0x1f off
 seg000:2266		    mov	    ds:7Eh, si	    ; restore int 0x1f seg
 seg000:226A		    pop	    ds		    ; ds = cs (restored)
 seg000:226B		    call    diag_kbd_init
-seg000:226E		    call    diag_kbd_init_video
+seg000:226E		    call    diag_init_video
 seg000:2271		    jmp	    mini_welcome_init
 seg000:2271 mini_welcome_init endp
 seg000:2274 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
 seg000:2274 ; input:
 seg000:2274 ;	 ah = scan code
-seg000:2274 ;	 dl = ?
+seg000:2274 ;	 dl = col
+seg000:2274 ;	 dh = row
 seg000:2274 diag_move_sprite_with_cursor? proc near ; CODE XREF: mini_welcome_init+139p
 seg000:2274					    ; diag_kdb_eval_scancode+2F4p
 seg000:2274					    ; diag_kdb_eval_scancode+30Ep
@@ -5311,133 +5326,133 @@ seg000:2289		    cmp	    ah,	key_right_arrow
 seg000:228C		    jz	    short right_arrow
 seg000:228E		    retn
 seg000:228F right_arrow:			    ; CODE XREF: diag_move_sprite_with_cursor?+18j
-seg000:228F		    cmp	    dl,	23h ; '#'
-seg000:2292		    jl	    short loc_F2297
-seg000:2294		    jmp	    loc_F247B
-seg000:2297 loc_F2297:				    ; CODE XREF: diag_move_sprite_with_cursor?+1Ej
+seg000:228F		    cmp	    dl,	35	    ; reached right border?
+seg000:2292		    jl	    short right_l0  ; yes, ok
+seg000:2294		    jmp	    exit	    ; already at the right border, exit
+seg000:2297 right_l0:				    ; CODE XREF: diag_move_sprite_with_cursor?+1Ej
 seg000:2297		    cmp	    byte ptr es:seg60_diag.field_4C8, 0
-seg000:229D		    jnz	    short loc_F22B6
+seg000:229D		    jnz	    short right_l1
 seg000:229F		    cmp	    dl,	8
-seg000:22A2		    jl	    short loc_F22B6
-seg000:22A4		    cmp	    dl,	1Eh
-seg000:22A7		    jge	    short loc_F22B6
+seg000:22A2		    jl	    short right_l1
+seg000:22A4		    cmp	    dl,	30
+seg000:22A7		    jge	    short right_l1
 seg000:22A9		    cmp	    dh,	8
-seg000:22AC		    jle	    short loc_F22B6
-seg000:22AE		    cmp	    dh,	20h ; ' '
-seg000:22B1		    jge	    short loc_F22B6
-seg000:22B3		    jmp	    loc_F247B
-seg000:22B6 loc_F22B6:				    ; CODE XREF: diag_move_sprite_with_cursor?+29j
+seg000:22AC		    jle	    short right_l1
+seg000:22AE		    cmp	    dh,	32
+seg000:22B1		    jge	    short right_l1
+seg000:22B3		    jmp	    exit
+seg000:22B6 right_l1:				    ; CODE XREF: diag_move_sprite_with_cursor?+29j
 seg000:22B6					    ; diag_move_sprite_with_cursor?+2Ej
 seg000:22B6					    ; diag_move_sprite_with_cursor?+33j
 seg000:22B6					    ; diag_move_sprite_with_cursor?+38j
 seg000:22B6					    ; diag_move_sprite_with_cursor?+3Dj
 seg000:22B6		    call    diag_sprite_replace
-seg000:22B9		    add	    dl,	1
+seg000:22B9		    add	    dl,	1	    ; col++
 seg000:22BC		    cmp	    byte ptr es:seg60_diag, 0
-seg000:22C2		    jz	    short loc_F22DD
+seg000:22C2		    jz	    short right_l2
 seg000:22C4		    mov	    byte ptr es:seg60_diag, 0
-seg000:22CA		    call    sub_F25C0
-seg000:22CD		    mov	    bp,	626h
+seg000:22CA		    call    diag_copy_sprite_to_tmp_buffer?
+seg000:22CD		    mov	    bp,	seg60_diag.spr_right_0 ; 0x60:bp -> source offset
 seg000:22D0		    call    diag_sprite_or
 seg000:22D3		    mov	    bx,	5
 seg000:22D6		    mov	    cx,	80h ; 'Ђ'
-seg000:22D9		    call    sub_F24A1
+seg000:22D9		    call    diag_play_beep
 seg000:22DC		    retn
-seg000:22DD loc_F22DD:				    ; CODE XREF: diag_move_sprite_with_cursor?+4Ej
-seg000:22DD		    call    sub_F25C0
-seg000:22E0		    mov	    bp,	766h
+seg000:22DD right_l2:				    ; CODE XREF: diag_move_sprite_with_cursor?+4Ej
+seg000:22DD		    call    diag_copy_sprite_to_tmp_buffer?
+seg000:22E0		    mov	    bp,	seg60_diag.spr_right_1 ; 0x60:bp:-> source offset
 seg000:22E3		    call    diag_sprite_or
 seg000:22E6		    mov	    bx,	2
 seg000:22E9		    mov	    cx,	80h ; 'Ђ'
-seg000:22EC		    call    sub_F24A1
+seg000:22EC		    call    diag_play_beep
 seg000:22EF		    mov	    byte ptr es:seg60_diag, 1
 seg000:22F5		    retn
 seg000:22F6 left_arrow:				    ; CODE XREF: diag_move_sprite_with_cursor?+13j
 seg000:22F6		    cmp	    dl,	0
-seg000:22F9		    jg	    short loc_F22FE
-seg000:22FB		    jmp	    loc_F247B
-seg000:22FE loc_F22FE:				    ; CODE XREF: diag_move_sprite_with_cursor?+85j
+seg000:22F9		    jg	    short left_l0
+seg000:22FB		    jmp	    exit
+seg000:22FE left_l0:				    ; CODE XREF: diag_move_sprite_with_cursor?+85j
 seg000:22FE		    cmp	    byte ptr es:seg60_diag.field_4C8, 0
-seg000:2304		    jnz	    short loc_F231D
-seg000:2306		    cmp	    dl,	1Eh
-seg000:2309		    jg	    short loc_F231D
+seg000:2304		    jnz	    short left_l1
+seg000:2306		    cmp	    dl,	30
+seg000:2309		    jg	    short left_l1
 seg000:230B		    cmp	    dl,	8
-seg000:230E		    jle	    short loc_F231D
+seg000:230E		    jle	    short left_l1
 seg000:2310		    cmp	    dh,	8
-seg000:2313		    jle	    short loc_F231D
-seg000:2315		    cmp	    dh,	20h ; ' '
-seg000:2318		    jge	    short loc_F231D
-seg000:231A		    jmp	    loc_F247B
-seg000:231D loc_F231D:				    ; CODE XREF: diag_move_sprite_with_cursor?+90j
+seg000:2313		    jle	    short left_l1
+seg000:2315		    cmp	    dh,	32
+seg000:2318		    jge	    short left_l1
+seg000:231A		    jmp	    exit
+seg000:231D left_l1:				    ; CODE XREF: diag_move_sprite_with_cursor?+90j
 seg000:231D					    ; diag_move_sprite_with_cursor?+95j
 seg000:231D					    ; diag_move_sprite_with_cursor?+9Aj
 seg000:231D					    ; diag_move_sprite_with_cursor?+9Fj
 seg000:231D					    ; diag_move_sprite_with_cursor?+A4j
 seg000:231D		    call    diag_sprite_replace
-seg000:2320		    sub	    dl,	1
+seg000:2320		    sub	    dl,	1	    ; col--
 seg000:2323		    cmp	    byte ptr es:seg60_diag.field_1, 0
-seg000:2329		    jz	    short loc_F2344
+seg000:2329		    jz	    short left_l2
 seg000:232B		    mov	    byte ptr es:seg60_diag.field_1, 0
-seg000:2331		    call    sub_F25C0
-seg000:2334		    mov	    bp,	9E6h
+seg000:2331		    call    diag_copy_sprite_to_tmp_buffer?
+seg000:2334		    mov	    bp,	seg60_diag.spr_left_0 ;	0x60:bp	= source
 seg000:2337		    call    diag_sprite_or
 seg000:233A		    mov	    bx,	5
 seg000:233D		    mov	    cx,	80h ; 'Ђ'
-seg000:2340		    call    sub_F24A1
+seg000:2340		    call    diag_play_beep
 seg000:2343		    retn
-seg000:2344 loc_F2344:				    ; CODE XREF: diag_move_sprite_with_cursor?+B5j
-seg000:2344		    call    sub_F25C0
-seg000:2347		    mov	    bp,	8A6h
+seg000:2344 left_l2:				    ; CODE XREF: diag_move_sprite_with_cursor?+B5j
+seg000:2344		    call    diag_copy_sprite_to_tmp_buffer?
+seg000:2347		    mov	    bp,	seg60_diag.spr_left_1 ;	0x60:bp	= source
 seg000:234A		    call    diag_sprite_or
 seg000:234D		    mov	    bx,	2
 seg000:2350		    mov	    cx,	80h ; 'Ђ'
-seg000:2353		    call    sub_F24A1
+seg000:2353		    call    diag_play_beep
 seg000:2356		    mov	    byte ptr es:seg60_diag.field_1, 1
 seg000:235C		    retn
 seg000:235D up_arrow:				    ; CODE XREF: diag_move_sprite_with_cursor?+5j
-seg000:235D		    cmp	    dh,	0
-seg000:2360		    jnz	    short loc_F2365
-seg000:2362		    jmp	    loc_F247B
-seg000:2365 loc_F2365:				    ; CODE XREF: diag_move_sprite_with_cursor?+ECj
-seg000:2365		    cmp	    byte ptr es:4C8h, 0
-seg000:236B		    jnz	    short loc_F2391
-seg000:236D		    cmp	    dh,	20h ; ' '
-seg000:2370		    jg	    short loc_F2391
+seg000:235D		    cmp	    dh,	0	    ; top border?
+seg000:2360		    jnz	    short up_l0	    ; exit if already top border
+seg000:2362		    jmp	    exit
+seg000:2365 up_l0:				    ; CODE XREF: diag_move_sprite_with_cursor?+ECj
+seg000:2365		    cmp	    byte ptr es:seg60_diag.field_4C8, 0
+seg000:236B		    jnz	    short up_l2
+seg000:236D		    cmp	    dh,	32
+seg000:2370		    jg	    short up_l2
 seg000:2372		    cmp	    dh,	8
-seg000:2375		    jle	    short loc_F2391
+seg000:2375		    jle	    short up_l2
 seg000:2377		    cmp	    dl,	8
-seg000:237A		    jle	    short loc_F2391
-seg000:237C		    cmp	    dl,	1Eh
-seg000:237F		    jge	    short loc_F2391
+seg000:237A		    jle	    short up_l2
+seg000:237C		    cmp	    dl,	30
+seg000:237F		    jge	    short up_l2
 seg000:2381		    cmp	    byte ptr es:seg60_diag.field_4D8, 0
-seg000:2387		    jz	    short loc_F238E
-seg000:2389		    cmp	    dl,	13h
-seg000:238C		    jz	    short loc_F2391
-seg000:238E loc_F238E:				    ; CODE XREF: diag_move_sprite_with_cursor?+113j
-seg000:238E		    jmp	    loc_F247B
-seg000:2391 loc_F2391:				    ; CODE XREF: diag_move_sprite_with_cursor?+F7j
+seg000:2387		    jz	    short up_l1
+seg000:2389		    cmp	    dl,	19
+seg000:238C		    jz	    short up_l2
+seg000:238E up_l1:				    ; CODE XREF: diag_move_sprite_with_cursor?+113j
+seg000:238E		    jmp	    exit
+seg000:2391 up_l2:				    ; CODE XREF: diag_move_sprite_with_cursor?+F7j
 seg000:2391					    ; diag_move_sprite_with_cursor?+FCj
 seg000:2391					    ; diag_move_sprite_with_cursor?+101j
 seg000:2391					    ; diag_move_sprite_with_cursor?+106j
 seg000:2391					    ; diag_move_sprite_with_cursor?+10Bj
 seg000:2391					    ; diag_move_sprite_with_cursor?+118j
 seg000:2391		    call    diag_sprite_replace
-seg000:2394		    dec	    dh
-seg000:2396		    cmp	    dx,	1113h
-seg000:239A		    jnz	    short loc_F23A2
+seg000:2394		    dec	    dh		    ; row-- (go	up one)
+seg000:2396		    cmp	    dx,	1113h	    ; row = 17,	col 19?
+seg000:239A		    jnz	    short up_l3
 seg000:239C		    mov	    byte ptr es:seg60_diag.field_4E1, 0B3h ; 'і'
-seg000:23A2 loc_F23A2:				    ; CODE XREF: diag_move_sprite_with_cursor?+126j
-seg000:23A2		    call    sub_F25C0
-seg000:23A5		    mov	    bp,	4E6h
+seg000:23A2 up_l3:				    ; CODE XREF: diag_move_sprite_with_cursor?+126j
+seg000:23A2		    call    diag_copy_sprite_to_tmp_buffer?
+seg000:23A5		    mov	    bp,	seg60_diag.spr_front ; 0x60:bp = source
 seg000:23A8		    call    diag_sprite_or
 seg000:23AB		    cmp	    byte ptr es:seg60_diag.field_4CF, 0
-seg000:23B1		    jz	    short locret_F23F3
-seg000:23B3		    mov	    bx,	seg60_diag+363h
+seg000:23B1		    jz	    short up_exit
+seg000:23B3		    mov	    bx,	seg60_diag.field_363
 seg000:23B6		    mov	    al,	es:[bx]
 seg000:23B9		    cmp	    al,	0
-seg000:23BB		    jnz	    short locret_F23F3
-seg000:23BD		    cmp	    dx,	1B18h
-seg000:23C1		    jnz	    short locret_F23F3
+seg000:23BB		    jnz	    short up_exit
+seg000:23BD		    cmp	    dx,	1B18h	    ; row = 27,	col = 24 ?
+seg000:23C1		    jnz	    short up_exit
 seg000:23C3		    push    dx
 seg000:23C4		    mov	    ah,	3
 seg000:23C6		    mov	    bh,	0
@@ -5445,7 +5460,7 @@ seg000:23C8		    int	    10h		    ; -	VIDEO -	READ CURSOR POSITION
 seg000:23C8					    ; BH = page	number
 seg000:23C8					    ; Return: DH,DL = row,column, CH = cursor start line, CL = cursor end line
 seg000:23CA		    push    dx
-seg000:23CB		    mov	    dx,	0D13h
+seg000:23CB		    mov	    dx,	0D13h	    ; row = 13,	col = 19
 seg000:23CE		    mov	    ah,	2
 seg000:23D0		    mov	    bh,	0
 seg000:23D2		    int	    10h		    ; -	VIDEO -	SET CURSOR POSITION
@@ -5455,7 +5470,6 @@ seg000:23D4		    mov	    al,	20h ; ' '
 seg000:23D6		    mov	    byte ptr es:seg60_diag.field_4C7, 0
 seg000:23DC		    call    diag_write_char_in_both_buffers
 seg000:23DF		    mov	    byte ptr es:seg60_diag.field_4C7, 1
-seg000:23E5 loc_F23E5:
 seg000:23E5		    mov	    byte ptr es:seg60_diag.field_4D0, 1
 seg000:23EB		    pop	    dx
 seg000:23EC		    mov	    ah,	2
@@ -5464,45 +5478,45 @@ seg000:23F0		    int	    10h		    ; -	VIDEO -	SET CURSOR POSITION
 seg000:23F0					    ; DH,DL = row, column (0,0 = upper left)
 seg000:23F0					    ; BH = page	number
 seg000:23F2		    pop	    dx
-seg000:23F3 locret_F23F3:			    ; CODE XREF: diag_move_sprite_with_cursor?+13Dj
+seg000:23F3 up_exit:				    ; CODE XREF: diag_move_sprite_with_cursor?+13Dj
 seg000:23F3					    ; diag_move_sprite_with_cursor?+147j
 seg000:23F3					    ; diag_move_sprite_with_cursor?+14Dj
 seg000:23F3		    retn
 seg000:23F4 down_arrow:				    ; CODE XREF: diag_move_sprite_with_cursor?+Dj
-seg000:23F4		    cmp	    dh,	28h ; '('
-seg000:23F7		    jnz	    short loc_F23FC
-seg000:23F9		    jmp	    loc_F247B
-seg000:23FC loc_F23FC:				    ; CODE XREF: diag_move_sprite_with_cursor?+183j
+seg000:23F4		    cmp	    dh,	40
+seg000:23F7		    jnz	    short down_l0
+seg000:23F9		    jmp	    exit
+seg000:23FC down_l0:				    ; CODE XREF: diag_move_sprite_with_cursor?+183j
 seg000:23FC		    cmp	    byte ptr es:seg60_diag.field_4C8, 0
-seg000:2402		    jnz	    short loc_F2428
+seg000:2402		    jnz	    short down_l2
 seg000:2404		    cmp	    dh,	8
-seg000:2407		    jl	    short loc_F2428
-seg000:2409		    cmp	    dh,	20h ; ' '
-seg000:240C		    jge	    short loc_F2428
+seg000:2407		    jl	    short down_l2
+seg000:2409		    cmp	    dh,	32
+seg000:240C		    jge	    short down_l2
 seg000:240E		    cmp	    dl,	8
-seg000:2411		    jle	    short loc_F2428
-seg000:2413		    cmp	    dl,	1Eh
-seg000:2416		    jge	    short loc_F2428
+seg000:2411		    jle	    short down_l2
+seg000:2413		    cmp	    dl,	30
+seg000:2416		    jge	    short down_l2
 seg000:2418		    cmp	    byte ptr es:seg60_diag.field_4D8, 0
-seg000:241E		    jz	    short loc_F2425
-seg000:2420		    cmp	    dl,	13h
-seg000:2423		    jz	    short loc_F2428
-seg000:2425 loc_F2425:				    ; CODE XREF: diag_move_sprite_with_cursor?+1AAj
-seg000:2425		    jmp	    short loc_F247B
+seg000:241E		    jz	    short down_l1
+seg000:2420		    cmp	    dl,	19
+seg000:2423		    jz	    short down_l2
+seg000:2425 down_l1:				    ; CODE XREF: diag_move_sprite_with_cursor?+1AAj
+seg000:2425		    jmp	    short exit
 seg000:2427		    nop
-seg000:2428 loc_F2428:				    ; CODE XREF: diag_move_sprite_with_cursor?+18Ej
+seg000:2428 down_l2:				    ; CODE XREF: diag_move_sprite_with_cursor?+18Ej
 seg000:2428					    ; diag_move_sprite_with_cursor?+193j
 seg000:2428					    ; diag_move_sprite_with_cursor?+198j
 seg000:2428					    ; diag_move_sprite_with_cursor?+19Dj
 seg000:2428					    ; diag_move_sprite_with_cursor?+1A2j
 seg000:2428					    ; diag_move_sprite_with_cursor?+1AFj
 seg000:2428		    call    diag_sprite_replace
-seg000:242B		    inc	    dh
-seg000:242D		    call    sub_F25C0
-seg000:2430		    mov	    bp,	4E6h
+seg000:242B		    inc	    dh		    ; row++ (go	down one)
+seg000:242D		    call    diag_copy_sprite_to_tmp_buffer?
+seg000:2430		    mov	    bp,	seg60_diag.spr_front
 seg000:2433		    call    diag_sprite_or
 seg000:2436		    cmp	    byte ptr es:seg60_diag.field_4CD, 0
-seg000:243C		    jz	    short locret_F247A
+seg000:243C		    jz	    short down_exit
 seg000:243E		    push    dx
 seg000:243F		    mov	    ah,	3
 seg000:2441		    mov	    bh,	0
@@ -5511,21 +5525,21 @@ seg000:2443					    ; BH = page	number
 seg000:2443					    ; Return: DH,DL = row,column, CH = cursor start line, CL = cursor end line
 seg000:2445		    mov	    ax,	dx
 seg000:2447		    pop	    dx
-seg000:2448		    push    ax
-seg000:2449		    cmp	    dx,	240Fh
-seg000:244D		    jnz	    short loc_F246F
-seg000:244F		    mov	    dx,	0C0Fh
+seg000:2448		    push    ax		    ; ax contains row/col
+seg000:2449		    cmp	    dx,	240Fh	    ; row 36 and column	15 ?
+seg000:244D		    jnz	    short down_l3
+seg000:244F		    mov	    dx,	0C0Fh	    ; reset cursor to row = 12,	column 15
 seg000:2452		    mov	    ah,	2
 seg000:2454		    mov	    bh,	0
 seg000:2456		    int	    10h		    ; -	VIDEO -	SET CURSOR POSITION
 seg000:2456					    ; DH,DL = row, column (0,0 = upper left)
 seg000:2456					    ; BH = page	number
-seg000:2458		    mov	    al,	42h ; 'B'
+seg000:2458		    mov	    al,	42h ; 'B'   ; TODO: what is this???
 seg000:245A		    mov	    byte ptr es:seg60_diag.field_4C7, 0
 seg000:2460		    call    diag_write_char_in_both_buffers
 seg000:2463		    mov	    byte ptr es:seg60_diag.field_4C7, 1
 seg000:2469		    mov	    byte ptr es:seg60_diag.field_4CE, 1
-seg000:246F loc_F246F:				    ; CODE XREF: diag_move_sprite_with_cursor?+1D9j
+seg000:246F down_l3:				    ; CODE XREF: diag_move_sprite_with_cursor?+1D9j
 seg000:246F		    pop	    ax
 seg000:2470		    push    dx
 seg000:2471		    mov	    dx,	ax
@@ -5535,44 +5549,47 @@ seg000:2477		    int	    10h		    ; -	VIDEO -	SET CURSOR POSITION
 seg000:2477					    ; DH,DL = row, column (0,0 = upper left)
 seg000:2477					    ; BH = page	number
 seg000:2479		    pop	    dx
-seg000:247A locret_F247A:			    ; CODE XREF: diag_move_sprite_with_cursor?+1C8j
+seg000:247A down_exit:				    ; CODE XREF: diag_move_sprite_with_cursor?+1C8j
 seg000:247A		    retn
-seg000:247B loc_F247B:				    ; CODE XREF: diag_move_sprite_with_cursor?+20j
+seg000:247B exit:				    ; CODE XREF: diag_move_sprite_with_cursor?+20j
 seg000:247B					    ; diag_move_sprite_with_cursor?+3Fj
 seg000:247B					    ; diag_move_sprite_with_cursor?+87j
 seg000:247B					    ; diag_move_sprite_with_cursor?+A6j
 seg000:247B					    ; diag_move_sprite_with_cursor?+EEj
-seg000:247B					    ; diag_move_sprite_with_cursor?:loc_F238Ej	...
+seg000:247B					    ; diag_move_sprite_with_cursor?:up_l1j ...
 seg000:247B		    mov	    bx,	40h ; '@'
 seg000:247E		    mov	    cx,	20h ; ' '
-seg000:2481		    call    sub_F24A1
+seg000:2481		    call    diag_play_beep
 seg000:2484		    retn
 seg000:2484 diag_move_sprite_with_cursor? endp
 seg000:2485 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
 seg000:2485 ; input
 seg000:2485 ;	   cx =	times to repeat
-seg000:2485 ;	   dx =	?
-seg000:2485 diag_sprite_anim? proc near		    ; CODE XREF: mini_welcome_init+115p
+seg000:2485 ;	   dx =	initial	row/col	of sprite
+seg000:2485 diag_sprite_move_down_n_rows proc near  ; CODE XREF: mini_welcome_init+115p
 seg000:2485					    ; mini_welcome_init+210p
-seg000:2485					    ; diag_sprite_anim?+10j
+seg000:2485					    ; diag_sprite_move_down_n_rows+10j
 seg000:2485					    ; diag_kbd_init+A9p
 seg000:2485					    ; diag_kdb_eval_scancode+11Ap
 seg000:2485					    ; diag_kdb_eval_scancode+261p ...
 seg000:2485		    push    cx
-seg000:2486		    inc	    dh
-seg000:2488		    call    sub_F25C0
-seg000:248B		    mov	    bp,	4E6h
+seg000:2486		    inc	    dh		    ; go down one
+seg000:2488		    call    diag_copy_sprite_to_tmp_buffer?
+seg000:248B		    mov	    bp,	seg60_diag.spr_front
 seg000:248E		    call    diag_sprite_or
 seg000:2491		    call    diag_sprite_replace
 seg000:2494		    pop	    cx
-seg000:2495		    loop    diag_sprite_anim?
-seg000:2497		    call    sub_F25C0
-seg000:249A		    mov	    bp,	4E6h
+seg000:2495		    loop    diag_sprite_move_down_n_rows
+seg000:2497		    call    diag_copy_sprite_to_tmp_buffer?
+seg000:249A		    mov	    bp,	seg60_diag.spr_front
 seg000:249D		    call    diag_sprite_or
 seg000:24A0		    retn
-seg000:24A0 diag_sprite_anim? endp
+seg000:24A0 diag_sprite_move_down_n_rows endp
 seg000:24A1 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
-seg000:24A1 sub_F24A1	    proc near		    ; CODE XREF: mini_welcome_init+12Ap
+seg000:24A1 ; input:
+seg000:24A1 ;	   bx =	duration ?
+seg000:24A1 ;	   cx =	frequency ?
+seg000:24A1 diag_play_beep  proc near		    ; CODE XREF: mini_welcome_init+12Ap
 seg000:24A1					    ; diag_move_sprite_with_cursor?+65p
 seg000:24A1					    ; diag_move_sprite_with_cursor?+78p
 seg000:24A1					    ; diag_move_sprite_with_cursor?+CCp
@@ -5580,17 +5597,17 @@ seg000:24A1					    ; diag_move_sprite_with_cursor?+DFp
 seg000:24A1					    ; diag_move_sprite_with_cursor?+20Dp ...
 seg000:24A1		    in	    al,	61h
 seg000:24A3		    push    ax
-seg000:24A4 l0:					    ; CODE XREF: sub_F24A1+14j
+seg000:24A4 l0:					    ; CODE XREF: diag_play_beep+14j
 seg000:24A4		    and	    al,	0FCh
 seg000:24A6		    out	    61h, al
 seg000:24A8		    push    cx
-seg000:24A9 delay0:				    ; CODE XREF: sub_F24A1:delay0j
+seg000:24A9 delay0:				    ; CODE XREF: diag_play_beep:delay0j
 seg000:24A9		    loop    delay0	    ; delay
 seg000:24AB		    or	    al,	2
 seg000:24AD		    out	    61h, al
 seg000:24AF		    pop	    cx
 seg000:24B0		    push    cx
-seg000:24B1 delay1:				    ; CODE XREF: sub_F24A1:delay1j
+seg000:24B1 delay1:				    ; CODE XREF: diag_play_beep:delay1j
 seg000:24B1		    loop    delay1	    ; delay
 seg000:24B3		    dec	    bx
 seg000:24B4		    pop	    cx
@@ -5598,7 +5615,7 @@ seg000:24B5		    jnz	    short l0
 seg000:24B7		    pop	    ax
 seg000:24B8		    out	    61h, al
 seg000:24BA		    retn
-seg000:24BA sub_F24A1	    endp
+seg000:24BA diag_play_beep  endp
 seg000:24BB ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
 seg000:24BB ; input
 seg000:24BB ;	   al =	char to	print
@@ -5616,7 +5633,7 @@ seg000:24BD		    push    dx
 seg000:24BE		    push    ax
 seg000:24BF		    mov	    ah,	0Eh
 seg000:24C1		    mov	    bl,	es:seg60_diag.foreground_color
-seg000:24C6		    mov	    bh,	0
+seg000:24C6		    mov	    bh,	0	    ; page 0
 seg000:24C8		    int	    10h		    ; -	VIDEO -	WRITE CHARACTER	AND ADVANCE CURSOR (TTY	WRITE)
 seg000:24C8					    ; AL = character, BH = display page	(alpha modes)
 seg000:24C8					    ; BL = foreground color (graphics modes)
@@ -5643,8 +5660,8 @@ seg000:24EC		    pop	    bx
 seg000:24ED		    retn
 seg000:24ED diag_write_char_in_both_buffers endp
 seg000:24EE ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
-seg000:24EE diag_kbd_init_video	proc near	    ; CODE XREF: mini_welcome_init+19p
-seg000:24EE					    ; mini_welcome_init:loc_F221Ep
+seg000:24EE diag_init_video proc near		    ; CODE XREF: mini_welcome_init+19p
+seg000:24EE					    ; mini_welcome_init:mini_welcome_part_2p
 seg000:24EE					    ; mini_welcome_init+238p
 seg000:24EE					    ; diag_kbd_init+53p
 seg000:24EE		    mov	    bl,	2
@@ -5662,15 +5679,15 @@ seg000:2503		    int	    10h		    ; -	VIDEO -	SELECT DISPLAY PAGE
 seg000:2503					    ; AL = display page, 0-7  for modes	0 & 1, 0-3  for	modes 2	& 3
 seg000:2505		    call    clear_video_buffer_16k
 seg000:2508		    mov	    dx,	101h
-seg000:250B		    call    sub_F25C0
+seg000:250B		    call    diag_copy_sprite_to_tmp_buffer?
 seg000:250E		    call    diag_swap_crt_cpu_page_regs
-seg000:2511		    call    sub_F25C0
+seg000:2511		    call    diag_copy_sprite_to_tmp_buffer?
 seg000:2514		    call    diag_swap_crt_cpu_page_regs
 seg000:2517		    retn
-seg000:2517 diag_kbd_init_video	endp
+seg000:2517 diag_init_video endp
 seg000:2518 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
-seg000:2518 clear_video_buffer_16k proc	near	    ; CODE XREF: diag_kbd_init_video+Ap
-seg000:2518					    ; diag_kbd_init_video+17p
+seg000:2518 clear_video_buffer_16k proc	near	    ; CODE XREF: diag_init_video+Ap
+seg000:2518					    ; diag_init_video+17p
 seg000:2518		    push    es
 seg000:2519		    mov	    dx,	0B800h
 seg000:251C		    mov	    es,	dx	    ; es = 0xb800 (video segment)
@@ -5684,12 +5701,12 @@ seg000:2528 clear_video_buffer_16k endp
 seg000:2529 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
 seg000:2529 diag_unpack_sprites	proc near	    ; CODE XREF: mini_welcome_init+11p
 seg000:2529					    ; diag_kbd_init+9p
-seg000:2529		    mov	    di,	4E6h	    ; dst -> 60:04e6
-seg000:252C		    mov	    cx,	1600	    ; to  -> 60:0b26
+seg000:2529		    mov	    di,	seg60_diag.spr_front ; dst -> 60:04e6
+seg000:252C		    mov	    cx,	1600	    ; quantity of bytes. 320 each sprites. clean 5 sprites
 seg000:252F		    xor	    ax,	ax
 seg000:2531		    rep	stosw		    ; clear 3200 bytes
 seg000:2533		    mov	    si,	offset sprite_0
-seg000:2536		    mov	    di,	4E8h
+seg000:2536		    mov	    di,	seg60_diag.spr_front+2
 seg000:2539		    mov	    cx,	96
 seg000:253C l0:					    ; CODE XREF: diag_unpack_sprites+1Dj
 seg000:253C		    push    cx
@@ -5699,7 +5716,7 @@ seg000:2542		    pop	    cx
 seg000:2543		    add	    di,	4	    ; after 6 bytes copied, skip 4 at dst
 seg000:2546		    loop    l0
 seg000:2548		    mov	    si,	offset sprite_1
-seg000:254B		    mov	    di,	8ADh	    ; dst -> 60:08ad
+seg000:254B		    mov	    di,	seg60_diag.spr_left_1+7	; dst -> 60:08ad
 seg000:254E		    mov	    cx,	64	    ; 64*6 = 384 bytes to copy/unpack
 seg000:2551 l1:					    ; CODE XREF: diag_unpack_sprites+52j
 seg000:2551		    push    cx
@@ -5727,49 +5744,15 @@ seg000:2578		    add	    di,	16	    ; go forward 16
 seg000:257B		    loop    l1
 seg000:257D		    retn
 seg000:257D diag_unpack_sprites	endp
-seg000:257E diag_int_1f	    db 0FFh		    ; DATA XREF: mini_welcome_init+44o
-seg000:257E					    ; charset
-seg000:257F		    db	  0
-seg000:2580		    db	  0
-seg000:2581		    db	  0
-seg000:2582		    db	  0
-seg000:2583		    db	  0
-seg000:2584		    db	  0
-seg000:2585		    db	  0
-seg000:2586		    db 0C0h ; А
-seg000:2587		    db 0C0h ; А
-seg000:2588		    db 0C0h ; А
-seg000:2589		    db 0C0h ; А
-seg000:258A		    db 0C0h ; А
-seg000:258B		    db 0C0h ; А
-seg000:258C		    db 0C0h ; А
-seg000:258D		    db 0C0h ; А
-seg000:258E		    db 0FFh
-seg000:258F		    db 0C0h ; А
-seg000:2590		    db 0C0h ; А
-seg000:2591		    db 0C0h ; А
-seg000:2592		    db 0C0h ; А
-seg000:2593		    db 0C0h ; А
-seg000:2594		    db 0C0h ; А
-seg000:2595		    db 0C0h ; А
-seg000:2596		    db 0C0h ; А
-seg000:2597		    db	  0
-seg000:2598		    db	  0
-seg000:2599		    db	  0
-seg000:259A		    db	  0
-seg000:259B		    db	  0
-seg000:259C		    db	  0
-seg000:259D		    db	  0
-seg000:259E		    db	0Fh
-seg000:259F		    db	0Fh
-seg000:25A0		    db	0Fh
-seg000:25A1		    db	0Fh
-seg000:25A2		    db	0Fh
-seg000:25A3		    db	0Fh
-seg000:25A4		    db 0FFh
-seg000:25A5		    db 0FFh
+seg000:257E diag_int_1f	    db 0FFh, 0,	0, 0, 0, 0, 0, 0 ; DATA	XREF: mini_welcome_init+44o
+seg000:257E					    ; top/bottom char (0x80)
+seg000:2586		    db 0C0h, 0C0h, 0C0h, 0C0h, 0C0h, 0C0h, 0C0h, 0C0h ;	left/right char	(0x81)
+seg000:258E		    db 0FFh, 0C0h, 0C0h, 0C0h, 0C0h, 0C0h, 0C0h, 0C0h ;	top left corner	(0x82)
+seg000:2596		    db 0C0h, 0,	0, 0, 0, 0, 0, 0 ; bottom/right	corner (0x83)
+seg000:259E		    db 0Fh, 0Fh, 0Fh, 0Fh, 0Fh,	0Fh, 0FFh, 0FFh	; key char (0x84)
 seg000:25A6 row_cols_times_array_a dw 80Ch, 13h, 100Ch,	13h
 seg000:25A6					    ; DATA XREF: mini_welcome_init+8Do
+seg000:25A6					    ; 1st dw: col/row for cursor. 2nd dw: times	to draw
 seg000:25AE row_cols_times_array_b dw 90Ch, 7, 81Fh, 8 ; DATA XREF: mini_welcome_init+C0o
 seg000:25B6		    db	  0
 seg000:25B7		    db	  0
@@ -5783,50 +5766,51 @@ seg000:25BE		    db	  0
 seg000:25BF		    db	  0
 seg000:25C0 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
 seg000:25C0 ; input
-seg000:25C0 ;	   dx =	?
-seg000:25C0 sub_F25C0	    proc near		    ; CODE XREF: mini_welcome_init+199p
+seg000:25C0 ;	   dh =	row
+seg000:25C0 ;	   dl =	col
+seg000:25C0 diag_copy_sprite_to_tmp_buffer? proc near ;	CODE XREF: mini_welcome_init+199p
 seg000:25C0					    ; mini_welcome_init+1CFp
 seg000:25C0					    ; diag_move_sprite_with_cursor?+56p
-seg000:25C0					    ; diag_move_sprite_with_cursor?:loc_F22DDp
+seg000:25C0					    ; diag_move_sprite_with_cursor?:right_l2p
 seg000:25C0					    ; diag_move_sprite_with_cursor?+BDp
-seg000:25C0					    ; diag_move_sprite_with_cursor?:loc_F2344p	...
+seg000:25C0					    ; diag_move_sprite_with_cursor?:left_l2p ...
 seg000:25C0		    push    dx
 seg000:25C1		    cmp	    byte ptr es:seg60_diag.field_2, 0
 seg000:25C7		    jz	    short l0
-seg000:25C9		    mov	    bx,	161h	    ; offset for seg 60	(?)
+seg000:25C9		    mov	    bx,	seg60_diag.field_161 ; es:bx = dst
 seg000:25CC		    mov	    es:seg60_diag.row_col_1, dx
 seg000:25D1		    jmp	    short l1
-seg000:25D3 l0:					    ; CODE XREF: sub_F25C0+7j
+seg000:25D3 l0:					    ; CODE XREF: diag_copy_sprite_to_tmp_buffer?+7j
 seg000:25D3		    mov	    es:seg60_diag.row_col_2, dx
-seg000:25D8		    mov	    bx,	0Bh	    ; offset for seg60 (?)
-seg000:25DB l1:					    ; CODE XREF: sub_F25C0+11j
+seg000:25D8		    mov	    bx,	0Bh	    ; es:bx = dst
+seg000:25DB l1:					    ; CODE XREF: diag_copy_sprite_to_tmp_buffer?+11j
 seg000:25DB		    mov	    ax,	0
-seg000:25DE		    mov	    al,	dh
+seg000:25DE		    mov	    al,	dh	    ; al = row
 seg000:25E0		    mul	    ds:row_len
-seg000:25E4		    shl	    dl,	1
+seg000:25E4		    shl	    dl,	1	    ; col * 2
 seg000:25E6		    mov	    dh,	0
 seg000:25E8		    add	    ax,	dx
-seg000:25EA		    mov	    bp,	ax
-seg000:25EC		    mov	    si,	0
-seg000:25EF		    mov	    di,	200h
+seg000:25EA		    mov	    bp,	ax	    ; ds:bp = src
+seg000:25EC		    mov	    si,	0	    ; dst increment
+seg000:25EF		    mov	    di,	512	    ; src increment
 seg000:25F2		    push    ds
 seg000:25F3		    push    es
 seg000:25F4		    mov	    ax,	0B800h
 seg000:25F7		    mov	    ds,	ax	    ; ds = 0xb800 (video segment)
-seg000:25F9		    mov	    ax,	0
-seg000:25FC		    call    diag_sprite_paint
+seg000:25F9		    mov	    ax,	0	    ; replace operation
+seg000:25FC		    call    diag_sprite_paint??
 seg000:25FF		    pop	    es
 seg000:2600		    pop	    ds
 seg000:2601		    pop	    dx
 seg000:2602		    retn
-seg000:2602 sub_F25C0	    endp
+seg000:2602 diag_copy_sprite_to_tmp_buffer? endp
 seg000:2603 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
 seg000:2603 diag_sprite_replace	proc near	    ; CODE XREF: mini_welcome_init+188p
 seg000:2603					    ; mini_welcome_init+1A2p
 seg000:2603					    ; mini_welcome_init+213p
-seg000:2603					    ; diag_move_sprite_with_cursor?:loc_F22B6p
-seg000:2603					    ; diag_move_sprite_with_cursor?:loc_F231Dp
-seg000:2603					    ; diag_move_sprite_with_cursor?:loc_F2391p	...
+seg000:2603					    ; diag_move_sprite_with_cursor?:right_l1p
+seg000:2603					    ; diag_move_sprite_with_cursor?:left_l1p
+seg000:2603					    ; diag_move_sprite_with_cursor?:up_l2p ...
 seg000:2603		    push    dx
 seg000:2604		    cmp	    byte ptr es:seg60_diag.field_2, 0
 seg000:260A		    jz	    short l0
@@ -5853,7 +5837,7 @@ seg000:2638		    pop	    ds		    ; src seg =	0x60
 seg000:2639		    mov	    ax,	0B800h
 seg000:263C		    mov	    es,	ax	    ; dst seg (video)
 seg000:263E		    mov	    ax,	0	    ; ax == 0: move operation
-seg000:2641		    call    diag_sprite_paint
+seg000:2641		    call    diag_sprite_paint??
 seg000:2644		    pop	    es
 seg000:2645		    pop	    ds
 seg000:2646		    pop	    dx
@@ -5891,7 +5875,7 @@ seg000:266B		    mov	    es,	ax	    ; es = 0xb800
 seg000:266D		    mov	    ax,	60h ; '`'
 seg000:2670		    mov	    ds,	ax	    ; ds = 0x60
 seg000:2672		    mov	    ax,	1	    ; operation	= or
-seg000:2675		    call    diag_sprite_paint
+seg000:2675		    call    diag_sprite_paint??
 seg000:2678		    pop	    es		    ; restore es
 seg000:2679		    pop	    ds		    ; restore ds
 seg000:267A		    pop	    dx
@@ -5901,8 +5885,8 @@ seg000:267E diag_sprite_or  endp
 seg000:267F ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
 seg000:267F diag_swap_crt_cpu_page_regs	proc near   ; CODE XREF: diag_write_char_in_both_buffers+15p
 seg000:267F					    ; diag_write_char_in_both_buffers+2Cp
-seg000:267F					    ; diag_kbd_init_video+20p
-seg000:267F					    ; diag_kbd_init_video+26p
+seg000:267F					    ; diag_init_video+20p
+seg000:267F					    ; diag_init_video+26p
 seg000:267F					    ; diag_sprite_or+33p
 seg000:267F					    ; diag_kbd_init+9Dp
 seg000:267F		    cmp	    byte ptr es:seg60_diag.field_2, 1
@@ -5928,16 +5912,16 @@ seg000:26A4 ;	   ds:bp -> source
 seg000:26A4 ;	   es:bx -> dst
 seg000:26A4 ;	   di -> increment for src seg
 seg000:26A4 ;	   si -> increment for dst seg
-seg000:26A4 ;	   ax =	0: mov
+seg000:26A4 ;	   ax =	0: replace (mov)
 seg000:26A4 ;		1: or
-seg000:26A4 diag_sprite_paint proc near		    ; CODE XREF: sub_F25C0+3Cp
+seg000:26A4 diag_sprite_paint??	proc near	    ; CODE XREF: diag_copy_sprite_to_tmp_buffer?+3Cp
 seg000:26A4					    ; diag_sprite_replace+3Ep
 seg000:26A4					    ; diag_sprite_or+2Dp
 seg000:26A4		    mov	    dx,	10h	    ; times to do the big loop:	16
-seg000:26A7 l0:					    ; CODE XREF: diag_sprite_paint+8Bj
+seg000:26A7 l0:					    ; CODE XREF: diag_sprite_paint??+8Bj
 seg000:26A7		    mov	    cx,	5	    ; copy/or 10 bytes (5 char/attr)
 seg000:26AA		    push    ax
-seg000:26AB l1:					    ; CODE XREF: diag_sprite_paint+29j
+seg000:26AB l1:					    ; CODE XREF: diag_sprite_paint??+29j
 seg000:26AB		    pop	    ax
 seg000:26AC		    cmp	    ax,	1
 seg000:26AF		    jz	    short l2
@@ -5946,12 +5930,12 @@ seg000:26B2		    mov	    ax,	ds:[bp+0]
 seg000:26B6		    mov	    es:[bx], ax	    ; ax == 0, do the mov
 seg000:26B9		    jmp	    short l3
 seg000:26BB		    nop
-seg000:26BC l2:					    ; CODE XREF: diag_sprite_paint+Bj
+seg000:26BC l2:					    ; CODE XREF: diag_sprite_paint??+Bj
 seg000:26BC		    push    ax
 seg000:26BD		    mov	    ax,	ds:[bp+0]
 seg000:26C1		    or	    ax,	es:[bx]	    ; ax == 1, do the or
 seg000:26C4		    mov	    es:[bx], ax
-seg000:26C7 l3:					    ; CODE XREF: diag_sprite_paint+15j
+seg000:26C7 l3:					    ; CODE XREF: diag_sprite_paint??+15j
 seg000:26C7		    add	    bx,	2
 seg000:26CA		    add	    bp,	2	    ; src,dst += 2 (just one char/attr)
 seg000:26CD		    loop    l1
@@ -5960,16 +5944,16 @@ seg000:26D2		    cmp	    si,	0
 seg000:26D5		    jnz	    short l4
 seg000:26D7		    sub	    bp,	10	    ; si == 0 -> bp -= 10 (reset src off)
 seg000:26DA		    jmp	    short l5
-seg000:26DC l4:					    ; CODE XREF: diag_sprite_paint+31j
+seg000:26DC l4:					    ; CODE XREF: diag_sprite_paint??+31j
 seg000:26DC		    sub	    bx,	10	    ; si != 0 -> bx -= 10 (reset dst off)
-seg000:26DF l5:					    ; CODE XREF: diag_sprite_paint+36j
+seg000:26DF l5:					    ; CODE XREF: diag_sprite_paint??+36j
 seg000:26DF		    mov	    ax,	es
 seg000:26E1		    add	    ax,	si
 seg000:26E3		    mov	    es,	ax	    ; es += si
 seg000:26E5		    mov	    ax,	ds
 seg000:26E7		    add	    ax,	di
 seg000:26E9		    mov	    ds,	ax	    ; ds += di
-seg000:26EB l6:					    ; CODE XREF: diag_sprite_paint+69j
+seg000:26EB l6:					    ; CODE XREF: diag_sprite_paint??+69j
 seg000:26EB		    pop	    ax
 seg000:26EC		    cmp	    ax,	1
 seg000:26EF		    jz	    short l7
@@ -5978,12 +5962,12 @@ seg000:26F2		    mov	    ax,	ds:[bp+0]
 seg000:26F6		    mov	    es:[bx], ax	    ; ax == 0, do the mov
 seg000:26F9		    jmp	    short l8
 seg000:26FB		    nop
-seg000:26FC l7:					    ; CODE XREF: diag_sprite_paint+4Bj
+seg000:26FC l7:					    ; CODE XREF: diag_sprite_paint??+4Bj
 seg000:26FC		    push    ax
 seg000:26FD		    mov	    ax,	ds:[bp+0]
 seg000:2701		    or	    ax,	es:[bx]	    ; ax == 1, do the or
 seg000:2704		    mov	    es:[bx], ax
-seg000:2707 l8:					    ; CODE XREF: diag_sprite_paint+55j
+seg000:2707 l8:					    ; CODE XREF: diag_sprite_paint??+55j
 seg000:2707		    add	    bx,	2
 seg000:270A		    add	    bp,	2	    ; src,dst += 2
 seg000:270D		    loop    l6
@@ -5992,9 +5976,9 @@ seg000:2710		    cmp	    si,	0
 seg000:2713		    jnz	    short l9
 seg000:2715		    add	    bp,	70	    ; si == 0 -> bp += 70 (src off)
 seg000:2718		    jmp	    short l10
-seg000:271A l9:					    ; CODE XREF: diag_sprite_paint+6Fj
+seg000:271A l9:					    ; CODE XREF: diag_sprite_paint??+6Fj
 seg000:271A		    add	    bx,	70	    ; si != 0 -> bp += 70 (dst off)
-seg000:271D l10:				    ; CODE XREF: diag_sprite_paint+74j
+seg000:271D l10:				    ; CODE XREF: diag_sprite_paint??+74j
 seg000:271D		    mov	    ax,	es
 seg000:271F		    sub	    ax,	si
 seg000:2721		    mov	    es,	ax	    ; es -= si
@@ -6005,10 +5989,10 @@ seg000:2729		    pop	    ax
 seg000:272A		    cmp	    dx,	0
 seg000:272D		    jz	    short l11
 seg000:272F		    jmp	    l0
-seg000:2732 l11:				    ; CODE XREF: diag_sprite_paint+89j
+seg000:2732 l11:				    ; CODE XREF: diag_sprite_paint??+89j
 seg000:2732		    retn
-seg000:2732 diag_sprite_paint endp
-seg000:2733 row_len	    db 160		    ; DATA XREF: sub_F25C0+20r
+seg000:2732 diag_sprite_paint??	endp
+seg000:2733 row_len	    db 160		    ; DATA XREF: diag_copy_sprite_to_tmp_buffer?+20r
 seg000:2733					    ; diag_sprite_replace+20r
 seg000:2733					    ; diag_sprite_or+Br
 seg000:2734 sprite_0	    db 0, 0Ah, 0AAh, 0AAh, 0A0h, 0, 0, 0Ah, 0AAh, 0AAh,	0A0h
@@ -6096,7 +6080,7 @@ seg000:29C7		    mov	    ax,	4Ch ; 'L'
 seg000:29CA		    mov	    es,	ax	    ; es = 0x4c
 seg000:29CC		    mov	    byte ptr es:seg60_diag.field_1, 0
 seg000:29D2		    pop	    es		    ; es = back	to 0x60
-seg000:29D3		    call    diag_kbd_init_video
+seg000:29D3		    call    diag_init_video
 seg000:29D6		    push    ds
 seg000:29D7		    mov	    ax,	40h ; '@'
 seg000:29DA		    mov	    ds,	ax	    ; ds = 0x40
@@ -6132,12 +6116,12 @@ seg000:2A11		    mov	    cx,	86	    ; 172 times	(86 * 2)
 seg000:2A14		    rep	movsw		    ; copy them
 seg000:2A16		    push    ds
 seg000:2A17		    mov	    dx,	6Fh ; 'o'
-seg000:2A1A		    call    sub_F25C0
+seg000:2A1A		    call    diag_copy_sprite_to_tmp_buffer?
 seg000:2A1D		    call    diag_swap_crt_cpu_page_regs
-seg000:2A20		    call    sub_F25C0
+seg000:2A20		    call    diag_copy_sprite_to_tmp_buffer?
 seg000:2A23		    mov	    dx,	11h
 seg000:2A26		    mov	    cx,	0Eh
-seg000:2A29		    call    diag_sprite_anim?
+seg000:2A29		    call    diag_sprite_move_down_n_rows
 seg000:2A2C		    mov	    es:seg60_diag.field_6, dx
 seg000:2A31		    pop	    ds
 seg000:2A32		    call    sub_F36C3
@@ -6330,11 +6314,11 @@ seg000:2BA6 l30:				    ; CODE XREF: diag_kbd_init+17Dj
 seg000:2BA6		    mov	    byte ptr es:seg60_diag.ctrl_break_pressed, 0
 seg000:2BAC		    cmp	    byte ptr es:seg60_diag.field_4E0, 0
 seg000:2BB2		    jnz	    short exit
-seg000:2BB4		    call    sub_F3206
+seg000:2BB4		    call    diag_init_seg4c_flag1
 seg000:2BB7		    jmp	    l4
 seg000:2BBA exit:				    ; CODE XREF: diag_kbd_init+1BDj
 seg000:2BBA					    ; diag_kbd_init+232j
-seg000:2BBA		    call    sub_F3206
+seg000:2BBA		    call    diag_init_seg4c_flag1
 seg000:2BBD		    push    ds
 seg000:2BBE		    mov	    ax,	40h ; '@'
 seg000:2BC1		    mov	    ds,	ax	    ; ds = 0x40
@@ -6506,7 +6490,7 @@ seg000:2D01 l25:				    ; CODE XREF: diag_kdb_eval_scancode+12Aj
 seg000:2D01		    push    cx
 seg000:2D02		    push    dx
 seg000:2D03		    mov	    cx,	28h ; '('
-seg000:2D06		    call    diag_sprite_anim?
+seg000:2D06		    call    diag_sprite_move_down_n_rows
 seg000:2D09		    pop	    dx
 seg000:2D0A		    add	    dx,	4
 seg000:2D0D		    pop	    cx
@@ -6583,7 +6567,7 @@ seg000:2D88 l31:				    ; CODE XREF: diag_kdb_eval_scancode:l26j
 seg000:2D88		    mov	    byte ptr es:seg60_diag.field_4CC, 2
 seg000:2D8E		    jmp	    l69
 seg000:2D91 l32:				    ; CODE XREF: diag_kdb_eval_scancode+19Aj
-seg000:2D91		    call    sub_F3206
+seg000:2D91		    call    diag_init_seg4c_flag1
 seg000:2D94		    jmp	    l69
 seg000:2D97 set_palette_0:			    ; CODE XREF: diag_kdb_eval_scancode+18j
 seg000:2D97		    mov	    bl,	0
@@ -6681,7 +6665,7 @@ seg000:2E3F		    mov	    dx,	es:seg60_diag.field_6
 seg000:2E44		    call    diag_sprite_replace
 seg000:2E47		    mov	    dx,	411h
 seg000:2E4A		    mov	    cx,	0Ch
-seg000:2E4D		    call    diag_sprite_anim?
+seg000:2E4D		    call    diag_sprite_move_down_n_rows
 seg000:2E50		    mov	    es:seg60_diag.field_6, dx
 seg000:2E55		    pop	    dx
 seg000:2E56		    jmp	    l69
@@ -7139,7 +7123,7 @@ seg000:3184		    jz	    short lret
 seg000:3186		    push    dx
 seg000:3187		    mov	    dx,	411h
 seg000:318A		    mov	    cx,	0Ch
-seg000:318D		    call    diag_sprite_anim?
+seg000:318D		    call    diag_sprite_move_down_n_rows
 seg000:3190		    mov	    es:6, dx
 seg000:3195		    pop	    dx
 seg000:3196		    mov	    byte ptr es:seg60_diag.field_4C6, 0
@@ -7221,7 +7205,7 @@ seg000:3204		    pop	    es		    ; restore es
 seg000:3205		    iret
 seg000:3205 diag_control_break_handler endp
 seg000:3206 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
-seg000:3206 sub_F3206	    proc near		    ; CODE XREF: mini_welcome_init+118p
+seg000:3206 diag_init_seg4c_flag1 proc near	    ; CODE XREF: mini_welcome_init+118p
 seg000:3206					    ; diag_kbd_init+234p
 seg000:3206					    ; diag_kbd_init:exitp
 seg000:3206					    ; diag_kdb_eval_scancode:l32p
@@ -7233,10 +7217,10 @@ seg000:320A		    mov	    es,	ax	    ; es = 0x4c
 seg000:320C		    cmp	    byte ptr es:seg4c.flag1, 0
 seg000:3212		    jz	    short l0
 seg000:3214		    mov	    byte ptr es:seg4c.flag1, 2
-seg000:321A l0:					    ; CODE XREF: sub_F3206+Cj
+seg000:321A l0:					    ; CODE XREF: diag_init_seg4c_flag1+Cj
 seg000:321A		    pop	    es		    ; restore es
 seg000:321B		    retn
-seg000:321B sub_F3206	    endp
+seg000:321B diag_init_seg4c_flag1 endp
 seg000:321C diag_msg_for_kdb_k db 0, 0,	2, 1Bh,	4, 1Bh,	6, 1Bh,	8, 1Bh,	0Ah, 1Bh, 0Ch
 seg000:321C					    ; DATA XREF: diag_kbd_init:l0o
 seg000:321C		    db 1Bh, 0Eh, 1Bh, 10h, 1Bh,	12h, 1Bh, 14h, 1Bh, 16h, 1Bh
@@ -7300,7 +7284,7 @@ seg000:3399		    mov	    dl,	al
 seg000:339B		    call    sub_F346D
 seg000:339E l2:					    ; CODE XREF: sub_F3380+39j
 seg000:339E		    add	    dh,	1
-seg000:33A1		    call    sub_F25C0
+seg000:33A1		    call    diag_copy_sprite_to_tmp_buffer?
 seg000:33A4		    mov	    bp,	386h
 seg000:33A7		    push    ds
 seg000:33A8		    push    es
@@ -7318,8 +7302,8 @@ seg000:33B9		    jmp	    short l2
 seg000:33BB l3:					    ; CODE XREF: sub_F3380+33j
 seg000:33BB		    push    ax
 seg000:33BC		    call    diag_sprite_replace
-seg000:33BF		    call    sub_F3206
-seg000:33C2		    call    sub_F25C0
+seg000:33BF		    call    diag_init_seg4c_flag1
+seg000:33C2		    call    diag_copy_sprite_to_tmp_buffer?
 seg000:33C5		    pop	    ax
 seg000:33C6		    mov	    bx,	0Bh
 seg000:33C9		    call    sub_F3498
@@ -7356,7 +7340,7 @@ seg000:3404		    mov	    bx,	offset song_kdb_unk0
 seg000:3407		    call    diag_music_setup_int_1c
 seg000:340A		    call    sub_F3483
 seg000:340D l7:					    ; CODE XREF: sub_F3380+Dj
-seg000:340D		    call    sub_F3206
+seg000:340D		    call    diag_init_seg4c_flag1
 seg000:3410		    retn
 seg000:3410 sub_F3380	    endp
 seg000:3411 ; ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ S	U B R O	U T I N	E ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ
@@ -7372,7 +7356,7 @@ seg000:341F		    mov	    dx,	2700h
 seg000:3422 loc_F3422:				    ; CODE XREF: sub_F3411+Bj
 seg000:3422					    ; sub_F3411+59j
 seg000:3422		    add	    dl,	1
-seg000:3425		    call    sub_F25C0
+seg000:3425		    call    diag_copy_sprite_to_tmp_buffer?
 seg000:3428		    cmp	    byte ptr es:0, 0
 seg000:342E		    jz	    short loc_F3447
 seg000:3430		    mov	    byte ptr es:0, 0
@@ -7380,7 +7364,7 @@ seg000:3436		    mov	    bp,	626h
 seg000:3439		    call    diag_sprite_or
 seg000:343C		    mov	    bx,	5
 seg000:343F		    mov	    cx,	80h ; 'Ђ'
-seg000:3442		    call    sub_F24A1
+seg000:3442		    call    diag_play_beep
 seg000:3445		    jmp	    short loc_F345C
 seg000:3447 loc_F3447:				    ; CODE XREF: sub_F3411+1Dj
 seg000:3447		    mov	    byte ptr es:0, 1
@@ -7388,7 +7372,7 @@ seg000:344D		    mov	    bp,	766h
 seg000:3450		    call    diag_sprite_or
 seg000:3453		    mov	    bx,	2
 seg000:3456		    mov	    cx,	80h ; 'Ђ'
-seg000:3459		    call    sub_F24A1
+seg000:3459		    call    diag_play_beep
 seg000:345C loc_F345C:				    ; CODE XREF: sub_F3411+34j
 seg000:345C		    mov	    cx,	1800h
 seg000:345F loc_F345F:				    ; CODE XREF: sub_F3411:loc_F345Fj
@@ -7419,7 +7403,7 @@ seg000:3483					    ; sub_F3380+8Ap
 seg000:3483					    ; sub_F3483+12j
 seg000:3483					    ; sub_F37C1+2Fp
 seg000:3483		    sub	    dh,	1
-seg000:3486		    call    sub_F25C0
+seg000:3486		    call    diag_copy_sprite_to_tmp_buffer?
 seg000:3489		    mov	    bp,	4E6h
 seg000:348C		    call    diag_sprite_or
 seg000:348F		    call    diag_sprite_replace
@@ -7886,7 +7870,7 @@ seg000:37F0		    call    sub_F3483
 seg000:37F3		    call    sub_F3411
 seg000:37F6		    mov	    dx,	11h
 seg000:37F9		    mov	    cx,	0Eh
-seg000:37FC		    call    diag_sprite_anim?
+seg000:37FC		    call    diag_sprite_move_down_n_rows
 seg000:37FF		    mov	    es:6, dx
 seg000:3804		    jmp	    short l6
 seg000:3806		    nop
