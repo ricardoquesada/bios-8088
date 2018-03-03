@@ -21,12 +21,14 @@ bios:C000
 bios:C000 ; Segment type: Pure code
 bios:C000 bios		  segment byte public 'CODE'
 bios:C000		  ;org 0C000h
-bios:C000 aBiosRomVersion db '!BIOS ROM version 02.00.00',0Dh,0Ah     ; DATA XREF: POST_init_ints_and_more+3D4o
-bios:C000		  db 'Compatibility Software',0Dh,0Ah
-bios:C000		  db 'Copyright (C) 1984,1985,1986,1987',0Dh,0Ah
-bios:C000		  db 'Phoenix Software Associates Ltd.',0Dh,0Ah
-bios:C000		  db 'and Tandy Corporation.',0Dh,0Ah
-bios:C000		  db 'All rights reserved.',0Dh,0Ah,'$'
+bios:C000		  db  21h ; !
+bios:C001 aBiosRomVersion02_00_00Compatibilit db 'BIOS ROM version 02.00.00',0Dh,0Ah
+bios:C001							      ;	DATA XREF: POST_init_ints_and_more+3D4o
+bios:C001		  db 'Compatibility Software',0Dh,0Ah
+bios:C001		  db 'Copyright (C) 1984,1985,1986,1987',0Dh,0Ah
+bios:C001		  db 'Phoenix Software Associates Ltd.',0Dh,0Ah
+bios:C001		  db 'and Tandy Corporation.',0Dh,0Ah
+bios:C001		  db 'All rights reserved.',0Dh,0Ah,'$'
 bios:C0A8 charset_128_255 db  1Eh, 33h,3 dup( 60h), 33h, 1Eh, 0Ch, 66h,	  0,4 dup( 66h), 3Bh,	0, 0Ch,	18h, 3Ch
 bios:C0A8							      ;	DATA XREF: bios:FF21o
 bios:C0A8		  db  66h, 7Eh,	60h, 3Ch,   0, 3Ch,0C3h, 3Ch,	6, 3Eh,	66h, 3Fh,   0, 66h,   0, 3Ch,	6
@@ -4442,24 +4444,24 @@ bios:DACF		  push	  ds
 bios:DAD0		  xor	  dx, dx
 bios:DAD2		  mov	  ds, cs:segment_40		      ;	ds = 40h
 bios:DAD7		  inc	  word ptr ds:p400.timer_ticks_since_midnight
-bios:DADB		  jnz	  short	loc_FDAE1
+bios:DADB		  jnz	  short	l0
 bios:DADD		  inc	  word ptr ds:p400.timer_ticks_since_midnight+2
 bios:DAE1
-bios:DAE1 loc_FDAE1:						      ;	CODE XREF: int_08_main+Ej
+bios:DAE1 l0:							      ;	CODE XREF: int_08_main+Ej
 bios:DAE1		  cmp	  word ptr ds:p400.timer_ticks_since_midnight, 0B0h ; '∞'
-bios:DAE7		  jnz	  short	loc_FDAFC
+bios:DAE7		  jnz	  short	l1
 bios:DAE9		  cmp	  word ptr ds:p400.timer_ticks_since_midnight+2, 18h
-bios:DAEE		  jnz	  short	loc_FDAFC
+bios:DAEE		  jnz	  short	l1
 bios:DAF0		  inc	  byte ptr ds:p400.timer_overflow
 bios:DAF4		  mov	  ds:p400.timer_ticks_since_midnight, dx
 bios:DAF8		  mov	  ds:p400.timer_ticks_since_midnight+2,	dx
 bios:DAFC
-bios:DAFC loc_FDAFC:						      ;	CODE XREF: int_08_main+1Aj
+bios:DAFC l1:							      ;	CODE XREF: int_08_main+1Aj
 bios:DAFC							      ;	int_08_main+21j
 bios:DAFC		  dec	  byte ptr ds:p400.diskette_motor_off_timeout
-bios:DB00		  jnz	  short	loc_FDB0D
-bios:DB02		  mov	  dx, 3F2h
-bios:DB05		  mov	  al, 0Fh
+bios:DB00		  jnz	  short	l2
+bios:DB02		  mov	  dx, 3F2h			      ;	turn off diskette motor
+bios:DB05		  mov	  al, 1111b
 bios:DB07		  out	  dx, al			      ;	Floppy:	digital	output reg bits:
 bios:DB07							      ;	0-1: Drive to select 0-3 (AT: bit 1 not	used)
 bios:DB07							      ;	2:   0=reset diskette controller; 1=enable controller
@@ -4468,7 +4470,7 @@ bios:DB07							      ;	4-7: drive motor enable.  Set bits to turn drive ON.
 bios:DB07							      ;
 bios:DB08		  and	  byte ptr ds:p400.diskette_motor_status, 0F0h
 bios:DB0D
-bios:DB0D loc_FDB0D:						      ;	CODE XREF: int_08_main+33j
+bios:DB0D l2:							      ;	CODE XREF: int_08_main+33j
 bios:DB0D		  int	  1Ch				      ;	CLOCK TICK
 bios:DB0F		  mov	  al, 20h ; ' '
 bios:DB11		  out	  20h, al			      ;	Interrupt controller, 8259A.
@@ -4485,7 +4487,7 @@ bios:DB1B ; €€€€€€€€€€€€€€€ S U	B R O U	T I N E	€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€
 bios:DB1B
 bios:DB1B ; It seems that nobody is calling this function.
 bios:DB1B ; And	also, this function treats the 0040:00b0 as a table.
-bios:DB1B ; While in the Keyboard handler (0EAF3h), it is being	treated	as a jump address.
+bios:DB1B ; While in the Keyboard handler (0xEAF3), it is being	treated	as a jump address.
 bios:DB1B ; Perhaps this code is deprecated and	someone	forgot to delete it ?
 bios:DB1B ; Attributes:	bp-based frame
 bios:DB1B
@@ -4507,144 +4509,144 @@ bios:DB2E		  mov	  al, ds:25h
 bios:DB31		  mov	  ah, al
 bios:DB33		  mov	  dx, cx
 bios:DB35		  test	  ch, 8
-bios:DB38		  jnz	  short	loc_FDB74
+bios:DB38		  jnz	  short	l4
 bios:DB3A		  cmp	  byte ptr ds:24h, 0FFh
-bios:DB3F		  jnz	  short	loc_FDB74
+bios:DB3F		  jnz	  short	l4
 bios:DB41		  mov	  di, 0
 bios:DB44		  cmp	  ah, 3Bh ; ';'
-bios:DB47		  jz	  short	loc_FDB59
+bios:DB47		  jz	  short	l0
 bios:DB49		  mov	  di, 0FFh
 bios:DB4C		  cmp	  ah, 3Ch ; '<'
-bios:DB4F		  jz	  short	loc_FDB59
+bios:DB4F		  jz	  short	l0
 bios:DB51		  mov	  di, 0FFFFh
 bios:DB54		  cmp	  ah, 3Dh ; '='
-bios:DB57		  jnz	  short	loc_FDB60
+bios:DB57		  jnz	  short	l2
 bios:DB59
-bios:DB59 loc_FDB59:						      ;	CODE XREF: perhaps_obsolete_function+2Cj
+bios:DB59 l0:							      ;	CODE XREF: perhaps_obsolete_function+2Cj
 bios:DB59							      ;	perhaps_obsolete_function+34j
 bios:DB59		  mov	  ds:2,	di
 bios:DB5D
-bios:DB5D loc_FDB5D:						      ;	CODE XREF: perhaps_obsolete_function+52j
-bios:DB5D		  jmp	  loc_FDC10
+bios:DB5D l1:							      ;	CODE XREF: perhaps_obsolete_function+52j
+bios:DB5D		  jmp	  l14
 bios:DB60 ; ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ
 bios:DB60
-bios:DB60 loc_FDB60:						      ;	CODE XREF: perhaps_obsolete_function+3Cj
+bios:DB60 l2:							      ;	CODE XREF: perhaps_obsolete_function+3Cj
 bios:DB60		  cmp	  byte ptr ds:2, 0FFh
-bios:DB65		  jnz	  short	loc_FDB71
+bios:DB65		  jnz	  short	l3
 bios:DB67		  mov	  di, 8
 bios:DB6A		  call	  sub_FDC20
-bios:DB6D		  jb	  short	loc_FDB5D
-bios:DB6F		  jmp	  short	loc_FDBC6
+bios:DB6D		  jb	  short	l1
+bios:DB6F		  jmp	  short	l8
 bios:DB71 ; ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ
 bios:DB71
-bios:DB71 loc_FDB71:						      ;	CODE XREF: perhaps_obsolete_function+4Aj
+bios:DB71 l3:							      ;	CODE XREF: perhaps_obsolete_function+4Aj
 bios:DB71							      ;	perhaps_obsolete_function+5Ej
-bios:DB71		  jmp	  loc_FDC16
+bios:DB71		  jmp	  l16
 bios:DB74 ; ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ
 bios:DB74
-bios:DB74 loc_FDB74:						      ;	CODE XREF: perhaps_obsolete_function+1Dj
+bios:DB74 l4:							      ;	CODE XREF: perhaps_obsolete_function+1Dj
 bios:DB74							      ;	perhaps_obsolete_function+24j
 bios:DB74		  cmp	  byte ptr ds:2, 0FFh
-bios:DB79		  jnz	  short	loc_FDB71
+bios:DB79		  jnz	  short	l3
 bios:DB7B		  mov	  di, 0Ch
 bios:DB7E		  test	  dh, 8
-bios:DB81		  jnz	  short	loc_FDBAB
+bios:DB81		  jnz	  short	l6
 bios:DB83		  mov	  di, 10h
 bios:DB86		  test	  dh, 4
-bios:DB89		  jnz	  short	loc_FDBAB
+bios:DB89		  jnz	  short	l6
 bios:DB8B		  mov	  di, 14h
 bios:DB8E		  mov	  bx, 18h
 bios:DB91		  test	  dh, 40h
-bios:DB94		  jz	  short	loc_FDBA4
+bios:DB94		  jz	  short	l5
 bios:DB96		  push	  ax
 bios:DB97		  push	  di
 bios:DB98		  mov	  di, 1Ch
 bios:DB9B		  call	  sub_FDC20
 bios:DB9E		  pop	  di
 bios:DB9F		  pop	  ax
-bios:DBA0		  jb	  short	loc_FDBA4
+bios:DBA0		  jb	  short	l5
 bios:DBA2		  xchg	  di, bx
 bios:DBA4
-bios:DBA4 loc_FDBA4:						      ;	CODE XREF: perhaps_obsolete_function+79j
+bios:DBA4 l5:							      ;	CODE XREF: perhaps_obsolete_function+79j
 bios:DBA4							      ;	perhaps_obsolete_function+85j
 bios:DBA4		  test	  dh, 3
-bios:DBA7		  jnz	  short	loc_FDBAB
+bios:DBA7		  jnz	  short	l6
 bios:DBA9		  xchg	  di, bx
 bios:DBAB
-bios:DBAB loc_FDBAB:						      ;	CODE XREF: perhaps_obsolete_function+66j
+bios:DBAB l6:							      ;	CODE XREF: perhaps_obsolete_function+66j
 bios:DBAB							      ;	perhaps_obsolete_function+6Ej ...
 bios:DBAB		  call	  sub_FDC20
-bios:DBAE		  jb	  short	loc_FDBC6
+bios:DBAE		  jb	  short	l8
 bios:DBB0		  cmp	  al, 0FFh
-bios:DBB2		  jz	  short	loc_FDC10
+bios:DBB2		  jz	  short	l14
 bios:DBB4		  test	  dh, 8
-bios:DBB7		  jnz	  short	loc_FDBC2
+bios:DBB7		  jnz	  short	l7
 bios:DBB9		  test	  dh, 4
-bios:DBBC		  jz	  short	loc_FDBC6
+bios:DBBC		  jz	  short	l8
 bios:DBBE		  cmp	  al, 80h ; 'Ä'
-bios:DBC0		  jb	  short	loc_FDBC6
+bios:DBC0		  jb	  short	l8
 bios:DBC2
-bios:DBC2 loc_FDBC2:						      ;	CODE XREF: perhaps_obsolete_function+9Cj
+bios:DBC2 l7:							      ;	CODE XREF: perhaps_obsolete_function+9Cj
 bios:DBC2		  mov	  ah, al
 bios:DBC4		  xor	  al, al
 bios:DBC6
-bios:DBC6 loc_FDBC6:						      ;	CODE XREF: perhaps_obsolete_function+54j
+bios:DBC6 l8:							      ;	CODE XREF: perhaps_obsolete_function+54j
 bios:DBC6							      ;	perhaps_obsolete_function+93j ...
 bios:DBC6		  mov	  cx, ds:20h
-bios:DBCA		  jcxz	  short	loc_FDBFD
+bios:DBCA		  jcxz	  short	l12
 bios:DBCC		  mov	  di, ds:22h
 bios:DBD0		  cld
 bios:DBD1
-bios:DBD1 loc_FDBD1:						      ;	CODE XREF: perhaps_obsolete_function+BCj
+bios:DBD1 l9:							      ;	CODE XREF: perhaps_obsolete_function+BCj
 bios:DBD1		  scasw
-bios:DBD2		  jz	  short	loc_FDC09
+bios:DBD2		  jz	  short	l13
 bios:DBD4		  add	  di, 4
-bios:DBD7		  loop	  loc_FDBD1
+bios:DBD7		  loop	  l9
 bios:DBD9		  cmp	  word ptr ds:4, 0
-bios:DBDE		  jz	  short	loc_FDBFD
+bios:DBDE		  jz	  short	l12
 bios:DBE0		  cmp	  al, 20h ; ' '
-bios:DBE2		  jnz	  short	loc_FDBE9
+bios:DBE2		  jnz	  short	l10
 bios:DBE4		  mov	  ax, ds:4
-bios:DBE7		  jmp	  short	loc_FDBF7
+bios:DBE7		  jmp	  short	l11
 bios:DBE9 ; ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ
 bios:DBE9
-bios:DBE9 loc_FDBE9:						      ;	CODE XREF: perhaps_obsolete_function+C7j
+bios:DBE9 l10:							      ;	CODE XREF: perhaps_obsolete_function+C7j
 bios:DBE9		  mov	  [bp+4], ax
 bios:DBEC		  mov	  di, ds:6
 bios:DBF0		  call	  sub_FDC20
-bios:DBF3		  jb	  short	loc_FDBF7
+bios:DBF3		  jb	  short	l11
 bios:DBF5		  sub	  ah, ah
 bios:DBF7
-bios:DBF7 loc_FDBF7:						      ;	CODE XREF: perhaps_obsolete_function+CCj
+bios:DBF7 l11:							      ;	CODE XREF: perhaps_obsolete_function+CCj
 bios:DBF7							      ;	perhaps_obsolete_function+D8j
 bios:DBF7		  mov	  word ptr ds:4, 0
 bios:DBFD
-bios:DBFD loc_FDBFD:						      ;	CODE XREF: perhaps_obsolete_function+AFj
+bios:DBFD l12:							      ;	CODE XREF: perhaps_obsolete_function+AFj
 bios:DBFD							      ;	perhaps_obsolete_function+C3j
 bios:DBFD		  cmp	  byte ptr ds:3, 0FFh
-bios:DC02		  jnz	  short	loc_FDC13
+bios:DC02		  jnz	  short	l15
 bios:DC04		  call	  convert_something_2
-bios:DC07		  jmp	  short	loc_FDC13
+bios:DC07		  jmp	  short	l15
 bios:DC09 ; ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ
 bios:DC09
-bios:DC09 loc_FDC09:						      ;	CODE XREF: perhaps_obsolete_function+B7j
+bios:DC09 l13:							      ;	CODE XREF: perhaps_obsolete_function+B7j
 bios:DC09		  mov	  ds:4,	ax
 bios:DC0C		  mov	  ds:6,	di
 bios:DC10
-bios:DC10 loc_FDC10:						      ;	CODE XREF: perhaps_obsolete_function:loc_FDB5Dj
+bios:DC10 l14:							      ;	CODE XREF: perhaps_obsolete_function:l1j
 bios:DC10							      ;	perhaps_obsolete_function+97j
 bios:DC10		  stc
-bios:DC11		  jmp	  short	loc_FDC17
+bios:DC11		  jmp	  short	l17
 bios:DC13 ; ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ
 bios:DC13
-bios:DC13 loc_FDC13:						      ;	CODE XREF: perhaps_obsolete_function+E7j
+bios:DC13 l15:							      ;	CODE XREF: perhaps_obsolete_function+E7j
 bios:DC13							      ;	perhaps_obsolete_function+ECj
 bios:DC13		  mov	  [bp+4], ax
 bios:DC16
-bios:DC16 loc_FDC16:						      ;	CODE XREF: perhaps_obsolete_function:loc_FDB71j
+bios:DC16 l16:							      ;	CODE XREF: perhaps_obsolete_function:l3j
 bios:DC16		  clc
 bios:DC17
-bios:DC17 loc_FDC17:						      ;	CODE XREF: perhaps_obsolete_function+F6j
+bios:DC17 l17:							      ;	CODE XREF: perhaps_obsolete_function+F6j
 bios:DC17		  pop	  es
 bios:DC18		  pop	  ds
 bios:DC19		  pop	  di
@@ -5653,7 +5655,7 @@ bios:E447		  int	  10h				      ;	- VIDEO	- SET VIDEO MODE
 bios:E447							      ;	AL = mode
 bios:E449		  mov	  al, 0BCh ; 'º'
 bios:E44B		  out	  21h, al			      ;	Interrupt controller, 8259A.
-bios:E44D		  mov	  si, (offset aBiosRomVersion+1)
+bios:E44D		  mov	  si, offset aBiosRomVersion02_00_00Compatibilit ; "BIOS ROM version 02.00.00\r\nCompatibilit"...
 bios:E450		  call	  print_on_screen
 bios:E453		  mov	  ax, 7000h
 bios:E456		  mov	  bl, 0
@@ -5831,12 +5833,7 @@ bios:E553		  retn
 bios:E553 run_boot_sector_if_valid endp
 bios:E553
 bios:E553 ; ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ
-bios:E554		  db  62h ; b
-bios:E555		  db  79h ; y
-bios:E556		  db  20h
-bios:E557		  db  4Ch ; L
-bios:E558		  db  53h ; S
-bios:E559		  db  44h ; D
+bios:E554 aByLsd	  db 'by LSD'                                 ; Tandy developer signature?
 bios:E55A
 bios:E55A ; €€€€€€€€€€€€€€€ S U	B R O U	T I N E	€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€
 bios:E55A
@@ -9655,14 +9652,14 @@ bios:FEC7
 bios:FEC7 ; ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ
 bios:FEC8		  db 2Bh dup(0FFh)
 bios:FEF3 int_08_1f_table dw offset int_08_handler		      ;	DATA XREF: POST_init_ints_and_more+5Do
-bios:FEF3							      ;	int 8
-bios:FEF5		  dw offset int_09_handler		      ;	int 9
-bios:FEF7		  dw offset int_unexpected_handler	      ;	int 0xa
-bios:FEF9		  dw offset int_unexpected_handler	      ;	int 0xb
-bios:FEFB		  dw offset int_unexpected_handler	      ;	int 0xc
-bios:FEFD		  dw offset int_unexpected_handler	      ;	int 0xd
-bios:FEFF		  dw offset int_0e_handler		      ;	int 0xe
-bios:FF01		  dw offset int_unexpected_handler	      ;	int 0xf
+bios:FEF3							      ;	int 0x08
+bios:FEF5		  dw offset int_09_handler		      ;	int 0x09
+bios:FEF7		  dw offset int_unexpected_handler	      ;	int 0x0a
+bios:FEF9		  dw offset int_unexpected_handler	      ;	int 0x0b
+bios:FEFB		  dw offset int_unexpected_handler	      ;	int 0x0c
+bios:FEFD		  dw offset int_unexpected_handler	      ;	int 0x0d
+bios:FEFF		  dw offset int_0e_handler		      ;	int 0x0e
+bios:FF01		  dw offset int_unexpected_handler	      ;	int 0x0f
 bios:FF03		  dw offset int_10_handler		      ;	int 0x10
 bios:FF05		  dw offset int_11_handler		      ;	int 0x11
 bios:FF07		  dw offset int_12_handler		      ;	int 0x12

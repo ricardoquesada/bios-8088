@@ -7725,8 +7725,8 @@ seg000:36C3 sub_F36C3	    proc near		    ; CODE XREF: diag_kbd_init+B2p
 seg000:36C3					    ; sub_F3526:loc_F35C5p
 seg000:36C3		    push    ds
 seg000:36C4		    mov	    ax,	800h
-seg000:36C7		    mov	    ds,	ax
-seg000:36C9		    cmp	    byte ptr es:4DFh, 0
+seg000:36C7		    mov	    ds,	ax	    ; ds = 0x800
+seg000:36C9		    cmp	    byte ptr es:seg60_diag.opt_k_enabled, 0
 seg000:36CF		    jz	    short l0
 seg000:36D1		    mov	    bx,	12CFh
 seg000:36D4		    jmp	    short l1
@@ -7734,7 +7734,7 @@ seg000:36D6 l0:					    ; CODE XREF: sub_F36C3+Cj
 seg000:36D6		    mov	    bx,	1185h
 seg000:36D9 l1:					    ; CODE XREF: sub_F36C3+11j
 seg000:36D9		    call    sub_F378B
-seg000:36DC		    cmp	    byte ptr es:4DFh, 0
+seg000:36DC		    cmp	    byte ptr es:seg60_diag.opt_k_enabled, 0
 seg000:36E2		    jz	    short l2
 seg000:36E4		    mov	    bx,	12FFh
 seg000:36E7		    jmp	    short l3
@@ -7744,7 +7744,7 @@ seg000:36EC l3:					    ; CODE XREF: sub_F36C3+24j
 seg000:36EC		    call    sub_F378B
 seg000:36EF		    mov	    ax,	0C00h
 seg000:36F2		    mov	    ds,	ax
-seg000:36F4		    cmp	    byte ptr es:4DFh, 0
+seg000:36F4		    cmp	    byte ptr es:seg60_diag.opt_k_enabled, 0
 seg000:36FA		    jz	    short l4
 seg000:36FC		    mov	    bx,	12CFh
 seg000:36FF		    jmp	    short l5
@@ -7752,7 +7752,7 @@ seg000:3701 l4:					    ; CODE XREF: sub_F36C3+37j
 seg000:3701		    mov	    bx,	1185h
 seg000:3704 l5:					    ; CODE XREF: sub_F36C3+3Cj
 seg000:3704		    call    sub_F378B
-seg000:3707		    cmp	    byte ptr es:4DFh, 0
+seg000:3707		    cmp	    byte ptr es:seg60_diag.opt_k_enabled, 0
 seg000:370D		    jz	    short l6
 seg000:370F		    mov	    bx,	12FFh
 seg000:3712		    jmp	    short l7
@@ -7762,7 +7762,7 @@ seg000:3717 l7:					    ; CODE XREF: sub_F36C3+4Fj
 seg000:3717		    call    sub_F378B
 seg000:371A		    mov	    ax,	800h
 seg000:371D		    mov	    ds,	ax
-seg000:371F		    cmp	    byte ptr es:4DFh, 0
+seg000:371F		    cmp	    byte ptr es:seg60_diag.opt_k_enabled, 0
 seg000:3725		    jz	    short l8
 seg000:3727		    mov	    bx,	12D0h
 seg000:372A		    jmp	    short l9
@@ -7770,7 +7770,7 @@ seg000:372C l8:					    ; CODE XREF: sub_F36C3+62j
 seg000:372C		    mov	    bx,	1186h
 seg000:372F l9:					    ; CODE XREF: sub_F36C3+67j
 seg000:372F		    call    sub_F3772
-seg000:3732		    cmp	    byte ptr es:4DFh, 0
+seg000:3732		    cmp	    byte ptr es:seg60_diag.opt_k_enabled, 0
 seg000:3738		    jz	    short l10
 seg000:373A		    mov	    bx,	19B0h
 seg000:373D		    jmp	    short l11
@@ -7780,7 +7780,7 @@ seg000:3742 l11:				    ; CODE XREF: sub_F36C3+7Aj
 seg000:3742		    call    sub_F3772
 seg000:3745		    mov	    ax,	0C00h
 seg000:3748		    mov	    ds,	ax
-seg000:374A		    cmp	    byte ptr es:4DFh, 0
+seg000:374A		    cmp	    byte ptr es:seg60_diag.opt_k_enabled, 0
 seg000:3750		    jz	    short l12
 seg000:3752		    mov	    bx,	12D0h
 seg000:3755		    jmp	    short l13
@@ -7788,7 +7788,7 @@ seg000:3757 l12:				    ; CODE XREF: sub_F36C3+8Dj
 seg000:3757		    mov	    bx,	1186h
 seg000:375A l13:				    ; CODE XREF: sub_F36C3+92j
 seg000:375A		    call    sub_F3772
-seg000:375D		    cmp	    byte ptr es:4DFh, 0
+seg000:375D		    cmp	    byte ptr es:seg60_diag.opt_k_enabled, 0
 seg000:3763		    jz	    short l14
 seg000:3765		    mov	    bx,	19B0h
 seg000:3768		    jmp	    short l15
@@ -7819,16 +7819,18 @@ seg000:3788		    loop    l15
 seg000:378A		    retn
 seg000:378A sub_F3772	    endp
 seg000:378B ; ллллллллллллллл S	U B R O	U T I N	E ллллллллллллллллллллллллллллллллллллллл
+seg000:378B ; input:
+seg000:378B ;	   bx =	offset to table?
 seg000:378B sub_F378B	    proc near		    ; CODE XREF: sub_F36C3:l1p
 seg000:378B					    ; sub_F36C3:l3p
 seg000:378B					    ; sub_F36C3:l5p
 seg000:378B					    ; sub_F36C3:l7p
-seg000:378B		    cmp	    byte ptr es:4DFh, 0
+seg000:378B		    cmp	    byte ptr es:seg60_diag.opt_k_enabled, 0
 seg000:3791		    jz	    short l0
-seg000:3793		    mov	    cx,	2Dh ; '-'
+seg000:3793		    mov	    cx,	45
 seg000:3796		    jmp	    short l1
 seg000:3798 l0:					    ; CODE XREF: sub_F378B+6j
-seg000:3798		    mov	    cx,	51h ; 'Q'
+seg000:3798		    mov	    cx,	81
 seg000:379B l1:					    ; CODE XREF: sub_F378B+Bj
 seg000:379B					    ; sub_F378B:l3j
 seg000:379B		    push    cx
@@ -7836,7 +7838,7 @@ seg000:379C		    test    cx,	1
 seg000:37A0		    jnz	    short l2
 seg000:37A2		    mov	    ax,	ds
 seg000:37A4		    add	    ax,	200h
-seg000:37A7		    mov	    ds,	ax
+seg000:37A7		    mov	    ds,	ax	    ; ds = 0x200
 seg000:37A9 l2:					    ; CODE XREF: sub_F378B+15j
 seg000:37A9		    pop	    cx
 seg000:37AA		    mov	    word ptr [bx], 0Ah
@@ -7844,8 +7846,8 @@ seg000:37AE		    test    cx,	1
 seg000:37B2		    jnz	    short l3
 seg000:37B4		    mov	    ax,	ds
 seg000:37B6		    sub	    ax,	200h
-seg000:37B9		    mov	    ds,	ax
-seg000:37BB		    add	    bx,	50h ; 'P'
+seg000:37B9		    mov	    ds,	ax	    ; ds = 0x200
+seg000:37BB		    add	    bx,	80
 seg000:37BE l3:					    ; CODE XREF: sub_F378B+27j
 seg000:37BE		    loop    l1
 seg000:37C0		    retn
