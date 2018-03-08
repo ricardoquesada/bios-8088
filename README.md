@@ -3,6 +3,7 @@
 *   Tandy 1000
 *   Tandy 1000 HX
 *   IBM PCjr
+*   IBM PC 5150
 
 
 Looking BIOS roms for:
