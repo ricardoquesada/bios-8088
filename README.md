@@ -1,6 +1,7 @@
 # Disassembled BIOS from 8088 machines
 
 *   Tandy 1000
+*   Tandy 1000a
 *   Tandy 1000 HX
 *   IBM PCjr
 *   IBM PC 5150
@@ -10,7 +11,6 @@ Looking BIOS roms for:
 
 *   Tandy 1000 HD
 *   Tandy 1000 EX
-*   Tandy 1000 SX
 
 
 ## ROMS + disassembly
