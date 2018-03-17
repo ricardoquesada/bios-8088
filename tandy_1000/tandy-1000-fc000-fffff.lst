@@ -78,7 +78,7 @@ f000:C070		  db 3 dup(   0), 38h, 0Ch, 18h, 30h, 3Ch,5 dup(   0),4	dup( 3Ch),0Ah
 f000:C470 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:C470 ; START OF FUNCTION CHUNK FOR	reset
 f000:C470
-f000:C470 loc_FC470:						      ;	CODE XREF: reset+25j
+f000:C470 test_system:						      ;	CODE XREF: reset+25j
 f000:C470		  cli
 f000:C471		  mov	  al, 0Ah
 f000:C473		  out	  0A0h,	al			      ;	PIC 2  same as 0020 for	PIC 1
@@ -129,7 +129,7 @@ f000:C4B7		  mov	  bl, 10h
 f000:C4B9		  mov	  dx, 3DAh
 f000:C4BC		  xor	  al, al
 f000:C4BE
-f000:C4BE loc_FC4BE:						      ;	CODE XREF: reset-1B8Ej
+f000:C4BE l20:							      ;	CODE XREF: reset-1B8Ej
 f000:C4BE		  mov	  al, bl
 f000:C4C0		  out	  dx, al			      ;	Video: bits 0-1	control
 f000:C4C0							      ;	Feature	Control	outputs	FC0 and	FC1
@@ -138,7 +138,7 @@ f000:C4C4		  out	  dx, al
 f000:C4C5		  sub	  dx, 4
 f000:C4C8		  inc	  bl
 f000:C4CA		  cmp	  bl, 20h ; ' '
-f000:C4CD		  jnz	  short	loc_FC4BE
+f000:C4CD		  jnz	  short	l20
 f000:C4CF		  xor	  al, al
 f000:C4D1		  out	  dx, al			      ;	Video: bits 0-1	control
 f000:C4D1							      ;	Feature	Control	outputs	FC0 and	FC1
@@ -165,7 +165,7 @@ f000:C4E8		  mov	  cx, 10h
 f000:C4EB		  mov	  dx, 3D4h
 f000:C4EE		  mov	  bx, offset crt_idx_and_value
 f000:C4F1
-f000:C4F1 loc_FC4F1:						      ;	CODE XREF: reset-1B5Dj
+f000:C4F1 l21:							      ;	CODE XREF: reset-1B5Dj
 f000:C4F1		  mov	  al, cs:[bx]
 f000:C4F4		  out	  dx, al			      ;	Video: CRT cntrlr addr
 f000:C4F4							      ;	horizontal total
@@ -176,8 +176,8 @@ f000:C4FA		  out	  dx, al			      ;	Video: CRT controller internal registers
 f000:C4FB		  dec	  dx
 f000:C4FC		  inc	  bx
 f000:C4FD		  dec	  cx
-f000:C4FE		  jnz	  short	loc_FC4F1
-f000:C500		  jmp	  short	loc_FC523
+f000:C4FE		  jnz	  short	l21
+f000:C500		  jmp	  short	l22
 f000:C500 ; END	OF FUNCTION CHUNK FOR reset
 f000:C500 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:C502		  db  90h ; 
@@ -187,7 +187,7 @@ f000:C503		  dw 0Dh, 0Eh, 0Fh
 f000:C523 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:C523 ; START OF FUNCTION CHUNK FOR	reset
 f000:C523
-f000:C523 loc_FC523:						      ;	CODE XREF: reset-1B5Bj
+f000:C523 l22:							      ;	CODE XREF: reset-1B5Bj
 f000:C523		  mov	  dx, 3D8h
 f000:C526		  mov	  al, 2Ch ; ','
 f000:C528		  out	  dx, al
@@ -204,10 +204,10 @@ f000:C53F		  mov	  bp, ds:pbbe80.shadow_keyb_status_flags_1
 f000:C543		  mov	  si, ds:pbbe80.shadow_POST_reset_flag
 f000:C547		  mov	  ax, 0
 f000:C54A
-f000:C54A loc_FC54A:						      ;	CODE XREF: reset-1AD3j
+f000:C54A l23:							      ;	CODE XREF: reset-1AD3j
 f000:C54A		  mov	  di, 0
 f000:C54D
-f000:C54D loc_FC54D:						      ;	CODE XREF: reset-1AFCj
+f000:C54D l24:							      ;	CODE XREF: reset-1AFCj
 f000:C54D		  mov	  [di],	ax
 f000:C54F		  add	  di, 2
 f000:C552		  not	  ax
@@ -215,34 +215,34 @@ f000:C554		  mov	  [di],	ax
 f000:C556		  add	  di, 2
 f000:C559		  not	  ax
 f000:C55B		  cmp	  di, 180h
-f000:C55F		  jb	  short	loc_FC54D
+f000:C55F		  jb	  short	l24
 f000:C561		  mov	  cx, 118h
 f000:C564
-f000:C564 loc_FC564:						      ;	CODE XREF: reset:loc_FC564j
-f000:C564		  loop	  loc_FC564
+f000:C564 delay1:						      ;	CODE XREF: reset:delay1j
+f000:C564		  loop	  delay1
 f000:C566		  mov	  di, 0
 f000:C569
-f000:C569 loc_FC569:						      ;	CODE XREF: reset-1AD8j
+f000:C569 l25:							      ;	CODE XREF: reset-1AD8j
 f000:C569		  mov	  dx, [di]
 f000:C56B		  cmp	  ax, dx
-f000:C56D		  jnz	  short	loc_FC595
+f000:C56D		  jnz	  short	l26
 f000:C56F		  add	  di, 2
 f000:C572		  not	  ax
 f000:C574		  mov	  dx, [di]
 f000:C576		  cmp	  ax, dx
-f000:C578		  jnz	  short	loc_FC595
+f000:C578		  jnz	  short	l26
 f000:C57A		  add	  di, 2
 f000:C57D		  not	  ax
 f000:C57F		  cmp	  di, 180h
-f000:C583		  jb	  short	loc_FC569
+f000:C583		  jb	  short	l25
 f000:C585		  add	  ax, 5555h
-f000:C588		  jnb	  short	loc_FC54A
+f000:C588		  jnb	  short	l23
 f000:C58A		  mov	  ds:pbbe80.shadow_POST_reset_flag, si
 f000:C58E		  mov	  ds:pbbe80.shadow_keyb_status_flags_1,	bp
-f000:C592		  jmp	  loc_FC79F
+f000:C592		  jmp	  l43
 f000:C595 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:C595
-f000:C595 loc_FC595:						      ;	CODE XREF: reset-1AEEj
+f000:C595 l26:							      ;	CODE XREF: reset-1AEEj
 f000:C595							      ;	reset-1AE3j
 f000:C595		  mov	  ss, ax
 f000:C597		  mov	  sp, dx
@@ -254,17 +254,17 @@ f000:C5A3		  mov	  ax, 0B800h
 f000:C5A6		  mov	  es, ax
 f000:C5A8		  mov	  ah, 7
 f000:C5AA
-f000:C5AA loc_FC5AA:						      ;	CODE XREF: reset-1AA3j
+f000:C5AA l27:							      ;	CODE XREF: reset-1AA3j
 f000:C5AA		  mov	  al, cs:[si]
 f000:C5AD		  or	  al, al
-f000:C5AF		  jz	  short	loc_FC5BA
+f000:C5AF		  jz	  short	l28
 f000:C5B1		  mov	  es:[di], ax
 f000:C5B4		  add	  di, 2
 f000:C5B7		  inc	  si
-f000:C5B8		  jmp	  short	loc_FC5AA
+f000:C5B8		  jmp	  short	l27
 f000:C5BA ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:C5BA
-f000:C5BA loc_FC5BA:						      ;	CODE XREF: reset-1AACj
+f000:C5BA l28:							      ;	CODE XREF: reset-1AACj
 f000:C5BA		  sub	  di, 0Ah
 f000:C5BD		  mov	  ax, ds
 f000:C5BF		  mov	  dx, ax
@@ -277,19 +277,19 @@ f000:C5CB		  shr	  al, 1
 f000:C5CD		  and	  al, 0Fh
 f000:C5CF		  add	  al, 30h ; '0'
 f000:C5D1		  cmp	  al, 3Ah ; ':'
-f000:C5D3		  js	  short	loc_FC5D7
+f000:C5D3		  js	  short	l29
 f000:C5D5		  add	  al, 7
 f000:C5D7
-f000:C5D7 loc_FC5D7:						      ;	CODE XREF: reset-1A88j
+f000:C5D7 l29:							      ;	CODE XREF: reset-1A88j
 f000:C5D7		  mov	  ch, al
 f000:C5D9		  mov	  al, cl
 f000:C5DB		  and	  al, 0Fh
 f000:C5DD		  add	  al, 30h ; '0'
 f000:C5DF		  cmp	  al, 3Ah ; ':'
-f000:C5E1		  js	  short	loc_FC5E5
+f000:C5E1		  js	  short	l30
 f000:C5E3		  add	  al, 7
 f000:C5E5
-f000:C5E5 loc_FC5E5:						      ;	CODE XREF: reset-1A7Aj
+f000:C5E5 l30:							      ;	CODE XREF: reset-1A7Aj
 f000:C5E5		  mov	  ah, ch
 f000:C5E7		  mov	  bp, ax
 f000:C5E9		  mov	  al, ah
@@ -309,19 +309,19 @@ f000:C607		  shr	  al, 1
 f000:C609		  and	  al, 0Fh
 f000:C60B		  add	  al, 30h ; '0'
 f000:C60D		  cmp	  al, 3Ah ; ':'
-f000:C60F		  js	  short	loc_FC613
+f000:C60F		  js	  short	l31
 f000:C611		  add	  al, 7
 f000:C613
-f000:C613 loc_FC613:						      ;	CODE XREF: reset-1A4Cj
+f000:C613 l31:							      ;	CODE XREF: reset-1A4Cj
 f000:C613		  mov	  ch, al
 f000:C615		  mov	  al, cl
 f000:C617		  and	  al, 0Fh
 f000:C619		  add	  al, 30h ; '0'
 f000:C61B		  cmp	  al, 3Ah ; ':'
-f000:C61D		  js	  short	loc_FC621
+f000:C61D		  js	  short	l32
 f000:C61F		  add	  al, 7
 f000:C621
-f000:C621 loc_FC621:						      ;	CODE XREF: reset-1A3Ej
+f000:C621 l32:							      ;	CODE XREF: reset-1A3Ej
 f000:C621		  mov	  ah, ch
 f000:C623		  mov	  bp, ax
 f000:C625		  mov	  al, ah
@@ -336,17 +336,17 @@ f000:C639		  mov	  si, offset aDataFaultWritt	      ;	"Data Fault: Written: xxxx
 f000:C63C		  mov	  di, 3C0h
 f000:C63F		  mov	  ah, 7
 f000:C641
-f000:C641 loc_FC641:						      ;	CODE XREF: reset-1A0Cj
+f000:C641 l33:							      ;	CODE XREF: reset-1A0Cj
 f000:C641		  mov	  al, cs:[si]
 f000:C644		  or	  al, al
-f000:C646		  jz	  short	loc_FC651
+f000:C646		  jz	  short	l34
 f000:C648		  mov	  es:[di], ax
 f000:C64B		  add	  di, 2
 f000:C64E		  inc	  si
-f000:C64F		  jmp	  short	loc_FC641
+f000:C64F		  jmp	  short	l33
 f000:C651 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:C651
-f000:C651 loc_FC651:						      ;	CODE XREF: reset-1A15j
+f000:C651 l34:							      ;	CODE XREF: reset-1A15j
 f000:C651		  sub	  di, 22h ; '"'
 f000:C654		  mov	  ax, ss
 f000:C656		  mov	  dx, ax
@@ -359,19 +359,19 @@ f000:C662		  shr	  al, 1
 f000:C664		  and	  al, 0Fh
 f000:C666		  add	  al, 30h ; '0'
 f000:C668		  cmp	  al, 3Ah ; ':'
-f000:C66A		  js	  short	loc_FC66E
+f000:C66A		  js	  short	l35
 f000:C66C		  add	  al, 7
 f000:C66E
-f000:C66E loc_FC66E:						      ;	CODE XREF: reset-19F1j
+f000:C66E l35:							      ;	CODE XREF: reset-19F1j
 f000:C66E		  mov	  ch, al
 f000:C670		  mov	  al, cl
 f000:C672		  and	  al, 0Fh
 f000:C674		  add	  al, 30h ; '0'
 f000:C676		  cmp	  al, 3Ah ; ':'
-f000:C678		  js	  short	loc_FC67C
+f000:C678		  js	  short	l36
 f000:C67A		  add	  al, 7
 f000:C67C
-f000:C67C loc_FC67C:						      ;	CODE XREF: reset-19E3j
+f000:C67C l36:							      ;	CODE XREF: reset-19E3j
 f000:C67C		  mov	  ah, ch
 f000:C67E		  mov	  bp, ax
 f000:C680		  mov	  al, ah
@@ -391,19 +391,19 @@ f000:C69E		  shr	  al, 1
 f000:C6A0		  and	  al, 0Fh
 f000:C6A2		  add	  al, 30h ; '0'
 f000:C6A4		  cmp	  al, 3Ah ; ':'
-f000:C6A6		  js	  short	loc_FC6AA
+f000:C6A6		  js	  short	l37
 f000:C6A8		  add	  al, 7
 f000:C6AA
-f000:C6AA loc_FC6AA:						      ;	CODE XREF: reset-19B5j
+f000:C6AA l37:							      ;	CODE XREF: reset-19B5j
 f000:C6AA		  mov	  ch, al
 f000:C6AC		  mov	  al, cl
 f000:C6AE		  and	  al, 0Fh
 f000:C6B0		  add	  al, 30h ; '0'
 f000:C6B2		  cmp	  al, 3Ah ; ':'
-f000:C6B4		  js	  short	loc_FC6B8
+f000:C6B4		  js	  short	l38
 f000:C6B6		  add	  al, 7
 f000:C6B8
-f000:C6B8 loc_FC6B8:						      ;	CODE XREF: reset-19A7j
+f000:C6B8 l38:							      ;	CODE XREF: reset-19A7j
 f000:C6B8		  mov	  ah, ch
 f000:C6BA		  mov	  bp, ax
 f000:C6BC		  mov	  al, ah
@@ -426,19 +426,19 @@ f000:C6E1		  shr	  al, 1
 f000:C6E3		  and	  al, 0Fh
 f000:C6E5		  add	  al, 30h ; '0'
 f000:C6E7		  cmp	  al, 3Ah ; ':'
-f000:C6E9		  js	  short	loc_FC6ED
+f000:C6E9		  js	  short	l39
 f000:C6EB		  add	  al, 7
 f000:C6ED
-f000:C6ED loc_FC6ED:						      ;	CODE XREF: reset-1972j
+f000:C6ED l39:							      ;	CODE XREF: reset-1972j
 f000:C6ED		  mov	  ch, al
 f000:C6EF		  mov	  al, cl
 f000:C6F1		  and	  al, 0Fh
 f000:C6F3		  add	  al, 30h ; '0'
 f000:C6F5		  cmp	  al, 3Ah ; ':'
-f000:C6F7		  js	  short	loc_FC6FB
+f000:C6F7		  js	  short	l40
 f000:C6F9		  add	  al, 7
 f000:C6FB
-f000:C6FB loc_FC6FB:						      ;	CODE XREF: reset-1964j
+f000:C6FB l40:							      ;	CODE XREF: reset-1964j
 f000:C6FB		  mov	  ah, ch
 f000:C6FD		  mov	  bp, ax
 f000:C6FF		  mov	  al, ah
@@ -458,19 +458,19 @@ f000:C71D		  shr	  al, 1
 f000:C71F		  and	  al, 0Fh
 f000:C721		  add	  al, 30h ; '0'
 f000:C723		  cmp	  al, 3Ah ; ':'
-f000:C725		  js	  short	loc_FC729
+f000:C725		  js	  short	l41
 f000:C727		  add	  al, 7
 f000:C729
-f000:C729 loc_FC729:						      ;	CODE XREF: reset-1936j
+f000:C729 l41:							      ;	CODE XREF: reset-1936j
 f000:C729		  mov	  ch, al
 f000:C72B		  mov	  al, cl
 f000:C72D		  and	  al, 0Fh
 f000:C72F		  add	  al, 30h ; '0'
 f000:C731		  cmp	  al, 3Ah ; ':'
-f000:C733		  js	  short	loc_FC737
+f000:C733		  js	  short	l42
 f000:C735		  add	  al, 7
 f000:C737
-f000:C737 loc_FC737:						      ;	CODE XREF: reset-1928j
+f000:C737 l42:							      ;	CODE XREF: reset-1928j
 f000:C737		  mov	  ah, ch
 f000:C739		  mov	  bp, ax
 f000:C73B		  mov	  al, ah
@@ -482,8 +482,8 @@ f000:C747		  mov	  ah, 7
 f000:C749		  mov	  es:[di], ax
 f000:C74C		  add	  di, 2
 f000:C74F
-f000:C74F loc_FC74F:						      ;	CODE XREF: reset:loc_FC74Fj
-f000:C74F		  jmp	  short	loc_FC74F
+f000:C74F halt0:						      ;	CODE XREF: reset:halt0j
+f000:C74F		  jmp	  short	halt0
 f000:C74F ; END	OF FUNCTION CHUNK FOR reset
 f000:C74F ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:C751 aVidAddrBaseBbe db 'Vid Addr:   Base:    BBE8h  Off: xxxxh',0
@@ -493,7 +493,7 @@ f000:C778							      ;	DATA XREF: reset-1A22o
 f000:C79F ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:C79F ; START OF FUNCTION CHUNK FOR	reset
 f000:C79F
-f000:C79F loc_FC79F:						      ;	CODE XREF: reset-1AC9j
+f000:C79F l43:							      ;	CODE XREF: reset-1AC9j
 f000:C79F		  mov	  ax, 0BBF0h
 f000:C7A2		  mov	  ss, ax			      ;	ss = 0xbbf0
 f000:C7A4		  mov	  sp, 0F0h ; 'ğ'
@@ -509,8 +509,8 @@ f000:C7AF							      ;	master clear.
 f000:C7AF							      ;	Any OUT	clears the ctrlr (must be re-initialized)
 f000:C7B1		  mov	  cx, 2
 f000:C7B4
-f000:C7B4 loc_FC7B4:						      ;	CODE XREF: reset:loc_FC7B4j
-f000:C7B4		  loop	  loc_FC7B4
+f000:C7B4 l44:							      ;	CODE XREF: reset:l44j
+f000:C7B4		  loop	  l44
 f000:C7B6		  mov	  al, 24h ; '$'
 f000:C7B8		  out	  8, al				      ;	DMA 8237A-5. cmd reg bits:
 f000:C7B8							      ;	0: enable mem-to-mem DMA
@@ -525,7 +525,7 @@ f000:C7BA		  mov	  dx, 0
 f000:C7BD		  mov	  ah, 0
 f000:C7BF		  mov	  cx, 1
 f000:C7C2
-f000:C7C2 loc_FC7C2:						      ;	CODE XREF: reset-1886j
+f000:C7C2 l45:							      ;	CODE XREF: reset-1886j
 f000:C7C2		  mov	  al, cl
 f000:C7C4		  out	  dx, al
 f000:C7C5		  mov	  al, ah
@@ -533,21 +533,21 @@ f000:C7C7		  out	  dx, al
 f000:C7C8		  nop
 f000:C7C9		  in	  al, dx
 f000:C7CA		  cmp	  al, cl
-f000:C7CC		  jnz	  short	loc_FC7FF
+f000:C7CC		  jnz	  short	l47
 f000:C7CE		  in	  al, dx
 f000:C7CF		  cmp	  al, 0
-f000:C7D1		  jnz	  short	loc_FC7FF
+f000:C7D1		  jnz	  short	l47
 f000:C7D3		  rcl	  cl, 1
-f000:C7D5		  jnb	  short	loc_FC7C2
+f000:C7D5		  jnb	  short	l45
 f000:C7D7		  mov	  dx, 0
 f000:C7DA		  xor	  al, al
 f000:C7DC
-f000:C7DC loc_FC7DC:						      ;	CODE XREF: reset-1879j
+f000:C7DC l46:							      ;	CODE XREF: reset-1879j
 f000:C7DC		  out	  dx, al
 f000:C7DD		  out	  dx, al
 f000:C7DE		  inc	  dx
 f000:C7DF		  cmp	  dx, 8
-f000:C7E2		  jnz	  short	loc_FC7DC
+f000:C7E2		  jnz	  short	l46
 f000:C7E4		  mov	  dx, 0Bh
 f000:C7E7		  mov	  al, 58h ; 'X'
 f000:C7E9		  out	  dx, al			      ;	DMA 8237A-5. mode register bits:
@@ -599,11 +599,11 @@ f000:C7FD							      ;	5: extended write mode;	0=late write
 f000:C7FD							      ;	6: DRQ sensing - active	high
 f000:C7FD							      ;	7: DACK	sensing	- active high
 f000:C7FF
-f000:C7FF loc_FC7FF:						      ;	CODE XREF: reset-188Fj
+f000:C7FF l47:							      ;	CODE XREF: reset-188Fj
 f000:C7FF							      ;	reset-188Aj
 f000:C7FF		  mov	  ch, 0
 f000:C801
-f000:C801 loc_FC801:						      ;	CODE XREF: reset-182Cj
+f000:C801 l48:							      ;	CODE XREF: reset-182Cj
 f000:C801							      ;	reset-180Dj
 f000:C801		  mov	  al, 98h ; '˜'
 f000:C803		  out	  63h, al			      ;	PC/XT PPI Command/Mode Register.
@@ -621,7 +621,7 @@ f000:C808							      ;	6: 0=hold keyboard clock low
 f000:C808							      ;	7: 0=enable kbrd
 f000:C80A		  mov	  cl, 1
 f000:C80C
-f000:C80C loc_FC80C:						      ;	CODE XREF: reset-1831j
+f000:C80C l49:							      ;	CODE XREF: reset-1831j
 f000:C80C		  mov	  al, 90h ; ''
 f000:C80E		  out	  43h, al			      ;	Timer 8253-5 (AT: 8254.2).
 f000:C810		  mov	  al, cl
@@ -633,47 +633,47 @@ f000:C81A		  out	  43h, al			      ;	Timer 8253-5 (AT: 8254.2).
 f000:C81C		  nop
 f000:C81D		  in	  al, 42h			      ;	Timer 8253-5 (AT: 8254.2).
 f000:C81F		  cmp	  ch, 1
-f000:C822		  jz	  short	loc_FC828
+f000:C822		  jz	  short	l50
 f000:C824		  cmp	  al, cl
-f000:C826		  jnz	  short	loc_FC834
+f000:C826		  jnz	  short	l51
 f000:C828
-f000:C828 loc_FC828:						      ;	CODE XREF: reset-1839j
+f000:C828 l50:							      ;	CODE XREF: reset-1839j
 f000:C828		  rcl	  cl, 1
-f000:C82A		  jnb	  short	loc_FC80C
+f000:C82A		  jnb	  short	l49
 f000:C82C		  cmp	  ch, 1
-f000:C82F		  jz	  short	loc_FC801
-f000:C831		  jmp	  short	loc_FC877
+f000:C82F		  jz	  short	l48
+f000:C831		  jmp	  short	l54
 f000:C831 ; END	OF FUNCTION CHUNK FOR reset
 f000:C833 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:C833		  nop
 f000:C834 ; START OF FUNCTION CHUNK FOR	reset
 f000:C834
-f000:C834 loc_FC834:						      ;	CODE XREF: reset-1835j
+f000:C834 l51:							      ;	CODE XREF: reset-1835j
 f000:C834		  mov	  si, offset aFaultyWriteRea	      ;	"Faulty	write &	read of	8253 Chan 2 Reg"
 f000:C837		  mov	  di, 3C0h
 f000:C83A		  mov	  ah, 7
 f000:C83C
-f000:C83C loc_FC83C:						      ;	CODE XREF: reset-1811j
+f000:C83C l52:							      ;	CODE XREF: reset-1811j
 f000:C83C		  mov	  al, cs:[si]
 f000:C83F		  or	  al, al
-f000:C841		  jz	  short	loc_FC84C
+f000:C841		  jz	  short	l53
 f000:C843		  mov	  es:[di], ax
 f000:C846		  add	  di, 2
 f000:C849		  inc	  si
-f000:C84A		  jmp	  short	loc_FC83C
+f000:C84A		  jmp	  short	l52
 f000:C84C ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:C84C
-f000:C84C loc_FC84C:						      ;	CODE XREF: reset-181Aj
+f000:C84C l53:							      ;	CODE XREF: reset-181Aj
 f000:C84C		  mov	  ch, 1
-f000:C84E		  jmp	  short	loc_FC801
+f000:C84E		  jmp	  short	l48
 f000:C84E ; END	OF FUNCTION CHUNK FOR reset
 f000:C84E ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:C850 aFaultyWriteRea db 'Faulty write & read of 8253 Chan 2 Reg',0
-f000:C850							      ;	DATA XREF: reset:loc_FC834o
+f000:C850							      ;	DATA XREF: reset:l51o
 f000:C877 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:C877 ; START OF FUNCTION CHUNK FOR	reset
 f000:C877
-f000:C877 loc_FC877:						      ;	CODE XREF: reset-182Aj
+f000:C877 l54:							      ;	CODE XREF: reset-182Aj
 f000:C877		  mov	  al, 74h ; 't'
 f000:C879		  out	  43h, al			      ;	Timer 8253-5 (AT: 8254.2).
 f000:C87B		  mov	  al, 12h
@@ -694,63 +694,63 @@ f000:C897		  mov	  ax, 0
 f000:C89A		  mov	  es, ax
 f000:C89C		  xor	  si, si
 f000:C89E
-f000:C89E loc_FC89E:						      ;	CODE XREF: reset-1790j
+f000:C89E l55:							      ;	CODE XREF: reset-1790j
 f000:C89E		  mov	  ax, es:[si]
 f000:C8A1		  not	  ax
 f000:C8A3		  mov	  es:[si], ax
 f000:C8A6		  mov	  cx, 118h
 f000:C8A9
-f000:C8A9 loc_FC8A9:						      ;	CODE XREF: reset:loc_FC8A9j
-f000:C8A9		  loop	  loc_FC8A9
+f000:C8A9 l56:							      ;	CODE XREF: reset:l56j
+f000:C8A9		  loop	  l56
 f000:C8AB		  cmp	  ax, es:[si]
-f000:C8AE		  jnz	  short	loc_FC8D2
+f000:C8AE		  jnz	  short	l60
 f000:C8B0		  not	  ax
 f000:C8B2		  mov	  es:[si], ax
 f000:C8B5		  mov	  cx, 118h
 f000:C8B8
-f000:C8B8 loc_FC8B8:						      ;	CODE XREF: reset:loc_FC8B8j
-f000:C8B8		  loop	  loc_FC8B8
+f000:C8B8 l57:							      ;	CODE XREF: reset:l57j
+f000:C8B8		  loop	  l57
 f000:C8BA		  cmp	  ax, es:[si]
-f000:C8BD		  jnz	  short	loc_FC8D2
+f000:C8BD		  jnz	  short	l60
 f000:C8BF
-f000:C8BF loc_FC8BF:						      ;	CODE XREF: reset-1773j
+f000:C8BF l58:							      ;	CODE XREF: reset-1773j
 f000:C8BF		  mov	  ax, es
 f000:C8C1		  add	  ax, 1000h
 f000:C8C4		  cmp	  ax, 8000h
-f000:C8C7		  jz	  short	loc_FC8CD
+f000:C8C7		  jz	  short	l59
 f000:C8C9		  mov	  es, ax
-f000:C8CB		  jmp	  short	loc_FC89E
+f000:C8CB		  jmp	  short	l55
 f000:C8CD ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:C8CD
-f000:C8CD loc_FC8CD:						      ;	CODE XREF: reset-1794j
+f000:C8CD l59:							      ;	CODE XREF: reset-1794j
 f000:C8CD		  mov	  es, ax
-f000:C8CF		  jmp	  short	loc_FC8EA
+f000:C8CF		  jmp	  short	l63
 f000:C8CF ; END	OF FUNCTION CHUNK FOR reset
 f000:C8D1 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:C8D1		  nop
 f000:C8D2 ; START OF FUNCTION CHUNK FOR	reset
 f000:C8D2
-f000:C8D2 loc_FC8D2:						      ;	CODE XREF: reset-17ADj
+f000:C8D2 l60:							      ;	CODE XREF: reset-17ADj
 f000:C8D2							      ;	reset-179Ej
 f000:C8D2		  xor	  ax, es:[si]
 f000:C8D5		  mov	  bl, 0
 f000:C8D7		  mov	  cx, 11h
 f000:C8DA
-f000:C8DA loc_FC8DA:						      ;	CODE XREF: reset-177Cj
+f000:C8DA l61:							      ;	CODE XREF: reset-177Cj
 f000:C8DA							      ;	reset-1778j
 f000:C8DA		  dec	  cx
-f000:C8DB		  jcxz	  short	loc_FC8E5
+f000:C8DB		  jcxz	  short	l62
 f000:C8DD		  rcl	  ax, 1
-f000:C8DF		  jnb	  short	loc_FC8DA
+f000:C8DF		  jnb	  short	l61
 f000:C8E1		  inc	  bl
-f000:C8E3		  jmp	  short	loc_FC8DA
+f000:C8E3		  jmp	  short	l61
 f000:C8E5 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:C8E5
-f000:C8E5 loc_FC8E5:						      ;	CODE XREF: reset-1780j
+f000:C8E5 l62:							      ;	CODE XREF: reset-1780j
 f000:C8E5		  cmp	  bl, 0
-f000:C8E8		  jb	  short	loc_FC8BF
+f000:C8E8		  jb	  short	l58
 f000:C8EA
-f000:C8EA loc_FC8EA:						      ;	CODE XREF: reset-178Cj
+f000:C8EA l63:							      ;	CODE XREF: reset-178Cj
 f000:C8EA		  mov	  dx, es
 f000:C8EC		  mov	  al, dh
 f000:C8EE		  mov	  cl, 4
@@ -764,17 +764,17 @@ f000:C900		  mov	  si, offset aMemorySizeNone	      ;	"MEMORY	SIZE =	None  "
 f000:C903		  mov	  di, 4
 f000:C906		  mov	  ah, 7
 f000:C908
-f000:C908 loc_FC908:						      ;	CODE XREF: reset-1745j
+f000:C908 l64:							      ;	CODE XREF: reset-1745j
 f000:C908		  mov	  al, cs:[si]
 f000:C90B		  or	  al, al
-f000:C90D		  jz	  short	loc_FC918
+f000:C90D		  jz	  short	l65
 f000:C90F		  mov	  es:[di], ax
 f000:C912		  add	  di, 2
 f000:C915		  inc	  si
-f000:C916		  jmp	  short	loc_FC908
+f000:C916		  jmp	  short	l64
 f000:C918 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:C918
-f000:C918 loc_FC918:						      ;	CODE XREF: reset-174Ej
+f000:C918 l65:							      ;	CODE XREF: reset-174Ej
 f000:C918		  mov	  al, ds:pbbe80.field_D
 f000:C91B		  mov	  cx, 4
 f000:C91E		  mul	  cl
@@ -784,13 +784,13 @@ f000:C924		  mov	  ah, 7
 f000:C926		  mov	  bx, offset a128k192k256k320k384k448k512k57 ; "128K192K256K320K384K448K512K576K640K704"...
 f000:C929		  mov	  di, 22h ; '"'
 f000:C92C
-f000:C92C loc_FC92C:						      ;	CODE XREF: reset-1725j
+f000:C92C l66:							      ;	CODE XREF: reset-1725j
 f000:C92C		  mov	  al, cs:[bx+si]
 f000:C92F		  mov	  es:[di], ax
 f000:C932		  add	  di, 2
 f000:C935		  inc	  si
-f000:C936		  loop	  loc_FC92C
-f000:C938		  jmp	  short	loc_FC989
+f000:C936		  loop	  l66
+f000:C938		  jmp	  short	l67
 f000:C938 ; END	OF FUNCTION CHUNK FOR reset
 f000:C93A ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:C93A		  nop
@@ -801,8 +801,8 @@ f000:C951							      ;	DATA XREF: reset-1735o
 f000:C989 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:C989 ; START OF FUNCTION CHUNK FOR	reset
 f000:C989
-f000:C989 loc_FC989:						      ;	CODE XREF: reset-1723j
-f000:C989							      ;	reset:loc_FC9BAj
+f000:C989 l67:							      ;	CODE XREF: reset-1723j
+f000:C989							      ;	reset:l71j
 f000:C989		  mov	  al, 98h ; '˜'
 f000:C98B		  out	  63h, al			      ;	PC/XT PPI Command/Mode Register.
 f000:C98B							      ;	Selects	which PPI ports	are input or output.
@@ -810,7 +810,7 @@ f000:C98B							      ;	BIOS sets to 99H (Ports	A and C	are input, B is	output).
 f000:C98D		  mov	  dx, 61h ; 'a'
 f000:C990		  mov	  cl, 1
 f000:C992
-f000:C992 loc_FC992:						      ;	CODE XREF: reset-16BEj
+f000:C992 l68:							      ;	CODE XREF: reset-16BEj
 f000:C992		  mov	  al, cl
 f000:C994		  out	  dx, al			      ;	PC/XT PPI port B bits:
 f000:C994							      ;	0: Tmr 2 gate ÍËÍ OR 03H=spkr ON
@@ -830,41 +830,41 @@ f000:C996							      ;	5: 0=enable I/O	channel	check
 f000:C996							      ;	6: 0=hold keyboard clock low
 f000:C996							      ;	7: 0=enable kbrd
 f000:C997		  cmp	  al, cl
-f000:C999		  jnz	  short	loc_FC9A2
+f000:C999		  jnz	  short	l69
 f000:C99B		  rcl	  cl, 1
-f000:C99D		  jnb	  short	loc_FC992
-f000:C99F		  jmp	  short	loc_FC9E3
+f000:C99D		  jnb	  short	l68
+f000:C99F		  jmp	  short	l72
 f000:C99F ; END	OF FUNCTION CHUNK FOR reset
 f000:C99F ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:C9A1		  db  90h ; 
 f000:C9A2 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:C9A2 ; START OF FUNCTION CHUNK FOR	reset
 f000:C9A2
-f000:C9A2 loc_FC9A2:						      ;	CODE XREF: reset-16C2j
+f000:C9A2 l69:							      ;	CODE XREF: reset-16C2j
 f000:C9A2		  mov	  si, offset aFaultyWriteR_0	      ;	"Faulty	write &	read of	8255 PPI Chan B"
 f000:C9A5		  mov	  di, 3C0h
 f000:C9A8		  mov	  ah, 7
 f000:C9AA
-f000:C9AA loc_FC9AA:						      ;	CODE XREF: reset-16A3j
+f000:C9AA l70:							      ;	CODE XREF: reset-16A3j
 f000:C9AA		  mov	  al, cs:[si]
 f000:C9AD		  or	  al, al
-f000:C9AF		  jz	  short	loc_FC9BA
+f000:C9AF		  jz	  short	l71
 f000:C9B1		  mov	  es:[di], ax
 f000:C9B4		  add	  di, 2
 f000:C9B7		  inc	  si
-f000:C9B8		  jmp	  short	loc_FC9AA
+f000:C9B8		  jmp	  short	l70
 f000:C9BA ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:C9BA
-f000:C9BA loc_FC9BA:						      ;	CODE XREF: reset-16ACj
-f000:C9BA		  jmp	  short	loc_FC989
+f000:C9BA l71:							      ;	CODE XREF: reset-16ACj
+f000:C9BA		  jmp	  short	l67
 f000:C9BA ; END	OF FUNCTION CHUNK FOR reset
 f000:C9BA ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:C9BC aFaultyWriteR_0 db 'Faulty write & read of 8255 PPI Chan B',0
-f000:C9BC							      ;	DATA XREF: reset:loc_FC9A2o
+f000:C9BC							      ;	DATA XREF: reset:l69o
 f000:C9E3 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:C9E3 ; START OF FUNCTION CHUNK FOR	reset
 f000:C9E3
-f000:C9E3 loc_FC9E3:						      ;	CODE XREF: reset-16BCj
+f000:C9E3 l72:							      ;	CODE XREF: reset-16BCj
 f000:C9E3		  mov	  dx, 63h ; 'c'
 f000:C9E6		  mov	  al, 98h ; '˜'
 f000:C9E8		  out	  dx, al			      ;	PC/XT PPI Command/Mode Register.
@@ -910,70 +910,70 @@ f000:CA0A		  mov	  al, 40h ; '@'
 f000:CA0C		  out	  20h, al			      ;	Interrupt controller, 8259A.
 f000:CA0E		  in	  al, dx			      ;	Interrupt controller, 8259A.
 f000:CA0F		  cmp	  al, cl
-f000:CA11		  jnz	  short	loc_FCA37
+f000:CA11		  jnz	  short	l75
 f000:CA13		  mov	  cl, 1
 f000:CA15
-f000:CA15 loc_FCA15:						      ;	CODE XREF: reset-163Cj
+f000:CA15 l73:							      ;	CODE XREF: reset-163Cj
 f000:CA15		  mov	  al, cl
 f000:CA17		  out	  dx, al			      ;	Interrupt controller, 8259A.
 f000:CA18		  in	  al, dx			      ;	Interrupt controller, 8259A.
 f000:CA19		  cmp	  al, cl
-f000:CA1B		  jnz	  short	loc_FCA37
+f000:CA1B		  jnz	  short	l75
 f000:CA1D		  rcl	  cl, 1
-f000:CA1F		  jnb	  short	loc_FCA15
+f000:CA1F		  jnb	  short	l73
 f000:CA21		  mov	  al, 0FDh ; 'ı'
 f000:CA23		  out	  dx, al			      ;	Interrupt controller, 8259A.
 f000:CA24		  mov	  cl, al
 f000:CA26		  in	  al, dx			      ;	Interrupt controller, 8259A.
 f000:CA27		  cmp	  al, cl
-f000:CA29		  jnz	  short	loc_FCA37
+f000:CA29		  jnz	  short	l75
 f000:CA2B		  mov	  cx, 8
 f000:CA2E
-f000:CA2E loc_FCA2E:						      ;	CODE XREF: reset-1629j
+f000:CA2E l74:							      ;	CODE XREF: reset-1629j
 f000:CA2E		  mov	  al, 20h ; ' '
 f000:CA30		  out	  20h, al			      ;	Interrupt controller, 8259A.
-f000:CA32		  loop	  loc_FCA2E
-f000:CA34		  jmp	  short	loc_FCA76
+f000:CA32		  loop	  l74
+f000:CA34		  jmp	  short	l77
 f000:CA34 ; END	OF FUNCTION CHUNK FOR reset
 f000:CA34 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:CA36		  db  90h ; 
 f000:CA37 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:CA37 ; START OF FUNCTION CHUNK FOR	reset
 f000:CA37
-f000:CA37 loc_FCA37:						      ;	CODE XREF: reset-164Aj
+f000:CA37 l75:							      ;	CODE XREF: reset-164Aj
 f000:CA37							      ;	reset-1640j
 f000:CA37							      ;	reset-1632j
 f000:CA37		  mov	  si, offset aFaultyWriteR_1	      ;	"Faulty	write &	read of	8259 Mask Reg"
 f000:CA3A		  mov	  di, 3C0h
 f000:CA3D		  mov	  ah, 7
 f000:CA3F
-f000:CA3F loc_FCA3F:						      ;	CODE XREF: reset-160Ej
+f000:CA3F l76:							      ;	CODE XREF: reset-160Ej
 f000:CA3F		  mov	  al, cs:[si]
 f000:CA42		  or	  al, al
-f000:CA44		  jz	  short	loc_FCA74
+f000:CA44		  jz	  short	halt1
 f000:CA46		  mov	  es:[di], ax
 f000:CA49		  add	  di, 2
 f000:CA4C		  inc	  si
-f000:CA4D		  jmp	  short	loc_FCA3F
+f000:CA4D		  jmp	  short	l76
 f000:CA4D ; END	OF FUNCTION CHUNK FOR reset
 f000:CA4D ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
-f000:CA4F aFaultyWriteR_1 db 'Faulty write & read of 8259 Mask Reg',0 ; DATA XREF: reset:loc_FCA37o
+f000:CA4F aFaultyWriteR_1 db 'Faulty write & read of 8259 Mask Reg',0 ; DATA XREF: reset:l75o
 f000:CA74 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:CA74 ; START OF FUNCTION CHUNK FOR	reset
 f000:CA74
-f000:CA74 loc_FCA74:						      ;	CODE XREF: reset-1617j
-f000:CA74							      ;	reset:loc_FCA74j
-f000:CA74		  jmp	  short	loc_FCA74
+f000:CA74 halt1:						      ;	CODE XREF: reset-1617j
+f000:CA74							      ;	reset:halt1j
+f000:CA74		  jmp	  short	halt1
 f000:CA76 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:CA76
-f000:CA76 loc_FCA76:						      ;	CODE XREF: reset-1627j
+f000:CA76 l77:							      ;	CODE XREF: reset-1627j
 f000:CA76		  xor	  cx, cx
 f000:CA78
-f000:CA78 loc_FCA78:						      ;	CODE XREF: reset:loc_FCA78j
-f000:CA78		  loop	  loc_FCA78
+f000:CA78 delay2:						      ;	CODE XREF: reset:delay2j
+f000:CA78		  loop	  delay2
 f000:CA7A		  mov	  cx, 11h
 f000:CA7D
-f000:CA7D loc_FCA7D:						      ;	CODE XREF: reset-15C9j
+f000:CA7D l78:							      ;	CODE XREF: reset-15C9j
 f000:CA7D		  xchg	  bx, cx
 f000:CA7F		  mov	  al, 88h ; 'ˆ'
 f000:CA81		  out	  61h, al			      ;	PC/XT PPI port B bits:
@@ -997,10 +997,10 @@ f000:CA89							      ;	6: 0=hold keyboard clock low
 f000:CA89							      ;	7: 0=enable kbrd
 f000:CA8B		  mov	  cx, 0A9h ; '©'
 f000:CA8E
-f000:CA8E loc_FCA8E:						      ;	CODE XREF: reset:loc_FCA8Ej
-f000:CA8E		  loop	  loc_FCA8E
+f000:CA8E delay3:						      ;	CODE XREF: reset:delay3j
+f000:CA8E		  loop	  delay3
 f000:CA90		  xchg	  bx, cx
-f000:CA92		  loop	  loc_FCA7D
+f000:CA92		  loop	  l78
 f000:CA94		  mov	  ax, 1
 f000:CA97		  mov	  ds:pbbe80.field_10, ax
 f000:CA9A		  xor	  ax, ax
@@ -1008,14 +1008,14 @@ f000:CA9C		  mov	  ds:pbbe80.field_E, ax
 f000:CA9F		  mov	  cx, 5A5Ah
 f000:CAA2		  mov	  bp, 0
 f000:CAA5
-f000:CAA5 loc_FCAA5:						      ;	CODE XREF: reset-158Cj
+f000:CAA5 l79:							      ;	CODE XREF: reset-158Cj
 f000:CAA5		  mov	  bx, 0FFFEh
 f000:CAA8
-f000:CAA8 loc_FCAA8:						      ;	CODE XREF: reset-1587j
+f000:CAA8 l80:							      ;	CODE XREF: reset-1587j
 f000:CAA8		  mov	  es, bp
 f000:CAAA		  mov	  si, 0FFFEh
 f000:CAAD
-f000:CAAD loc_FCAAD:						      ;	CODE XREF: reset-15A1j
+f000:CAAD l81:							      ;	CODE XREF: reset-15A1j
 f000:CAAD		  mov	  ax, bx
 f000:CAAF		  xor	  ax, cx
 f000:CAB1		  xor	  ax, bp
@@ -1023,69 +1023,69 @@ f000:CAB3		  mov	  es:[bx], ax
 f000:CAB6		  dec	  bx
 f000:CAB7		  dec	  bx
 f000:CAB8		  cmp	  bx, si
-f000:CABA		  jnz	  short	loc_FCAAD
+f000:CABA		  jnz	  short	l81
 f000:CABC		  mov	  ax, bp
 f000:CABE		  add	  ax, 1000h
 f000:CAC1		  mov	  bp, ax
 f000:CAC3		  mov	  ax, ds:pbbe80.field_B
 f000:CAC6		  add	  ax, 1000h
 f000:CAC9		  cmp	  ax, bp
-f000:CACB		  jz	  short	loc_FCAD1
-f000:CACD		  jb	  short	loc_FCAD6
-f000:CACF		  jmp	  short	loc_FCAA5
+f000:CACB		  jz	  short	l82
+f000:CACD		  jb	  short	l83
+f000:CACF		  jmp	  short	l79
 f000:CAD1 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:CAD1
-f000:CAD1 loc_FCAD1:						      ;	CODE XREF: reset-1590j
+f000:CAD1 l82:							      ;	CODE XREF: reset-1590j
 f000:CAD1		  mov	  bx, 0BFFEh
-f000:CAD4		  jmp	  short	loc_FCAA8
+f000:CAD4		  jmp	  short	l80
 f000:CAD6 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:CAD6
-f000:CAD6 loc_FCAD6:						      ;	CODE XREF: reset-158Ej
+f000:CAD6 l83:							      ;	CODE XREF: reset-158Ej
 f000:CAD6		  mov	  bp, 0
 f000:CAD9
-f000:CAD9 loc_FCAD9:						      ;	CODE XREF: reset-1554j
+f000:CAD9 l84:							      ;	CODE XREF: reset-1554j
 f000:CAD9		  mov	  bx, 0FFFEh
 f000:CADC
-f000:CADC loc_FCADC:						      ;	CODE XREF: reset-154Fj
+f000:CADC l85:							      ;	CODE XREF: reset-154Fj
 f000:CADC		  mov	  es, bp
 f000:CADE
-f000:CADE loc_FCADE:						      ;	CODE XREF: reset-1566j
+f000:CADE l86:							      ;	CODE XREF: reset-1566j
 f000:CADE		  mov	  ax, bx
 f000:CAE0		  xor	  ax, cx
 f000:CAE2		  xor	  ax, bp
 f000:CAE4		  mov	  si, ax
 f000:CAE6		  mov	  di, es:[bx]
 f000:CAE9		  cmp	  si, di
-f000:CAEB		  jz	  short	loc_FCAF0
+f000:CAEB		  jz	  short	l87
 f000:CAED		  call	  sub_FCB8E
 f000:CAF0
-f000:CAF0 loc_FCAF0:						      ;	CODE XREF: reset-1570j
+f000:CAF0 l87:							      ;	CODE XREF: reset-1570j
 f000:CAF0		  dec	  bx
 f000:CAF1		  dec	  bx
 f000:CAF2		  cmp	  bx, 0FFFEh
-f000:CAF5		  jnz	  short	loc_FCADE
+f000:CAF5		  jnz	  short	l86
 f000:CAF7		  add	  bp, 1000h
 f000:CAFB		  mov	  ax, ds:pbbe80.field_B
 f000:CAFE		  add	  ax, 1000h
 f000:CB01		  cmp	  ax, bp
-f000:CB03		  jz	  short	loc_FCB09
-f000:CB05		  jb	  short	loc_FCB0E
-f000:CB07		  jmp	  short	loc_FCAD9
+f000:CB03		  jz	  short	l88
+f000:CB05		  jb	  short	l89
+f000:CB07		  jmp	  short	l84
 f000:CB09 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:CB09
-f000:CB09 loc_FCB09:						      ;	CODE XREF: reset-1558j
+f000:CB09 l88:							      ;	CODE XREF: reset-1558j
 f000:CB09		  mov	  bx, 0BFFEh
-f000:CB0C		  jmp	  short	loc_FCADC
+f000:CB0C		  jmp	  short	l85
 f000:CB0E ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:CB0E
-f000:CB0E loc_FCB0E:						      ;	CODE XREF: reset-1556j
+f000:CB0E l89:							      ;	CODE XREF: reset-1556j
 f000:CB0E		  cld
 f000:CB0F		  mov	  bp, 0
 f000:CB12
-f000:CB12 loc_FCB12:						      ;	CODE XREF: reset-152Dj
+f000:CB12 l90:							      ;	CODE XREF: reset-152Dj
 f000:CB12		  mov	  cx, 8000h
 f000:CB15
-f000:CB15 loc_FCB15:						      ;	CODE XREF: reset-1528j
+f000:CB15 l91:							      ;	CODE XREF: reset-1528j
 f000:CB15		  mov	  es, bp
 f000:CB17		  mov	  di, 0
 f000:CB1A		  xor	  ax, ax
@@ -1094,28 +1094,28 @@ f000:CB1E		  add	  bp, 1000h
 f000:CB22		  mov	  ax, ds:pbbe80.field_B
 f000:CB25		  add	  ax, 1000h
 f000:CB28		  cmp	  ax, bp
-f000:CB2A		  jz	  short	loc_FCB30
-f000:CB2C		  jb	  short	loc_FCB35
-f000:CB2E		  jmp	  short	loc_FCB12
+f000:CB2A		  jz	  short	l92
+f000:CB2C		  jb	  short	l93
+f000:CB2E		  jmp	  short	l90
 f000:CB30 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:CB30
-f000:CB30 loc_FCB30:						      ;	CODE XREF: reset-1531j
+f000:CB30 l92:							      ;	CODE XREF: reset-1531j
 f000:CB30		  mov	  cx, 5FFEh
-f000:CB33		  jmp	  short	loc_FCB15
+f000:CB33		  jmp	  short	l91
 f000:CB35 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:CB35
-f000:CB35 loc_FCB35:						      ;	CODE XREF: reset-152Fj
+f000:CB35 l93:							      ;	CODE XREF: reset-152Fj
 f000:CB35		  mov	  ax, 0BBE8h
 f000:CB38		  mov	  ds, ax			      ;	ds = 0xbbe8
 f000:CB3A		  mov	  ax, ds:pbbe80.field_10
 f000:CB3D		  cmp	  ax, 1
-f000:CB40		  jnz	  short	loc_FCB45
-f000:CB42		  jmp	  loc_FCC56
+f000:CB40		  jnz	  short	halt
+f000:CB42		  jmp	  _reset_cont
 f000:CB45 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:CB45
-f000:CB45 loc_FCB45:						      ;	CODE XREF: reset-151Bj
-f000:CB45							      ;	reset:loc_FCB45j
-f000:CB45		  jmp	  short	loc_FCB45
+f000:CB45 halt:							      ;	CODE XREF: reset-151Bj
+f000:CB45							      ;	reset:haltj
+f000:CB45		  jmp	  short	halt
 f000:CB45 ; END	OF FUNCTION CHUNK FOR reset
 f000:CB45 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:CB47 aMemoryErrorInf db 'Memory Error Information:               Written  Read    Base   Offset',0
@@ -1262,8 +1262,8 @@ f000:CC55
 f000:CC56 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:CC56 ; START OF FUNCTION CHUNK FOR	reset
 f000:CC56
-f000:CC56 loc_FCC56:						      ;	CODE XREF: reset-1519j
-f000:CC56		  jmp	  loc_FE083
+f000:CC56 _reset_cont:						      ;	CODE XREF: reset-1519j
+f000:CC56		  jmp	  reset_cont
 f000:CC56 ; END	OF FUNCTION CHUNK FOR reset
 f000:CC59
 f000:CC59 ; ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ S U	B R O U	T I N E	ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ
@@ -4370,7 +4370,7 @@ f000:DB5F
 f000:DB5F ; ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ S U	B R O U	T I N E	ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ
 f000:DB5F
 f000:DB5F
-f000:DB5F play_bell_sound? proc	near				      ;	CODE XREF: reset:loc_FE185p
+f000:DB5F play_bell_sound? proc	near				      ;	CODE XREF: reset:l5p
 f000:DB5F							      ;	int_09+19p
 f000:DB5F							      ;	sub_FEDAA+1Ep
 f000:DB5F							      ;	int_10_0e+Dp
@@ -4589,7 +4589,7 @@ f000:DC2C
 f000:DC2C ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:DC2D		  dw 1E9h dup(0ADDEh)
 f000:DFFF		  db 0FFh
-f000:E000 int_1d	  db 38h, 28h, 2Dh, 0Ah, 1Ch, 1, 19h, 1Ah, 2, 8, 6, 7, 4 dup(0); init_modes_0_1
+f000:E000 int_1d_monitor  db 38h, 28h, 2Dh, 0Ah, 1Ch, 1, 19h, 1Ah, 2, 8, 6, 7, 4 dup(0); init_modes_0_1
 f000:E000							      ;	DATA XREF: f000:FF1Do
 f000:E000		  db 71h, 50h, 5Ah, 0Ah, 1Ch, 1, 19h, 1Ah, 2, 8, 6, 7, 4 dup(0); init_modes_2_3	; video	init param
 f000:E000		  db 38h, 28h, 2Dh, 0Ah, 7Fh, 6, 64h, 70h, 2, 1, 6, 7, 4 dup(0); init_modes_4_5_6_8
@@ -4631,23 +4631,23 @@ f000:E075 l0:							      ;	CODE XREF: reset+12j
 f000:E075		  mov	  es:pbbe80.shadow_keyb_status_flags_1,	ax
 f000:E079		  mov	  ax, ds:p400.POST_reset_flag
 f000:E07C		  mov	  es:pbbe80.shadow_POST_reset_flag, ax
-f000:E080		  jmp	  loc_FC470
+f000:E080		  jmp	  test_system
 f000:E080 reset		  endp
 f000:E080
 f000:E083 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:E083 ; START OF FUNCTION CHUNK FOR	reset
 f000:E083
-f000:E083 loc_FE083:						      ;	CODE XREF: reset:loc_FCC56j
+f000:E083 reset_cont:						      ;	CODE XREF: reset:_reset_contj
 f000:E083		  mov	  ax, 40h ; '@'
 f000:E086		  mov	  ds, ax			      ;	ds = 0x40
 f000:E088		  mov	  ax, 0BBE8h
 f000:E08B		  mov	  es, ax			      ;	es = 0xbbe8
 f000:E08D		  cmp	  word ptr es:pbbe80.shadow_POST_reset_flag, 1234h
-f000:E094		  jnz	  short	loc_FE09D
+f000:E094		  jnz	  short	l1
 f000:E096		  mov	  ax, es:pbbe80.shadow_keyb_status_flags_1
 f000:E09A		  mov	  ds:p400.keyb_status_flags_1, ax
 f000:E09D
-f000:E09D loc_FE09D:						      ;	CODE XREF: reset+39j
+f000:E09D l1:							      ;	CODE XREF: reset+39j
 f000:E09D		  cli
 f000:E09E		  cld
 f000:E09F		  mov	  ax, 36h ; '6'
@@ -4669,14 +4669,16 @@ f000:E0BD		  xor	  al, al
 f000:E0BF		  out	  42h, al			      ;	Timer 8253-5 (AT: 8254.2).
 f000:E0C1		  mov	  al, 5
 f000:E0C3		  out	  42h, al			      ;	Timer 8253-5 (AT: 8254.2).
+f000:E0C5 ; setup segment registers
 f000:E0C5		  xor	  ax, ax
-f000:E0C7		  mov	  es, ax
+f000:E0C7		  mov	  es, ax			      ;	es = 0x00
 f000:E0C9		  mov	  ax, 30h ; '0'
-f000:E0CC		  mov	  ss, ax
+f000:E0CC		  mov	  ss, ax			      ;	ss = 0x30
 f000:E0CE		  mov	  ax, 100h
-f000:E0D1		  mov	  sp, ax
+f000:E0D1		  mov	  sp, ax			      ;	stack: (ss:sp) 0x30:0x100
 f000:E0D3		  mov	  ax, cs
-f000:E0D5		  mov	  ds, ax
+f000:E0D5		  mov	  ds, ax			      ;	ds = cs
+f000:E0D7 ; setup interrupt vectors
 f000:E0D7		  mov	  si, offset int_00_07_tbl
 f000:E0DA		  xor	  di, di
 f000:E0DC		  mov	  cx, 8
@@ -4721,8 +4723,8 @@ f000:E122							      ;	6: 0=hold keyboard clock low
 f000:E122							      ;	7: 0=enable kbrd
 f000:E124		  mov	  cx, 4000h
 f000:E127
-f000:E127 loc_FE127:						      ;	CODE XREF: reset:loc_FE127j
-f000:E127		  loop	  loc_FE127
+f000:E127 delay0:						      ;	CODE XREF: reset:delay0j
+f000:E127		  loop	  delay0
 f000:E129		  and	  al, 0FEh
 f000:E12B		  out	  61h, al			      ;	PC/XT PPI port B bits:
 f000:E12B							      ;	0: Tmr 2 gate ÍËÍ OR 03H=spkr ON
@@ -4759,10 +4761,10 @@ f000:E15A		  out	  0Ch, al			      ;	DMA controller,	8237A-5.
 f000:E15A							      ;	clear byte pointer flip-flop.
 f000:E15C		  mov	  dx, 4
 f000:E15F
-f000:E15F loc_FE15F:						      ;	CODE XREF: reset+120j
+f000:E15F l2:							      ;	CODE XREF: reset+120j
 f000:E15F		  mov	  cx, 1
 f000:E162
-f000:E162 loc_FE162:						      ;	CODE XREF: reset+11Aj
+f000:E162 l3:							      ;	CODE XREF: reset+11Aj
 f000:E162		  mov	  ax, cx
 f000:E164		  out	  dx, al			      ;	DMA controller,	8237A-5.
 f000:E164							      ;	channel	2 base address
@@ -4779,19 +4781,19 @@ f000:E16C		  in	  al, dx			      ;	DMA controller,	8237A-5.
 f000:E16C							      ;	channel	2 current address
 f000:E16D		  xchg	  ah, al
 f000:E16F		  cmp	  ax, cx
-f000:E171		  jnz	  short	loc_FE17F
+f000:E171		  jnz	  short	l4
 f000:E173		  rcl	  cx, 1
-f000:E175		  jnb	  short	loc_FE162
+f000:E175		  jnb	  short	l3
 f000:E177		  inc	  dx
 f000:E178		  cmp	  dx, 6
-f000:E17B		  jnz	  short	loc_FE15F
-f000:E17D		  jmp	  short	loc_FE185
+f000:E17B		  jnz	  short	l2
+f000:E17D		  jmp	  short	l5
 f000:E17F ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:E17F
-f000:E17F loc_FE17F:						      ;	CODE XREF: reset+116j
+f000:E17F l4:							      ;	CODE XREF: reset+116j
 f000:E17F		  or	  word ptr ds:p400.installed_hardware, 100h
 f000:E185
-f000:E185 loc_FE185:						      ;	CODE XREF: reset+122j
+f000:E185 l5:							      ;	CODE XREF: reset+122j
 f000:E185		  call	  play_bell_sound?
 f000:E188		  in	  al, 21h			      ;	Interrupt controller, 8259A.
 f000:E18A		  and	  al, 0BFh
@@ -4825,14 +4827,14 @@ f000:E1BC		  int	  13h				      ;	DISK - READ SECTORS INTO MEMORY
 f000:E1BC							      ;	AL = number of sectors to read,	CH = track, CL = sector
 f000:E1BC							      ;	DH = head, DL =	drive, ES:BX ->	buffer to fill
 f000:E1BC							      ;	Return:	CF set on error, AH = status, AL = number of sectors read
-f000:E1BE		  jnb	  short	loc_FE1C5
+f000:E1BE		  jnb	  short	l6
 f000:E1C0		  test	  ah, 40h
-f000:E1C3		  jnz	  short	loc_FE1CB
+f000:E1C3		  jnz	  short	l7
 f000:E1C5
-f000:E1C5 loc_FE1C5:						      ;	CODE XREF: reset+163j
+f000:E1C5 l6:							      ;	CODE XREF: reset+163j
 f000:E1C5		  or	  word ptr ds:p400.installed_hardware, 40h
 f000:E1CB
-f000:E1CB loc_FE1CB:						      ;	CODE XREF: reset+168j
+f000:E1CB l7:							      ;	CODE XREF: reset+168j
 f000:E1CB		  cli
 f000:E1CC		  in	  al, 21h			      ;	Interrupt controller, 8259A.
 f000:E1CE		  or	  al, 40h
@@ -4853,13 +4855,13 @@ f000:E1E0							      ;	send byte to printer
 f000:E1E1		  in	  al, dx			      ;	Printer	Data Latch:
 f000:E1E1							      ;	fetch last byte	sent
 f000:E1E2		  cmp	  al, 0A5h ; '¥'
-f000:E1E4		  jnz	  short	loc_FE1F0
+f000:E1E4		  jnz	  short	l8
 f000:E1E6		  mov	  [bx],	dx
 f000:E1E8		  inc	  bx
 f000:E1E9		  inc	  bx
 f000:E1EA		  add	  word ptr ds:p400.installed_hardware, 4000h
 f000:E1F0
-f000:E1F0 loc_FE1F0:						      ;	CODE XREF: reset+189j
+f000:E1F0 l8:							      ;	CODE XREF: reset+189j
 f000:E1F0		  mov	  dx, 378h
 f000:E1F3		  mov	  al, 0A5h ; '¥'
 f000:E1F5		  out	  dx, al			      ;	Printer	Data Latch:
@@ -4867,13 +4869,13 @@ f000:E1F5							      ;	send byte to printer
 f000:E1F6		  in	  al, dx			      ;	Printer	Data Latch:
 f000:E1F6							      ;	fetch last byte	sent
 f000:E1F7		  cmp	  al, 0A5h ; '¥'
-f000:E1F9		  jnz	  short	loc_FE205
+f000:E1F9		  jnz	  short	l9
 f000:E1FB		  mov	  [bx],	dx
 f000:E1FD		  inc	  bx
 f000:E1FE		  inc	  bx
 f000:E1FF		  add	  word ptr ds:p400.installed_hardware, 4000h
 f000:E205
-f000:E205 loc_FE205:						      ;	CODE XREF: reset+19Ej
+f000:E205 l9:							      ;	CODE XREF: reset+19Ej
 f000:E205		  mov	  dx, 278h
 f000:E208		  mov	  al, 0A5h ; '¥'
 f000:E20A		  out	  dx, al			      ;	Printer	Data Latch:
@@ -4881,11 +4883,11 @@ f000:E20A							      ;	send byte to printer
 f000:E20B		  in	  al, dx			      ;	Printer	Data Latch:
 f000:E20B							      ;	fetch last byte	sent
 f000:E20C		  cmp	  al, 0A5h ; '¥'
-f000:E20E		  jnz	  short	loc_FE218
+f000:E20E		  jnz	  short	l10
 f000:E210		  mov	  [bx],	dx
 f000:E212		  add	  word ptr ds:p400.installed_hardware, 4000h
 f000:E218
-f000:E218 loc_FE218:						      ;	CODE XREF: reset+1B3j
+f000:E218 l10:							      ;	CODE XREF: reset+1B3j
 f000:E218		  mov	  bx, p400.lpt0_timeout
 f000:E21B		  mov	  word ptr [bx], 1414h
 f000:E21F		  mov	  word ptr [bx+2], 1414h
@@ -4906,13 +4908,13 @@ f000:E232							      ;	or (when DLAB=1) divisor latch low byte.
 f000:E233		  in	  al, dx			      ;	COM: receiver buffer register.
 f000:E233							      ;	8 bits of character received.
 f000:E234		  cmp	  al, 0AAh ; 'ª'
-f000:E236		  jnz	  short	loc_FE242
+f000:E236		  jnz	  short	l11
 f000:E238		  mov	  [bx],	dx
 f000:E23A		  inc	  bx
 f000:E23B		  inc	  bx
 f000:E23C		  add	  word ptr ds:p400.installed_hardware, 200h
 f000:E242
-f000:E242 loc_FE242:						      ;	CODE XREF: reset+1DBj
+f000:E242 l11:							      ;	CODE XREF: reset+1DBj
 f000:E242		  mov	  dx, 2FBh
 f000:E245		  mov	  al, 80h ; '€'
 f000:E247		  out	  dx, al			      ;	COM: line control register bits:
@@ -4929,11 +4931,11 @@ f000:E24D							      ;	or (when DLAB=1) divisor latch low byte.
 f000:E24E		  in	  al, dx			      ;	COM: receiver buffer register.
 f000:E24E							      ;	8 bits of character received.
 f000:E24F		  cmp	  al, 0AAh ; 'ª'
-f000:E251		  jnz	  short	loc_FE25B
+f000:E251		  jnz	  short	l12
 f000:E253		  mov	  [bx],	dx
 f000:E255		  add	  word ptr ds:p400.installed_hardware, 200h
 f000:E25B
-f000:E25B loc_FE25B:						      ;	CODE XREF: reset+1F6j
+f000:E25B l12:							      ;	CODE XREF: reset+1F6j
 f000:E25B		  mov	  bx, p400.comm_0_timeout
 f000:E25E		  mov	  word ptr [bx], 101h
 f000:E262		  mov	  word ptr [bx+2], 101h
@@ -4964,22 +4966,22 @@ f000:E286		  mov	  ax, 0C800h
 f000:E289		  mov	  ds, ax			      ;	ds = 0xc800
 f000:E28B		  mov	  cx, 58h ; 'X'
 f000:E28E
-f000:E28E loc_FE28E:						      ;	CODE XREF: reset+26Ej
+f000:E28E l13:							      ;	CODE XREF: reset+26Ej
 f000:E28E		  xor	  si, si
 f000:E290		  cmp	  word ptr [si], 0AA55h
-f000:E294		  jnz	  short	loc_FE2C2
+f000:E294		  jnz	  short	l16
 f000:E296		  push	  cx
 f000:E297		  mov	  cl, 0
 f000:E299		  mov	  ch, [si+2]
 f000:E29C		  add	  cx, cx
 f000:E29E		  mov	  al, 0
 f000:E2A0
-f000:E2A0 loc_FE2A0:						      ;	CODE XREF: reset+248j
+f000:E2A0 l14:							      ;	CODE XREF: reset+248j
 f000:E2A0		  add	  al, [si]
 f000:E2A2		  inc	  si
-f000:E2A3		  loop	  loc_FE2A0
+f000:E2A3		  loop	  l14
 f000:E2A5		  or	  al, al
-f000:E2A7		  jnz	  short	loc_FE2C1
+f000:E2A7		  jnz	  short	l15
 f000:E2A9		  mov	  ax, 40h ; '@'
 f000:E2AC		  mov	  es, ax			      ;	es = 0x40
 f000:E2AE		  mov	  word ptr es:p400.POST_entry_point_offset, 3
@@ -4988,16 +4990,16 @@ f000:E2BA		  push	  ds
 f000:E2BB		  call	  dword	ptr es:p400.POST_entry_point_offset
 f000:E2C0		  pop	  ds
 f000:E2C1
-f000:E2C1 loc_FE2C1:						      ;	CODE XREF: reset+24Cj
+f000:E2C1 l15:							      ;	CODE XREF: reset+24Cj
 f000:E2C1		  pop	  cx
 f000:E2C2
-f000:E2C2 loc_FE2C2:						      ;	CODE XREF: reset+239j
+f000:E2C2 l16:							      ;	CODE XREF: reset+239j
 f000:E2C2		  mov	  ax, ds
 f000:E2C4		  add	  ax, 80h ; '€'
 f000:E2C7		  mov	  ds, ax
-f000:E2C9		  loop	  loc_FE28E
+f000:E2C9		  loop	  l13
 f000:E2CB		  in	  al, 21h			      ;	Interrupt controller, 8259A.
-f000:E2CD		  and	  al, 0FDh
+f000:E2CD		  and	  al, 11111101b			      ;	mask off bit 1.	IRQ9 (Keyboard)	enabled, rest disabled
 f000:E2CF		  out	  21h, al			      ;	Interrupt controller, 8259A.
 f000:E2D1		  sti
 f000:E2D2		  mov	  ah, 1
@@ -5006,30 +5008,30 @@ f000:E2D4							      ;	Return:	ZF clear if character in buffer
 f000:E2D4							      ;	AH = scan code,	AL = character
 f000:E2D4							      ;	ZF set if no character in buffer
 f000:E2D6		  cli
-f000:E2D7		  jz	  short	loc_FE309
-f000:E2D9		  cmp	  ax, 9900h
+f000:E2D7		  jz	  short	l18
+f000:E2D9		  cmp	  ax, 9900h			      ;	scancode / bytecode for	F12
 f000:E2DC		  mov	  ax, 40h ; '@'
 f000:E2DF		  mov	  ds, ax			      ;	ds = 0x40
-f000:E2E1		  jnz	  short	loc_FE300
+f000:E2E1		  jnz	  short	l17
 f000:E2E3		  mov	  ax, ds:p400.installed_hardware
-f000:E2E6		  and	  ax, 0FFCFh
-f000:E2E9		  or	  ax, 10h
+f000:E2E6		  and	  ax, 0FFCFh			      ;	mask off "initial video	mode" bits
+f000:E2E9		  or	  ax, 10h			      ;	initial	video mode = 40x25 color
 f000:E2EC		  mov	  ds:p400.installed_hardware, ax
 f000:E2EF		  xor	  ax, ax
 f000:E2F1		  mov	  es, ax			      ;	es = 0x00
 f000:E2F3		  mov	  bx, 74h ; 't'                       ; int 0x1d
-f000:E2F6		  mov	  ax, offset video_param_table
+f000:E2F6		  mov	  ax, offset int_1d_tv		      ;	video table parameter
 f000:E2F9		  mov	  es:[bx], ax
 f000:E2FC		  mov	  word ptr es:[bx+2], cs
 f000:E300
-f000:E300 loc_FE300:						      ;	CODE XREF: reset+286j
+f000:E300 l17:							      ;	CODE XREF: reset+286j
 f000:E300		  mov	  ax, ds:p400.keyb_buffer_start_offset_ptr
 f000:E303		  mov	  ds:p400.keyb_buffer_head_ptr,	ax
 f000:E306		  mov	  ds:p400.keyb_buffer_tail_ptr,	ax
 f000:E309
-f000:E309 loc_FE309:						      ;	CODE XREF: reset+27Cj
+f000:E309 l18:							      ;	CODE XREF: reset+27Cj
 f000:E309		  in	  al, 21h			      ;	Interrupt controller, 8259A.
-f000:E30B		  or	  al, 2
+f000:E30B		  or	  al, 10b			      ;	mask off everything execept bit	1. Keyboard disabled, rest enabled
 f000:E30D		  out	  21h, al			      ;	Interrupt controller, 8259A.
 f000:E30F		  mov	  ax, 40h ; '@'
 f000:E312		  mov	  ds, ax			      ;	ds = 0x40
@@ -5038,13 +5040,13 @@ f000:E316		  mov	  bx, ds:p400.installed_hardware
 f000:E31A		  and	  bx, 30h
 f000:E31E		  mov	  al, 7
 f000:E320		  cmp	  bl, 30h ; '0'
-f000:E323		  jz	  short	loc_FE32E
+f000:E323		  jz	  short	l19
 f000:E325		  mov	  al, 2
 f000:E327		  cmp	  bl, 20h ; ' '
-f000:E32A		  jz	  short	loc_FE32E
+f000:E32A		  jz	  short	l19
 f000:E32C		  mov	  al, 0
 f000:E32E
-f000:E32E loc_FE32E:						      ;	CODE XREF: reset+2C8j
+f000:E32E l19:							      ;	CODE XREF: reset+2C8j
 f000:E32E							      ;	reset+2CFj
 f000:E32E		  int	  10h				      ;	- VIDEO	- SET VIDEO MODE
 f000:E32E							      ;	AL = mode
@@ -5455,26 +5457,26 @@ f000:E84C							      ;	DATA XREF: int_16:int_16_jmp_tblo
 f000:E84C		  cli
 f000:E84D		  mov	  si, ds:p400.keyb_buffer_head_ptr
 f000:E851		  cmp	  si, ds:p400.keyb_buffer_tail_ptr
-f000:E855		  jz	  short	loc_FE86C
+f000:E855		  jz	  short	l1
 f000:E857		  mov	  ax, [si]
 f000:E859		  inc	  si
 f000:E85A		  inc	  si
 f000:E85B		  cmp	  si, ds:p400.keyb_buffer_end_offset_ptr
-f000:E85F		  jb	  short	loc_FE865
+f000:E85F		  jb	  short	l0
 f000:E861		  mov	  si, ds:p400.keyb_buffer_start_offset_ptr
 f000:E865
-f000:E865 loc_FE865:						      ;	CODE XREF: int_16+31j
+f000:E865 l0:							      ;	CODE XREF: int_16+31j
 f000:E865		  mov	  ds:p400.keyb_buffer_head_ptr,	si
 f000:E869		  sti
 f000:E86A		  jmp	  short	exit
 f000:E86C ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:E86C
-f000:E86C loc_FE86C:						      ;	CODE XREF: int_16+27j
+f000:E86C l1:							      ;	CODE XREF: int_16+27j
 f000:E86C		  sti
 f000:E86D		  mov	  cx, 19h
 f000:E870
-f000:E870 loc_FE870:						      ;	CODE XREF: int_16:loc_FE870j
-f000:E870		  loop	  loc_FE870
+f000:E870 l2:							      ;	CODE XREF: int_16:l2j
+f000:E870		  loop	  l2
 f000:E872		  jmp	  short	int_16_00
 f000:E874 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:E874
@@ -5486,19 +5488,19 @@ f000:E877		  cli
 f000:E878		  mov	  si, ds:p400.keyb_buffer_head_ptr
 f000:E87C		  cmp	  si, ds:p400.keyb_buffer_tail_ptr
 f000:E880		  sti
-f000:E881		  jz	  short	loc_FE88B
+f000:E881		  jz	  short	l3
 f000:E883		  mov	  ax, [si]
 f000:E885		  cmp	  bx, 1
-f000:E888		  jmp	  short	loc_FE88E
+f000:E888		  jmp	  short	l4
 f000:E888 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:E88A		  db  90h ; 
 f000:E88B ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:E88B
-f000:E88B loc_FE88B:						      ;	CODE XREF: int_16+53j
+f000:E88B l3:							      ;	CODE XREF: int_16+53j
 f000:E88B		  cmp	  bx, 0
 f000:E88E
-f000:E88E loc_FE88E:						      ;	CODE XREF: int_16+5Aj
-f000:E88E		  jmp	  short	loc_FE894
+f000:E88E l4:							      ;	CODE XREF: int_16+5Aj
+f000:E88E		  jmp	  short	exit2
 f000:E890 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 f000:E890
 f000:E890 int_16_02:						      ;	CODE XREF: int_16+10j
@@ -5509,7 +5511,7 @@ f000:E893 exit:							      ;	CODE XREF: int_16:errorj
 f000:E893							      ;	int_16+3Cj
 f000:E893		  popf
 f000:E894
-f000:E894 loc_FE894:						      ;	CODE XREF: int_16:loc_FE88Ej
+f000:E894 exit2:						      ;	CODE XREF: int_16:l4j
 f000:E894		  pop	  ds
 f000:E895		  pop	  di
 f000:E896		  pop	  si
@@ -6638,94 +6640,13 @@ f000:F099		  jmp	  near ptr int_pop_regs_and_exit
 f000:F099 int_10	  endp
 f000:F099
 f000:F099 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
-f000:F09C		  db	0
-f000:F09D		  db	0
-f000:F09E		  db	0
-f000:F09F		  db	0
-f000:F0A0		  db	0
-f000:F0A1		  db	0
-f000:F0A2		  db	0
-f000:F0A3		  db	0
-f000:F0A4 video_param_table db	38h ; 8				      ;	DATA XREF: reset+29Bo
-f000:F0A5		  db  28h ; (
-f000:F0A6		  db  2Ch ; ,
-f000:F0A7		  db	8
-f000:F0A8		  db  1Fh
-f000:F0A9		  db	6
-f000:F0AA		  db  19h
-f000:F0AB		  db  1Ch
-f000:F0AC		  db	2
-f000:F0AD		  db	7
-f000:F0AE		  db	6
-f000:F0AF		  db	7
-f000:F0B0		  db	0
-f000:F0B1		  db	0
-f000:F0B2		  db	0
-f000:F0B3		  db	0
-f000:F0B4		  db  71h ; q
-f000:F0B5		  db  50h ; P
-f000:F0B6		  db  58h ; X
-f000:F0B7		  db  10h
-f000:F0B8		  db  1Fh
-f000:F0B9		  db	6
-f000:F0BA		  db  19h
-f000:F0BB		  db  1Ch
-f000:F0BC		  db	2
-f000:F0BD		  db	7
-f000:F0BE		  db	6
-f000:F0BF		  db	7
-f000:F0C0		  db	0
-f000:F0C1		  db	0
-f000:F0C2		  db	0
-f000:F0C3		  db	0
-f000:F0C4		  db  38h ; 8
-f000:F0C5		  db  28h ; (
-f000:F0C6		  db  2Ch ; ,
-f000:F0C7		  db	8
-f000:F0C8		  db  7Fh ; 
-f000:F0C9		  db	6
-f000:F0CA		  db  64h ; d
-f000:F0CB		  db  70h ; p
-f000:F0CC		  db	2
-f000:F0CD		  db	1
-f000:F0CE		  db	6
-f000:F0CF		  db	7
-f000:F0D0		  db	0
-f000:F0D1		  db	0
-f000:F0D2		  db	0
-f000:F0D3		  db	0
-f000:F0D4		  db  61h ; a
-f000:F0D5		  db  50h ; P
-f000:F0D6		  db  52h ; R
-f000:F0D7		  db  0Fh
-f000:F0D8		  db  19h
-f000:F0D9		  db	6
-f000:F0DA		  db  19h
-f000:F0DB		  db  19h
-f000:F0DC		  db	2
-f000:F0DD		  db  0Dh
-f000:F0DE		  db  0Bh
-f000:F0DF		  db  0Ch
-f000:F0E0		  db	0
-f000:F0E1		  db	0
-f000:F0E2		  db	0
-f000:F0E3		  db	0
-f000:F0E4		  db  71h ; q
-f000:F0E5		  db  50h ; P
-f000:F0E6		  db  58h ; X
-f000:F0E7		  db  10h
-f000:F0E8		  db  3Fh ; ?
-f000:F0E9		  db	6
-f000:F0EA		  db  32h ; 2
-f000:F0EB		  db  38h ; 8
-f000:F0EC		  db	2
-f000:F0ED		  db	3
-f000:F0EE		  db	6
-f000:F0EF		  db	7
-f000:F0F0		  db	0
-f000:F0F1		  db	0
-f000:F0F2		  db	0
-f000:F0F3		  db	0
+f000:F09C		  db 8 dup(0)
+f000:F0A4 int_1d_tv	  db 38h, 28h, 2Ch, 8, 1Fh, 6, 19h, 1Ch, 2, 7, 6, 7, 4 dup(0); init_modes_0_1
+f000:F0A4							      ;	DATA XREF: reset+29Bo
+f000:F0A4		  db 71h, 50h, 58h, 10h, 1Fh, 6, 19h, 1Ch, 2, 7, 6, 7, 4 dup(0); init_modes_2_3
+f000:F0A4		  db 38h, 28h, 2Ch, 8, 7Fh, 6, 64h, 70h, 2, 1, 6, 7, 4 dup(0); init_modes_4_5_6_8
+f000:F0A4		  db 61h, 50h, 52h, 0Fh, 19h, 6, 2 dup(19h), 2,	0Dh, 0Bh, 0Ch, 4 dup(0); init_mode_7
+f000:F0A4		  db 71h, 50h, 58h, 10h, 3Fh, 6, 32h, 38h, 2, 3, 6, 7, 4 dup(0); init_modes_9_a
 f000:F0F4 video_init_vars video_init_some_vars <0, 101100b, 28h, 8>   ;	DATA XREF: int_10_00+3Ar
 f000:F0F4							      ;	int_10_00+3Fr
 f000:F0F4							      ;	int_10_00+46r
@@ -8626,7 +8547,7 @@ f000:FF15		  dw offset int_19			      ;	int 0x19
 f000:FF17		  dw offset int_1a			      ;	int 0x1a
 f000:FF19		  dw offset nullsub_1			      ;	int 0x1b
 f000:FF1B		  dw offset nullsub_1			      ;	int 0x1c
-f000:FF1D		  dw offset int_1d			      ;	int 0x1d: video	init param
+f000:FF1D		  dw offset int_1d_monitor		      ;	int 0x1d: video	init param
 f000:FF1F		  dw offset int_1e			      ;	int 0x1e
 f000:FF21		  dw offset int_1f_charset_128_255	      ;	int 0x1f: charset 128-255
 f000:FF23 int_00_07_tbl	  dw offset nullsub_1			      ;	DATA XREF: reset+7Co
