@@ -2839,7 +2839,7 @@ F000:D3A1		  jmp	  short	exit
 F000:D3A3 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:D3A3
 F000:D3A3 l1:							      ;	CODE XREF: sub_FD387+13j
-F000:D3A3		  mov	  al, cs:byte_FD3AD[bx]
+F000:D3A3		  mov	  al, cs:diskette_something[bx]
 F000:D3A8		  or	  ds:p400.diskette_last_status,	al
 F000:D3AC
 F000:D3AC exit:							      ;	CODE XREF: sub_FD387+1Aj
@@ -2847,7 +2847,7 @@ F000:D3AC		  retn
 F000:D3AC sub_FD387	  endp
 F000:D3AC
 F000:D3AC ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
-F000:D3AD byte_FD3AD	  db 2					      ;	DATA XREF: sub_FD387:l1r
+F000:D3AD diskette_something db	2				      ;	DATA XREF: sub_FD387:l1r
 F000:D3AE		  db	3
 F000:D3AF		  db	4
 F000:D3B0		  db	0
@@ -2941,15 +2941,15 @@ F000:D3F7		  push	  cx
 F000:D3F8		  call	  get_diskette_params
 F000:D3FB		  mov	  al, es:[bx+si]
 F000:D3FE		  call	  sub_FD1EB
-F000:D401		  jb	  short	l0
+F000:D401		  jb	  short	exit
 F000:D403		  inc	  bx
 F000:D404		  mov	  al, es:[bx+si]
 F000:D407		  or	  al, 1
 F000:D409		  call	  sub_FD1EB
-F000:D40C		  jb	  short	l0
+F000:D40C		  jb	  short	exit
 F000:D40E		  clc
 F000:D40F
-F000:D40F l0:							      ;	CODE XREF: sub_FD3F7+Aj
+F000:D40F exit:							      ;	CODE XREF: sub_FD3F7+Aj
 F000:D40F							      ;	sub_FD3F7+15j
 F000:D40F		  pop	  cx
 F000:D410		  retn
@@ -2979,12 +2979,12 @@ F000:D429		  cmp	  dl, ch
 F000:D42B		  jnz	  short	loc_FD436
 F000:D42D		  inc	  dh
 F000:D42F		  xor	  dl, dl
-F000:D431		  call	  sub_FD9C8
+F000:D431		  call	  multiply_dl_dh_by_8_bis
 F000:D434		  jmp	  short	loc_FD447
 F000:D436 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:D436
 F000:D436 loc_FD436:						      ;	CODE XREF: scroll_up_or_down-20C2j
-F000:D436		  call	  sub_FD9C8
+F000:D436		  call	  multiply_dl_dh_by_8_bis
 F000:D439		  add	  bx, 0F0h ; 'ğ'
 F000:D43D		  cmp	  byte ptr ds:p400.crt_mode, 9
 F000:D442		  jb	  short	loc_FD447
@@ -3010,7 +3010,7 @@ F000:D465 loc_FD465:						      ;	CODE XREF: scroll_up_or_down-2090j
 F000:D465		  mov	  dx, [bp+12h]
 F000:D468		  add	  dh, ch
 F000:D46A		  push	  cx
-F000:D46B		  call	  sub_FD9C8
+F000:D46B		  call	  multiply_dl_dh_by_8_bis
 F000:D46E		  mov	  di, bx
 F000:D470		  pop	  cx
 F000:D471		  mov	  dh, [bp+arg_row_bottom]
@@ -3033,7 +3033,7 @@ F000:D48E loc_FD48E:						      ;	CODE XREF: scroll_up_or_down-2065j
 F000:D48E		  sub	  dh, al
 F000:D490
 F000:D490 loc_FD490:						      ;	CODE XREF: scroll_up_or_down-2061j
-F000:D490		  call	  sub_FD9C8
+F000:D490		  call	  multiply_dl_dh_by_8_bis
 F000:D493		  mov	  si, bx
 F000:D495		  xor	  cx, cx
 F000:D497		  cmp	  al, 0
@@ -3220,7 +3220,7 @@ F000:D5C7 ; ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ S U	B R O U	T I N E	ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ
 F000:D5C7
 F000:D5C7
 F000:D5C7 gfx_get_ascii_value_for_row_col proc near		      ;	CODE XREF: int_10_08+Ap
-F000:D5C7		  call	  sub_FD9C8
+F000:D5C7		  call	  multiply_dl_dh_by_8_bis
 F000:D5CA		  sub	  sp, 0Ah
 F000:D5CD		  mov	  bp, sp
 F000:D5CF		  push	  bx
@@ -3508,7 +3508,7 @@ F000:D754
 F000:D754 ; FUNCTION CHUNK AT F000:D91B	SIZE 00000003 BYTES
 F000:D754
 F000:D754		  mov	  bx, cx
-F000:D756		  call	  sub_FDAE9
+F000:D756		  call	  multiply_dl_dh_by_8
 F000:D759		  push	  cx
 F000:D75A		  push	  dx
 F000:D75B		  push	  bx
@@ -4055,84 +4055,89 @@ F000:D9C8
 F000:D9C8 ; ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ S U	B R O U	T I N E	ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ
 F000:D9C8
 F000:D9C8
-F000:D9C8 sub_FD9C8	  proc near				      ;	CODE XREF: scroll_up_or_down-20BCp
+F000:D9C8 multiply_dl_dh_by_8_bis proc near			      ;	CODE XREF: scroll_up_or_down-20BCp
 F000:D9C8							      ;	scroll_up_or_down:loc_FD436p
 F000:D9C8							      ;	scroll_up_or_down-2082p
 F000:D9C8							      ;	scroll_up_or_down:loc_FD490p
 F000:D9C8							      ;	gfx_get_ascii_value_for_row_colp
-F000:D9C8		  call	  sub_FDAE9
+F000:D9C8		  call	  multiply_dl_dh_by_8
+F000:D9C8 multiply_dl_dh_by_8_bis endp
+F000:D9C8
 F000:D9CB
-F000:D9CB get_address_for_pixel:				      ;	CODE XREF: gfx_print_char:l5p
+F000:D9CB ; ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ S U	B R O U	T I N E	ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ
+F000:D9CB
+F000:D9CB
+F000:D9CB get_address_for_pixel	proc near			      ;	CODE XREF: gfx_print_char:l5p
 F000:D9CB							      ;	get_pixel_address_and_mask:l3p
 F000:D9CB							      ;	get_pixel_address_and_mask+51p
 F000:D9CB		  push	  ax
 F000:D9CC		  push	  cx
 F000:D9CD		  push	  dx
 F000:D9CE		  cmp	  byte ptr ds:p400.crt_mode, 8
-F000:D9D3		  jnz	  short	l0
-F000:D9D5		  jmp	  short	l7
+F000:D9D3		  jnz	  short	do_video_not_8
+F000:D9D5		  jmp	  short	do_video_mode_8
 F000:D9D5 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:D9D7		  db  90h ; 
 F000:D9D8 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:D9D8
-F000:D9D8 l0:							      ;	CODE XREF: sub_FD9C8+Bj
+F000:D9D8 do_video_not_8:					      ;	CODE XREF: get_address_for_pixel+8j
 F000:D9D8		  cmp	  byte ptr ds:p400.crt_mode, 9
-F000:D9DD		  jnz	  short	l1
-F000:D9DF		  jmp	  l10
+F000:D9DD		  jnz	  short	loc_FD9E2
+F000:D9DF		  jmp	  loc_FDA61
 F000:D9E2 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:D9E2
-F000:D9E2 l1:							      ;	CODE XREF: sub_FD9C8+15j
+F000:D9E2 loc_FD9E2:						      ;	CODE XREF: get_address_for_pixel+12j
 F000:D9E2		  cmp	  byte ptr ds:p400.crt_mode, 0Ah
-F000:D9E7		  jnz	  short	l2
-F000:D9E9		  jmp	  l15
+F000:D9E7		  jnz	  short	loc_FD9EC
+F000:D9E9		  jmp	  loc_FDAA4
 F000:D9EC ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:D9EC
-F000:D9EC l2:							      ;	CODE XREF: sub_FD9C8+1Fj
+F000:D9EC loc_FD9EC:						      ;	CODE XREF: get_address_for_pixel+1Cj
 F000:D9EC		  mov	  ax, 28h ; '('
 F000:D9EF		  and	  dx, 0FFFEh
 F000:D9F3		  mul	  dx
 F000:D9F5		  shr	  cx, 1
 F000:D9F7		  shr	  cx, 1
 F000:D9F9		  cmp	  byte ptr ds:p400.crt_mode, 6
-F000:D9FE		  jnz	  short	l3
+F000:D9FE		  jnz	  short	loc_FDA02
 F000:DA00		  shr	  cx, 1
 F000:DA02
-F000:DA02 l3:							      ;	CODE XREF: sub_FD9C8+36j
+F000:DA02 loc_FDA02:						      ;	CODE XREF: get_address_for_pixel+33j
 F000:DA02		  add	  ax, cx
 F000:DA04		  add	  ah, 80h ; '€'
 F000:DA07		  pop	  bx
 F000:DA08		  test	  bx, 1
-F000:DA0C		  jz	  short	l4
+F000:DA0C		  jz	  short	loc_FDA11
 F000:DA0E		  add	  ah, 20h ; ' '
 F000:DA11
-F000:DA11 l4:							      ;	CODE XREF: sub_FD9C8+44j
+F000:DA11 loc_FDA11:						      ;	CODE XREF: get_address_for_pixel+41j
 F000:DA11		  mov	  bx, ax
 F000:DA13		  pop	  ax
 F000:DA14		  cmp	  byte ptr ds:p400.crt_mode, 6
-F000:DA19		  jnz	  short	l5
+F000:DA19		  jnz	  short	loc_FDA26
 F000:DA1B		  mov	  cx, 8
 F000:DA1E		  div	  cx
 F000:DA20		  mov	  cl, 7
 F000:DA22		  sub	  cl, dl
-F000:DA24		  jmp	  short	l6
+F000:DA24		  jmp	  short	loc_FDA31
 F000:DA26 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:DA26
-F000:DA26 l5:							      ;	CODE XREF: sub_FD9C8+51j
+F000:DA26 loc_FDA26:						      ;	CODE XREF: get_address_for_pixel+4Ej
 F000:DA26		  mov	  cx, 4
 F000:DA29		  div	  cx
 F000:DA2B		  shl	  dx, 1
 F000:DA2D		  mov	  cl, 6
 F000:DA2F		  sub	  cl, dl
 F000:DA31
-F000:DA31 l6:							      ;	CODE XREF: sub_FD9C8+5Cj
-F000:DA31							      ;	sub_FD9C8:l9j
-F000:DA31							      ;	sub_FD9C8:l14j
-F000:DA31							      ;	sub_FD9C8+11Ej
+F000:DA31 loc_FDA31:						      ;	CODE XREF: get_address_for_pixel+59j
+F000:DA31							      ;	get_address_for_pixel:loc_FDA5Fj
+F000:DA31							      ;	get_address_for_pixel:loc_FDAA2j
+F000:DA31							      ;	get_address_for_pixel+11Bj
 F000:DA31		  pop	  ax
 F000:DA32		  retn
 F000:DA33 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:DA33
-F000:DA33 l7:							      ;	CODE XREF: sub_FD9C8+Dj
+F000:DA33 do_video_mode_8:					      ;	CODE XREF: get_address_for_pixel+Aj
 F000:DA33		  mov	  ax, 28h ; '('
 F000:DA36		  and	  dx, 0FFFEh
 F000:DA3A		  mul	  dx
@@ -4141,24 +4146,24 @@ F000:DA3E		  add	  ax, cx
 F000:DA40		  add	  ah, 80h ; '€'
 F000:DA43		  pop	  bx
 F000:DA44		  test	  bx, 1
-F000:DA48		  jz	  short	l8
+F000:DA48		  jz	  short	loc_FDA4D
 F000:DA4A		  add	  ah, 20h ; ' '
 F000:DA4D
-F000:DA4D l8:							      ;	CODE XREF: sub_FD9C8+80j
+F000:DA4D loc_FDA4D:						      ;	CODE XREF: get_address_for_pixel+7Dj
 F000:DA4D		  mov	  bx, ax
 F000:DA4F		  pop	  ax
 F000:DA50		  mov	  cx, 2
 F000:DA53		  div	  cx
 F000:DA55		  mov	  cx, 4
 F000:DA58		  and	  dl, dl
-F000:DA5A		  jz	  short	l9
+F000:DA5A		  jz	  short	loc_FDA5F
 F000:DA5C		  mov	  cx, 0
 F000:DA5F
-F000:DA5F l9:							      ;	CODE XREF: sub_FD9C8+92j
-F000:DA5F		  jmp	  short	l6
+F000:DA5F loc_FDA5F:						      ;	CODE XREF: get_address_for_pixel+8Fj
+F000:DA5F		  jmp	  short	loc_FDA31
 F000:DA61 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:DA61
-F000:DA61 l10:							      ;	CODE XREF: sub_FD9C8+17j
+F000:DA61 loc_FDA61:						      ;	CODE XREF: get_address_for_pixel+14j
 F000:DA61		  mov	  ax, 50h ; 'P'
 F000:DA64		  and	  dx, 0FFFCh
 F000:DA68		  shr	  dx, 1
@@ -4169,34 +4174,34 @@ F000:DA70		  add	  ah, 80h ; '€'
 F000:DA73		  pop	  bx
 F000:DA74		  and	  bx, 3
 F000:DA78		  cmp	  bx, 3
-F000:DA7B		  jb	  short	l11
+F000:DA7B		  jb	  short	loc_FDA80
 F000:DA7D		  add	  ah, 20h ; ' '
 F000:DA80
-F000:DA80 l11:							      ;	CODE XREF: sub_FD9C8+B3j
+F000:DA80 loc_FDA80:						      ;	CODE XREF: get_address_for_pixel+B0j
 F000:DA80		  cmp	  bx, 2
-F000:DA83		  jb	  short	l12
+F000:DA83		  jb	  short	loc_FDA88
 F000:DA85		  add	  ah, 20h ; ' '
 F000:DA88
-F000:DA88 l12:							      ;	CODE XREF: sub_FD9C8+BBj
+F000:DA88 loc_FDA88:						      ;	CODE XREF: get_address_for_pixel+B8j
 F000:DA88		  cmp	  bx, 1
-F000:DA8B		  jb	  short	l13
+F000:DA8B		  jb	  short	loc_FDA90
 F000:DA8D		  add	  ah, 20h ; ' '
 F000:DA90
-F000:DA90 l13:							      ;	CODE XREF: sub_FD9C8+C3j
+F000:DA90 loc_FDA90:						      ;	CODE XREF: get_address_for_pixel+C0j
 F000:DA90		  mov	  bx, ax
 F000:DA92		  pop	  ax
 F000:DA93		  mov	  cx, 2
 F000:DA96		  div	  cx
 F000:DA98		  mov	  cx, 4
 F000:DA9B		  and	  dl, dl
-F000:DA9D		  jz	  short	l14
+F000:DA9D		  jz	  short	loc_FDAA2
 F000:DA9F		  mov	  cx, 0
 F000:DAA2
-F000:DAA2 l14:							      ;	CODE XREF: sub_FD9C8+D5j
-F000:DAA2		  jmp	  short	l6
+F000:DAA2 loc_FDAA2:						      ;	CODE XREF: get_address_for_pixel+D2j
+F000:DAA2		  jmp	  short	loc_FDA31
 F000:DAA4 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:DAA4
-F000:DAA4 l15:							      ;	CODE XREF: sub_FD9C8+21j
+F000:DAA4 loc_FDAA4:						      ;	CODE XREF: get_address_for_pixel+1Ej
 F000:DAA4		  mov	  ax, 50h ; 'P'
 F000:DAA7		  and	  dx, 0FFFCh
 F000:DAAB		  shr	  dx, 1
@@ -4209,35 +4214,35 @@ F000:DAB9		  add	  ah, 80h ; '€'
 F000:DABC		  pop	  bx
 F000:DABD		  and	  bx, 3
 F000:DAC1		  cmp	  bx, 3
-F000:DAC4		  jb	  short	l16
+F000:DAC4		  jb	  short	loc_FDAC9
 F000:DAC6		  add	  ah, 20h ; ' '
 F000:DAC9
-F000:DAC9 l16:							      ;	CODE XREF: sub_FD9C8+FCj
+F000:DAC9 loc_FDAC9:						      ;	CODE XREF: get_address_for_pixel+F9j
 F000:DAC9		  cmp	  bx, 2
-F000:DACC		  jb	  short	l17
+F000:DACC		  jb	  short	loc_FDAD1
 F000:DACE		  add	  ah, 20h ; ' '
 F000:DAD1
-F000:DAD1 l17:							      ;	CODE XREF: sub_FD9C8+104j
+F000:DAD1 loc_FDAD1:						      ;	CODE XREF: get_address_for_pixel+101j
 F000:DAD1		  cmp	  bx, 1
-F000:DAD4		  jb	  short	l18
+F000:DAD4		  jb	  short	loc_FDAD9
 F000:DAD6		  add	  ah, 20h ; ' '
 F000:DAD9
-F000:DAD9 l18:							      ;	CODE XREF: sub_FD9C8+10Cj
+F000:DAD9 loc_FDAD9:						      ;	CODE XREF: get_address_for_pixel+109j
 F000:DAD9		  mov	  bx, ax
 F000:DADB		  pop	  ax
 F000:DADC		  mov	  cx, 8
 F000:DADF		  div	  cx
 F000:DAE1		  mov	  cx, 7
 F000:DAE4		  sub	  cx, dx
-F000:DAE6		  jmp	  l6
-F000:DAE6 sub_FD9C8	  endp
+F000:DAE6		  jmp	  loc_FDA31
+F000:DAE6 get_address_for_pixel	endp
 F000:DAE6
 F000:DAE9
 F000:DAE9 ; ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ S U	B R O U	T I N E	ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ
 F000:DAE9
 F000:DAE9
-F000:DAE9 sub_FDAE9	  proc near				      ;	CODE XREF: gfx_print_char+2p
-F000:DAE9							      ;	sub_FD9C8p
+F000:DAE9 multiply_dl_dh_by_8 proc near				      ;	CODE XREF: gfx_print_char+2p
+F000:DAE9							      ;	multiply_dl_dh_by_8_bisp
 F000:DAE9		  xor	  ch, ch
 F000:DAEB		  mov	  cl, dl
 F000:DAED		  shl	  cx, 1
@@ -4249,7 +4254,7 @@ F000:DAF7		  shl	  dx, 1
 F000:DAF9		  shl	  dx, 1
 F000:DAFB		  shl	  dx, 1
 F000:DAFD		  retn
-F000:DAFD sub_FDAE9	  endp
+F000:DAFD multiply_dl_dh_by_8 endp
 F000:DAFD
 F000:DAFE
 F000:DAFE ; ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ S U	B R O U	T I N E	ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ
@@ -4279,7 +4284,7 @@ F000:DB09
 F000:DB09 ; ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ S U	B R O U	T I N E	ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ
 F000:DB09
 F000:DB09
-F000:DB09 sub_FDB09	  proc near				      ;	CODE XREF: scroll_up_or_down+99p
+F000:DB09 add_or_sub_bytes_per_row proc	near			      ;	CODE XREF: scroll_up_or_down+99p
 F000:DB09							      ;	scroll_up_or_down+A0p
 F000:DB09							      ;	scroll_up_or_down+B7p
 F000:DB09		  push	  dx
@@ -4294,14 +4299,14 @@ F000:DB1A ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:DB1C		  db  90h ; 
 F000:DB1D ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:DB1D
-F000:DB1D l0:							      ;	CODE XREF: sub_FDB09+Bj
+F000:DB1D l0:							      ;	CODE XREF: add_or_sub_bytes_per_row+Bj
 F000:DB1D		  sub	  si, dx
 F000:DB1F		  sub	  di, dx
 F000:DB21
-F000:DB21 l1:							      ;	CODE XREF: sub_FDB09+11j
+F000:DB21 l1:							      ;	CODE XREF: add_or_sub_bytes_per_row+11j
 F000:DB21		  pop	  dx
 F000:DB22		  retn
-F000:DB22 sub_FDB09	  endp
+F000:DB22 add_or_sub_bytes_per_row endp
 F000:DB22
 F000:DB23
 F000:DB23 ; ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ S U	B R O U	T I N E	ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ
@@ -4327,15 +4332,15 @@ F000:DB35
 F000:DB35 ; ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ S U	B R O U	T I N E	ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ
 F000:DB35
 F000:DB35
-F000:DB35 orphan_00	  proc near
+F000:DB35 disable_video_in_80x25_mode_orphan proc near
 F000:DB35		  push	  ax
 F000:DB36		  push	  dx
-F000:DB37		  call	  is_not_80x25_mode
+F000:DB37		  call	  is_not_80x25_mode_orphan
 F000:DB3A		  jnb	  short	exit
 F000:DB3C		  mov	  dx, 3DAh
 F000:DB3F		  cli
 F000:DB40
-F000:DB40 wait_vertical_retrace:				      ;	CODE XREF: orphan_00+Ej
+F000:DB40 wait_vertical_retrace:				      ;	CODE XREF: disable_video_in_80x25_mode_orphan+Ej
 F000:DB40		  in	  al, dx			      ;	Video status bits:
 F000:DB40							      ;	0: retrace.  1=display is in vert or horiz retrace.
 F000:DB40							      ;	1: 1=light pen is triggered; 0=armed
@@ -4346,29 +4351,29 @@ F000:DB43		  jz	  short	wait_vertical_retrace
 F000:DB45		  sti
 F000:DB46		  mov	  dx, 3D8h
 F000:DB49		  mov	  al, ds:p400.crt_mode_set
-F000:DB4C		  and	  al, 110111b
+F000:DB4C		  and	  al, 110111b			      ;	disable	video
 F000:DB4E		  out	  dx, al
 F000:DB4F
-F000:DB4F exit:							      ;	CODE XREF: orphan_00+5j
+F000:DB4F exit:							      ;	CODE XREF: disable_video_in_80x25_mode_orphan+5j
 F000:DB4F		  pop	  dx
 F000:DB50		  pop	  ax
 F000:DB51		  retn
-F000:DB51 orphan_00	  endp
+F000:DB51 disable_video_in_80x25_mode_orphan endp
 F000:DB51
 F000:DB52
 F000:DB52 ; ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ S U	B R O U	T I N E	ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ
 F000:DB52
 F000:DB52
-F000:DB52 orphan_01	  proc near
-F000:DB52		  call	  is_not_80x25_mode
+F000:DB52 enable_video_in_80x25_mode_orphan proc near
+F000:DB52		  call	  is_not_80x25_mode_orphan
 F000:DB55		  jnb	  short	exit
 F000:DB57		  mov	  dx, 3D8h
 F000:DB5A		  mov	  al, ds:p400.crt_mode_set
 F000:DB5D		  out	  dx, al
 F000:DB5E
-F000:DB5E exit:							      ;	CODE XREF: orphan_01+3j
+F000:DB5E exit:							      ;	CODE XREF: enable_video_in_80x25_mode_orphan+3j
 F000:DB5E		  retn
-F000:DB5E orphan_01	  endp
+F000:DB5E enable_video_in_80x25_mode_orphan endp
 F000:DB5E
 F000:DB5F
 F000:DB5F ; ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ S U	B R O U	T I N E	ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ
@@ -4376,7 +4381,7 @@ F000:DB5F
 F000:DB5F
 F000:DB5F play_bell_sound proc near				      ;	CODE XREF: reset:l5p
 F000:DB5F							      ;	int_09+19p
-F000:DB5F							      ;	sub_FEDAA+1Ep
+F000:DB5F							      ;	put_char_in_keyb_buffer+1Ep
 F000:DB5F							      ;	int_10_0e+Dp
 F000:DB5F		  push	  ax
 F000:DB60		  push	  bx
@@ -4439,10 +4444,9 @@ F000:DB83
 F000:DB84
 F000:DB84 ; ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ S U	B R O U	T I N E	ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ
 F000:DB84
-F000:DB84 ; nobody is calling it?
 F000:DB84
-F000:DB84 is_not_80x25_mode proc near				      ;	CODE XREF: orphan_00+2p
-F000:DB84							      ;	orphan_01p
+F000:DB84 is_not_80x25_mode_orphan proc	near			      ;	CODE XREF: disable_video_in_80x25_mode_orphan+2p
+F000:DB84							      ;	enable_video_in_80x25_mode_orphanp
 F000:DB84		  cmp	  byte ptr ds:p400.crt_mode, 2
 F000:DB89		  jl	  short	ok
 F000:DB8B		  cmp	  byte ptr ds:p400.crt_mode, 3
@@ -4451,11 +4455,11 @@ F000:DB92		  stc
 F000:DB93		  retn
 F000:DB94 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:DB94
-F000:DB94 ok:							      ;	CODE XREF: is_not_80x25_mode+5j
-F000:DB94							      ;	is_not_80x25_mode+Cj
+F000:DB94 ok:							      ;	CODE XREF: is_not_80x25_mode_orphan+5j
+F000:DB94							      ;	is_not_80x25_mode_orphan+Cj
 F000:DB94		  clc
 F000:DB95		  retn
-F000:DB95 is_not_80x25_mode endp
+F000:DB95 is_not_80x25_mode_orphan endp
 F000:DB95
 F000:DB96
 F000:DB96 ; ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ S U	B R O U	T I N E	ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ
@@ -4467,13 +4471,13 @@ F000:DB97		  mov	  ds, cs:value_0040		      ;	ds = 0x40
 F000:DB9C		  cmp	  ah, 80h ; '€'
 F000:DB9F		  jz	  short	setup_sound_multiplexer
 F000:DBA1		  or	  ah, ah
-F000:DBA3		  jz	  short	read_system_timer
+F000:DBA3		  jz	  short	int_1a_00_read_system_timer
 F000:DBA5		  dec	  ah
-F000:DBA7		  jz	  short	set_system_timer
+F000:DBA7		  jz	  short	int_1a_01_set_system_timer
 F000:DBA9		  jmp	  short	exit
 F000:DBAB ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:DBAB
-F000:DBAB read_system_timer:					      ;	CODE XREF: int_1a+Dj
+F000:DBAB int_1a_00_read_system_timer:				      ;	CODE XREF: int_1a+Dj
 F000:DBAB		  mov	  dx, ds:p400.timer_ticks_since_midnight
 F000:DBAF		  mov	  cx, ds:p400.timer_ticks_since_midnight+2
 F000:DBB3		  mov	  al, ds:p400.timer_overflow
@@ -4481,7 +4485,7 @@ F000:DBB6		  mov	  byte ptr ds:p400.timer_overflow, 0
 F000:DBBB		  jmp	  short	exit
 F000:DBBD ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:DBBD
-F000:DBBD set_system_timer:					      ;	CODE XREF: int_1a+11j
+F000:DBBD int_1a_01_set_system_timer:				      ;	CODE XREF: int_1a+11j
 F000:DBBD		  mov	  byte ptr ds:p400.timer_overflow, 0
 F000:DBC2		  mov	  ds:p400.timer_ticks_since_midnight, dx
 F000:DBC6		  mov	  ds:p400.timer_ticks_since_midnight+2,	cx
@@ -4692,7 +4696,7 @@ F000:E0E2		  mov	  si, offset int_08_1f_tbl
 F000:E0E5		  mov	  di, 20h ; ' '
 F000:E0E8		  mov	  cx, 18h
 F000:E0EB		  call	  set_int_table
-F000:E0EE		  mov	  si, offset tbl_int_44
+F000:E0EE		  mov	  si, offset int_44_tbl
 F000:E0F1		  mov	  di, 110h
 F000:E0F4		  mov	  cx, 1
 F000:E0F7		  call	  set_int_table
@@ -5221,14 +5225,8 @@ F000:E71D		  jmp	  cs:value_7c00
 F000:E71D int_19	  endp
 F000:E71D
 F000:E71D ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
-F000:E722		  db	0
-F000:E723		  db	0
-F000:E724		  db	0
-F000:E725		  db	0
-F000:E726		  db	0
-F000:E727		  db	0
-F000:E728		  db	0
-F000:E729 word_FE729	  dw 417h				      ;	DATA XREF: int_14+48r
+F000:E722		  db 7 dup(0)
+F000:E729 comm_parameters dw 417h				      ;	DATA XREF: int_14+48r
 F000:E72B		  dw 300h
 F000:E72D		  dw 180h
 F000:E72F		  dw 0C0h
@@ -5284,7 +5282,7 @@ F000:E778		  and	  bl, 0E0h
 F000:E77B		  mov	  cl, 4
 F000:E77D		  shr	  bl, cl
 F000:E77F		  xor	  bh, bh
-F000:E781		  mov	  cx, cs:word_FE729[bx]
+F000:E781		  mov	  cx, cs:comm_parameters[bx]
 F000:E786		  mov	  al, ch
 F000:E788		  out	  dx, al
 F000:E789		  mov	  al, cl
@@ -5596,7 +5594,7 @@ F000:E99B		  in	  al, dx			      ;	AT Keyboard controller 8042.
 F000:E99C		  cmp	  al, 0FFh
 F000:E99E		  jnz	  short	l0
 F000:E9A0		  call	  play_bell_sound
-F000:E9A3		  jmp	  l29
+F000:E9A3		  jmp	  update_status_flag_and_exit
 F000:E9A6 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:E9A6
 F000:E9A6 l0:							      ;	CODE XREF: int_09+17j
@@ -5681,7 +5679,7 @@ F000:EA07
 F000:EA07 l12:							      ;	CODE XREF: int_09+7Bj
 F000:EA07		  cmp	  al, 0
 F000:EA09		  jge	  short	l13
-F000:EA0B		  jmp	  l29
+F000:EA0B		  jmp	  update_status_flag_and_exit
 F000:EA0E ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EA0E
 F000:EA0E l13:							      ;	CODE XREF: int_09+82j
@@ -5696,12 +5694,12 @@ F000:EA1A		  cmp	  al, 37h ; '7'
 F000:EA1C		  jnz	  short	l15
 F000:EA1E		  test	  ch, 3
 F000:EA21		  jz	  short	l15
-F000:EA23		  jmp	  l84
+F000:EA23		  jmp	  print_screen_pressed
 F000:EA26 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EA26
 F000:EA26 l15:							      ;	CODE XREF: int_09+95j
 F000:EA26							      ;	int_09+9Aj
-F000:EA26		  lea	  bx, byte_FEE05
+F000:EA26		  lea	  bx, tbl_scancode_to_ascii_default
 F000:EA2A		  test	  ch, 40h
 F000:EA2D		  jz	  short	l17
 F000:EA2F		  cmp	  al, 10h
@@ -5719,7 +5717,7 @@ F000:EA45		  jge	  short	l17
 F000:EA47
 F000:EA47 l16:							      ;	CODE XREF: int_09+AEj
 F000:EA47							      ;	int_09+B6j
-F000:EA47		  lea	  bx, byte_FEE4B
+F000:EA47		  lea	  bx, tbl_scancode_to_ascii_shift
 F000:EA4B
 F000:EA4B l17:							      ;	CODE XREF: int_09+A6j
 F000:EA4B							      ;	int_09+AAj
@@ -5728,89 +5726,89 @@ F000:EA4B							      ;	int_09+BAj
 F000:EA4B							      ;	int_09+BEj
 F000:EA4B		  test	  ch, 3
 F000:EA4E		  jz	  short	l19
-F000:EA50		  cmp	  bx, offset byte_FEE4B
+F000:EA50		  cmp	  bx, offset tbl_scancode_to_ascii_shift
 F000:EA54		  jnz	  short	l18
-F000:EA56		  lea	  bx, byte_FEE05
+F000:EA56		  lea	  bx, tbl_scancode_to_ascii_default
 F000:EA5A		  jmp	  short	l19
 F000:EA5C ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EA5C
 F000:EA5C l18:							      ;	CODE XREF: int_09+CDj
-F000:EA5C		  lea	  bx, byte_FEE4B
+F000:EA5C		  lea	  bx, tbl_scancode_to_ascii_shift
 F000:EA60
 F000:EA60 l19:							      ;	CODE XREF: int_09+C7j
 F000:EA60							      ;	int_09+D3j
-F000:EA60		  test	  ch, 8
+F000:EA60		  test	  ch, 1000b			      ;	alt key	pressed?
 F000:EA63		  jz	  short	l20
-F000:EA65		  lea	  bx, byte_FEED7
+F000:EA65		  lea	  bx, tbl_scancode_to_ascii_alt
 F000:EA69		  jmp	  short	l21
 F000:EA6B ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EA6B
 F000:EA6B l20:							      ;	CODE XREF: int_09+DCj
-F000:EA6B		  test	  ch, 4
+F000:EA6B		  test	  ch, 100b			      ;	ctrl key pressed?
 F000:EA6E		  jz	  short	l21
-F000:EA70		  lea	  bx, byte_FEE91
+F000:EA70		  lea	  bx, tbl_scancode_to_ascii_ctrl
 F000:EA74
 F000:EA74 l21:							      ;	CODE XREF: int_09+E2j
 F000:EA74							      ;	int_09+E7j
-F000:EA74		  call	  sub_FEDE7
+F000:EA74		  call	  scancode_to_ascii
 F000:EA77		  cmp	  al, 0FFh
 F000:EA79		  jnz	  short	l22
-F000:EA7B		  jmp	  short	l29
+F000:EA7B		  jmp	  short	update_status_flag_and_exit
 F000:EA7B ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EA7D		  db  90h ; 
 F000:EA7E ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EA7E
 F000:EA7E l22:							      ;	CODE XREF: int_09+F2j
 F000:EA7E		  cmp	  ah, 29h ; ')'
-F000:EA81		  jz	  short	l26
+F000:EA81		  jz	  short	pre_put_ax_in_keyb_buffer
 F000:EA83		  cmp	  ah, 2Bh ; '+'
-F000:EA86		  jz	  short	l26
+F000:EA86		  jz	  short	pre_put_ax_in_keyb_buffer
 F000:EA88		  cmp	  ah, 3Ah ; ':'
-F000:EA8B		  jg	  short	l26
+F000:EA8B		  jg	  short	pre_put_ax_in_keyb_buffer
 F000:EA8D		  test	  ch, 4
 F000:EA90		  jz	  short	l23
 F000:EA92		  cmp	  ah, 1
-F000:EA95		  jz	  short	l27
+F000:EA95		  jz	  short	try_intl_xlat
 F000:EA97		  cmp	  ah, 7
-F000:EA9A		  jz	  short	l27
+F000:EA9A		  jz	  short	try_intl_xlat
 F000:EA9C		  cmp	  ah, 0Bh
-F000:EA9F		  jbe	  short	l26
+F000:EA9F		  jbe	  short	pre_put_ax_in_keyb_buffer
 F000:EAA1		  cmp	  ah, 0Dh
-F000:EAA4		  jz	  short	l26
+F000:EAA4		  jz	  short	pre_put_ax_in_keyb_buffer
 F000:EAA6		  cmp	  ah, 0Fh
-F000:EAA9		  jz	  short	l26
+F000:EAA9		  jz	  short	pre_put_ax_in_keyb_buffer
 F000:EAAB		  cmp	  ah, 27h ; '''
-F000:EAAE		  jz	  short	l26
+F000:EAAE		  jz	  short	pre_put_ax_in_keyb_buffer
 F000:EAB0		  cmp	  ah, 28h ; '('
-F000:EAB3		  jz	  short	l26
+F000:EAB3		  jz	  short	pre_put_ax_in_keyb_buffer
 F000:EAB5		  cmp	  ah, 33h ; '3'
-F000:EAB8		  jz	  short	l26
+F000:EAB8		  jz	  short	pre_put_ax_in_keyb_buffer
 F000:EABA		  cmp	  ah, 34h ; '4'
-F000:EABD		  jz	  short	l26
+F000:EABD		  jz	  short	pre_put_ax_in_keyb_buffer
 F000:EABF		  cmp	  ah, 35h ; '5'
-F000:EAC2		  jz	  short	l26
+F000:EAC2		  jz	  short	pre_put_ax_in_keyb_buffer
 F000:EAC4		  cmp	  ah, 37h ; '7'
-F000:EAC7		  jz	  short	l26
+F000:EAC7		  jz	  short	pre_put_ax_in_keyb_buffer
 F000:EAC9
 F000:EAC9 l23:							      ;	CODE XREF: int_09+109j
 F000:EAC9		  test	  ch, 8
 F000:EACC		  jz	  short	l24
 F000:EACE		  cmp	  ah, 39h ; '9'
-F000:EAD1		  jz	  short	l27
-F000:EAD3		  jmp	  short	l26
+F000:EAD1		  jz	  short	try_intl_xlat
+F000:EAD3		  jmp	  short	pre_put_ax_in_keyb_buffer
 F000:EAD5 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EAD5
 F000:EAD5 l24:							      ;	CODE XREF: int_09+145j
 F000:EAD5		  cmp	  ah, 0Fh
 F000:EAD8		  jnz	  short	l25
 F000:EADA		  cmp	  al, 0Fh
-F000:EADC		  jz	  short	l26
+F000:EADC		  jz	  short	pre_put_ax_in_keyb_buffer
 F000:EADE
 F000:EADE l25:							      ;	CODE XREF: int_09+151j
-F000:EADE		  test	  ch, 8
-F000:EAE1		  jz	  short	l27
+F000:EADE		  test	  ch, 1000b			      ;	alt pressed?
+F000:EAE1		  jz	  short	try_intl_xlat
 F000:EAE3
-F000:EAE3 l26:							      ;	CODE XREF: int_09+FAj
+F000:EAE3 pre_put_ax_in_keyb_buffer:				      ;	CODE XREF: int_09+FAj
 F000:EAE3							      ;	int_09+FFj
 F000:EAE3							      ;	int_09+104j
 F000:EAE3							      ;	int_09+118j
@@ -5819,23 +5817,23 @@ F000:EAE3							      ;	int_09+122j ...
 F000:EAE3		  mov	  ah, al
 F000:EAE5		  xor	  al, al
 F000:EAE7
-F000:EAE7 l27:							      ;	CODE XREF: int_09+10Ej
+F000:EAE7 try_intl_xlat:					      ;	CODE XREF: int_09+10Ej
 F000:EAE7							      ;	int_09+113j
 F000:EAE7							      ;	int_09+14Aj
 F000:EAE7							      ;	int_09+15Aj
 F000:EAE7							      ;	int_09+1EBj
-F000:EAE7							      ;	int_09:l80j
-F000:EAE7		  mov	  bx, 0B0h ; '°'
+F000:EAE7							      ;	int_09:try_intl_xlat_0j
+F000:EAE7		  mov	  bx, p400.keyb_intl_support
 F000:EAEA		  mov	  dx, [bx]
 F000:EAEC		  or	  dx, [bx+2]
-F000:EAEF		  jz	  short	l28
+F000:EAEF		  jz	  short	put_ax_in_keyb_buffer
 F000:EAF1		  call	  dword	ptr [bx]
-F000:EAF3		  jb	  short	l29
+F000:EAF3		  jb	  short	update_status_flag_and_exit
 F000:EAF5
-F000:EAF5 l28:							      ;	CODE XREF: int_09+168j
-F000:EAF5		  call	  sub_FEDAA
+F000:EAF5 put_ax_in_keyb_buffer:				      ;	CODE XREF: int_09+168j
+F000:EAF5		  call	  put_char_in_keyb_buffer
 F000:EAF8
-F000:EAF8 l29:							      ;	CODE XREF: int_09+1Cj
+F000:EAF8 update_status_flag_and_exit:				      ;	CODE XREF: int_09+1Cj
 F000:EAF8							      ;	int_09+84j
 F000:EAF8							      ;	int_09+F4j
 F000:EAF8							      ;	int_09+16Cj
@@ -5856,7 +5854,7 @@ F000:EB12 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EB12
 F000:EB12 l31:							      ;	CODE XREF: int_09+186j
 F000:EB12		  cli
-F000:EB13		  jmp	  short	l33
+F000:EB13		  jmp	  short	pop_and_exit
 F000:EB15 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EB15
 F000:EB15 l32:							      ;	CODE XREF: int_09+76j
@@ -5864,8 +5862,8 @@ F000:EB15							      ;	int_09+177j
 F000:EB15		  mov	  ds:p400.keyb_status_flags_1, ch
 F000:EB19		  mov	  ds:p400.keyb_status_flags_2, cl
 F000:EB1D
-F000:EB1D l33:							      ;	CODE XREF: int_09+18Cj
-F000:EB1D							      ;	int_09:l85j
+F000:EB1D pop_and_exit:						      ;	CODE XREF: int_09+18Cj
+F000:EB1D							      ;	int_09:exit_1j
 F000:EB1D		  pop	  ax
 F000:EB1E		  jmp	  near ptr pop_regs_and_iret
 F000:EB21 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
@@ -5875,36 +5873,36 @@ F000:EB21		  cmp	  ah, 1Dh			      ;	ctrl?
 F000:EB24		  jnz	  short	l35
 F000:EB26		  or	  ch, 100b			      ;	turn on	ctrl bit in status
 F000:EB29		  and	  ch, 11111100b			      ;	turn off shift bits
-F000:EB2C		  jmp	  short	l29
+F000:EB2C		  jmp	  short	update_status_flag_and_exit
 F000:EB2E ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EB2E
 F000:EB2E l35:							      ;	CODE XREF: int_09+19Dj
 F000:EB2E		  and	  ch, 11111011b			      ;	turn off ctrl bit in status
-F000:EB31		  jmp	  short	l29
+F000:EB31		  jmp	  short	update_status_flag_and_exit
 F000:EB33 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EB33
 F000:EB33 l36:							      ;	CODE XREF: int_09+2Ej
 F000:EB33		  cmp	  ah, 2Ah ; '*'                       ; left shift?
 F000:EB36		  jnz	  short	l37
 F000:EB38		  or	  ch, 10b			      ;	turn on	left shift in status
-F000:EB3B		  jmp	  short	l29
+F000:EB3B		  jmp	  short	update_status_flag_and_exit
 F000:EB3D ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EB3D
 F000:EB3D l37:							      ;	CODE XREF: int_09+1AFj
 F000:EB3D		  and	  ch, 11111101b			      ;	turn off left shift in status
-F000:EB40		  jmp	  short	l29
+F000:EB40		  jmp	  short	update_status_flag_and_exit
 F000:EB42 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EB42
 F000:EB42 l38:							      ;	CODE XREF: int_09+35j
 F000:EB42		  cmp	  ah, 36h ; '6'                       ; right shift?
 F000:EB45		  jnz	  short	l39
 F000:EB47		  or	  ch, 1				      ;	turn on	right shift in status
-F000:EB4A		  jmp	  short	l29
+F000:EB4A		  jmp	  short	update_status_flag_and_exit
 F000:EB4C ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EB4C
 F000:EB4C l39:							      ;	CODE XREF: int_09+1BEj
 F000:EB4C		  and	  ch, 11111110b			      ;	turn off right shift in	status
-F000:EB4F		  jmp	  short	l29
+F000:EB4F		  jmp	  short	update_status_flag_and_exit
 F000:EB51 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EB51
 F000:EB51 l40:							      ;	CODE XREF: int_09+3Cj
@@ -5913,7 +5911,7 @@ F000:EB54		  jnz	  short	l41
 F000:EB56		  or	  ch, 1000b			      ;	turn on	alt in status
 F000:EB59		  mov	  byte ptr ds:p400.alt_keypad_entry, 0 ; reset previous	alt+numpad value
 F000:EB5E		  and	  ch, 11111100b			      ;	turn off shift in status
-F000:EB61		  jmp	  short	l29
+F000:EB61		  jmp	  short	update_status_flag_and_exit
 F000:EB63 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EB63
 F000:EB63 l41:							      ;	CODE XREF: int_09+1CDj
@@ -5922,11 +5920,11 @@ F000:EB66		  cmp	  byte ptr ds:p400.alt_keypad_entry, 0 ; alt + numpad with valu
 F000:EB6B		  jz	  short	l42
 F000:EB6D		  xor	  ax, ax
 F000:EB6F		  mov	  al, ds:p400.alt_keypad_entry	      ;	get previous alt + numpad value
-F000:EB72		  jmp	  l27
+F000:EB72		  jmp	  try_intl_xlat
 F000:EB75 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EB75
 F000:EB75 l42:							      ;	CODE XREF: int_09+1E4j
-F000:EB75		  jmp	  short	l29
+F000:EB75		  jmp	  short	update_status_flag_and_exit
 F000:EB77 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EB77
 F000:EB77 l43:							      ;	CODE XREF: int_09+43j
@@ -5941,18 +5939,18 @@ F000:EB89		  or	  ch, 1000000b
 F000:EB8C
 F000:EB8C l44:							      ;	CODE XREF: int_09+1F8j
 F000:EB8C							      ;	int_09+254j
-F000:EB8C		  jmp	  l29
+F000:EB8C		  jmp	  update_status_flag_and_exit
 F000:EB8F ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EB8F
 F000:EB8F l45:							      ;	CODE XREF: int_09+200j
 F000:EB8F		  and	  ch, 0BFh
-F000:EB92		  jmp	  l29
+F000:EB92		  jmp	  update_status_flag_and_exit
 F000:EB95 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EB95
 F000:EB95 l46:							      ;	CODE XREF: int_09+1F3j
 F000:EB95		  and	  ch, 0BFh
 F000:EB98		  and	  cl, 0BFh
-F000:EB9B		  jmp	  l29
+F000:EB9B		  jmp	  update_status_flag_and_exit
 F000:EB9E ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EB9E
 F000:EB9E l47:							      ;	CODE XREF: int_09+4Aj
@@ -5960,7 +5958,7 @@ F000:EB9E		  cmp	  ah, 45h ; 'E'                       ; num lock?
 F000:EBA1		  jnz	  short	l50
 F000:EBA3		  test	  ch, 100b
 F000:EBA6		  jz	  short	l48
-F000:EBA8		  jmp	  l29
+F000:EBA8		  jmp	  update_status_flag_and_exit
 F000:EBAB ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EBAB
 F000:EBAB l48:							      ;	CODE XREF: int_09+21Fj
@@ -5968,18 +5966,18 @@ F000:EBAB		  or	  cl, 100000b
 F000:EBAE		  test	  ch, 100000b
 F000:EBB1		  jnz	  short	l49
 F000:EBB3		  or	  ch, 100000b
-F000:EBB6		  jmp	  l29
+F000:EBB6		  jmp	  update_status_flag_and_exit
 F000:EBB9 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EBB9
 F000:EBB9 l49:							      ;	CODE XREF: int_09+22Aj
 F000:EBB9		  and	  ch, 11011111b
-F000:EBBC		  jmp	  l29
+F000:EBBC		  jmp	  update_status_flag_and_exit
 F000:EBBF ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EBBF
 F000:EBBF l50:							      ;	CODE XREF: int_09+21Aj
 F000:EBBF		  and	  ch, 11011111b
 F000:EBC2		  and	  cl, 11011111b
-F000:EBC5		  jmp	  l29
+F000:EBC5		  jmp	  update_status_flag_and_exit
 F000:EBC8 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EBC8
 F000:EBC8 l51:							      ;	CODE XREF: int_09+51j
@@ -5988,7 +5986,7 @@ F000:EBCB		  jnz	  short	l55
 F000:EBCD		  test	  cl, 1000b
 F000:EBD0		  jz	  short	l52
 F000:EBD2		  and	  cl, 11110111b
-F000:EBD5		  jmp	  l29
+F000:EBD5		  jmp	  update_status_flag_and_exit
 F000:EBD8 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EBD8
 F000:EBD8 l52:							      ;	CODE XREF: int_09+249j
@@ -6013,7 +6011,7 @@ F000:EBF0							      ;	int_09+274j
 F000:EBF0							      ;	int_09+27Bj
 F000:EBF0							      ;	int_09+282j
 F000:EBF0		  or	  cl, 1000b
-F000:EBF3		  jmp	  l29
+F000:EBF3		  jmp	  update_status_flag_and_exit
 F000:EBF6 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EBF6		  test	  ch, 8				      ;	begin unused / orphan code
 F000:EBF9		  jz	  short	l53_0
@@ -6035,13 +6033,13 @@ F000:EC0B
 F000:EC0B l54:							      ;	CODE XREF: int_09+25Cj
 F000:EC0B							      ;	int_09+280j
 F000:EC0B		  and	  ch, 11101111b
-F000:EC0E		  jmp	  l29
+F000:EC0E		  jmp	  update_status_flag_and_exit
 F000:EC11 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EC11
 F000:EC11 l55:							      ;	CODE XREF: int_09+244j
 F000:EC11		  and	  cl, 11101111b
 F000:EC14		  and	  ch, 11101111b
-F000:EC17		  jmp	  l29
+F000:EC17		  jmp	  update_status_flag_and_exit
 F000:EC1A ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EC1A
 F000:EC1A l56:							      ;	CODE XREF: int_09+7Dj
@@ -6052,7 +6050,7 @@ F000:EC22		  jnz	  short	l59
 F000:EC24
 F000:EC24 l57:							      ;	CODE XREF: int_09+2A6j
 F000:EC24		  and	  cl, 1111111b
-F000:EC27		  jmp	  l29
+F000:EC27		  jmp	  update_status_flag_and_exit
 F000:EC2A ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EC2A
 F000:EC2A l58:							      ;	CODE XREF: int_09+296j
@@ -6060,7 +6058,7 @@ F000:EC2A		  test	  ch, 3
 F000:EC2D		  jnz	  short	l57
 F000:EC2F
 F000:EC2F l59:							      ;	CODE XREF: int_09+29Bj
-F000:EC2F		  jmp	  l29
+F000:EC2F		  jmp	  update_status_flag_and_exit
 F000:EC32 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EC32
 F000:EC32 l60:							      ;	CODE XREF: int_09+8Bj
@@ -6068,7 +6066,7 @@ F000:EC32		  test	  ch, 100b
 F000:EC35		  jz	  short	l63
 F000:EC37		  cmp	  al, 54h ; 'T'                       ; break?
 F000:EC39		  jnz	  short	l61
-F000:EC3B		  jmp	  l83
+F000:EC3B		  jmp	  ctrl_break_pressed
 F000:EC3E ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EC3E
 F000:EC3E l61:							      ;	CODE XREF: int_09+2B2j
@@ -6076,12 +6074,12 @@ F000:EC3E		  cmp	  al, 53h ; 'S'                       ; delete / - ?
 F000:EC40		  jnz	  short	l62
 F000:EC42		  test	  ch, 1000b
 F000:EC45		  jz	  short	l62
-F000:EC47		  jmp	  soft_reset
+F000:EC47		  jmp	  ctrl_alt_del_pressed
 F000:EC4A ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EC4A
 F000:EC4A l62:							      ;	CODE XREF: int_09+2B9j
 F000:EC4A							      ;	int_09+2BEj
-F000:EC4A		  lea	  bx, byte_FEF4F
+F000:EC4A		  lea	  bx, keypad_scancode_to_ascii_ctrl
 F000:EC4E		  jmp	  l78
 F000:EC51 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EC51
@@ -6092,7 +6090,7 @@ F000:EC56		  cmp	  al, 53h ; 'S'                       ; delete / - ?
 F000:EC58		  jnz	  short	l64
 F000:EC5A		  test	  ch, 4
 F000:EC5D		  jz	  short	l64
-F000:EC5F		  jmp	  soft_reset
+F000:EC5F		  jmp	  ctrl_alt_del_pressed
 F000:EC62 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EC62
 F000:EC62 l64:							      ;	CODE XREF: int_09+2D1j
@@ -6118,9 +6116,9 @@ F000:EC84		  pop	  bx
 F000:EC85		  add	  ax, bx
 F000:EC87		  push	  ax
 F000:EC88		  mov	  ax, dx
-F000:EC8A		  lea	  bx, byte_FEF1D
+F000:EC8A		  lea	  bx, keypad_scancode_to_ascii_default
 F000:EC8E		  sub	  al, 46h ; 'F'
-F000:EC90		  call	  sub_FEDE7
+F000:EC90		  call	  scancode_to_ascii
 F000:EC93		  sub	  al, 30h ; '0'
 F000:EC95		  xor	  ah, ah
 F000:EC97		  pop	  dx
@@ -6128,7 +6126,7 @@ F000:EC98		  add	  dx, ax
 F000:EC9A		  mov	  ds:p400.alt_keypad_entry, dl
 F000:EC9E
 F000:EC9E l65:							      ;	CODE XREF: int_09+2EDj
-F000:EC9E		  jmp	  l29
+F000:EC9E		  jmp	  update_status_flag_and_exit
 F000:ECA1 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:ECA1
 F000:ECA1 l66:							      ;	CODE XREF: int_09+2E5j
@@ -6138,32 +6136,32 @@ F000:ECA5		  or	  cl, 10h
 F000:ECA8		  test	  ch, 10h
 F000:ECAB		  jnz	  short	l67
 F000:ECAD		  or	  ch, 10h
-F000:ECB0		  jmp	  l29
+F000:ECB0		  jmp	  update_status_flag_and_exit
 F000:ECB3 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:ECB3
 F000:ECB3 l67:							      ;	CODE XREF: int_09+324j
 F000:ECB3		  and	  ch, 0EFh
-F000:ECB6		  jmp	  l29
+F000:ECB6		  jmp	  update_status_flag_and_exit
 F000:ECB9 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:ECB9
 F000:ECB9 l68:							      ;	CODE XREF: int_09+31Cj
 F000:ECB9		  and	  cl, 0EFh
-F000:ECBC		  jmp	  l29
+F000:ECBC		  jmp	  update_status_flag_and_exit
 F000:ECBF ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:ECBF
 F000:ECBF l69:							      ;	CODE XREF: int_09+2DDj
 F000:ECBF							      ;	int_09+2E1j
 F000:ECBF							      ;	int_09+2E9j
-F000:ECBF		  lea	  bx, byte_FEF68
+F000:ECBF		  lea	  bx, keypad_scancode_to_ascii_alt
 F000:ECC3		  sub	  al, 46h ; 'F'
-F000:ECC5		  call	  sub_FEDE7
+F000:ECC5		  call	  scancode_to_ascii
 F000:ECC8		  cmp	  al, 0FFh
 F000:ECCA		  jnz	  short	l70
-F000:ECCC		  jmp	  l29
+F000:ECCC		  jmp	  update_status_flag_and_exit
 F000:ECCF ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:ECCF
 F000:ECCF l70:							      ;	CODE XREF: int_09+343j
-F000:ECCF		  jmp	  l26
+F000:ECCF		  jmp	  pre_put_ax_in_keyb_buffer
 F000:ECD2 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:ECD2
 F000:ECD2 l71:							      ;	CODE XREF: int_09+2CDj
@@ -6192,7 +6190,7 @@ F000:ECEF		  jnz	  short	l77
 F000:ECF1
 F000:ECF1 l74:							      ;	CODE XREF: int_09+361j
 F000:ECF1							      ;	int_09+387j
-F000:ECF1		  lea	  bx, byte_FEF36
+F000:ECF1		  lea	  bx, keypad_scancode_to_ascii_shift
 F000:ECF5		  cmp	  al, 52h ; 'R'
 F000:ECF7		  jnz	  short	l78
 F000:ECF9		  or	  cl, 80h
@@ -6213,21 +6211,21 @@ F000:ED0E		  jnz	  short	l74
 F000:ED10
 F000:ED10 l77:							      ;	CODE XREF: int_09+363j
 F000:ED10							      ;	int_09+368j
-F000:ED10		  lea	  bx, byte_FEF1D
+F000:ED10		  lea	  bx, keypad_scancode_to_ascii_default
 F000:ED14
 F000:ED14 l78:							      ;	CODE XREF: int_09+2C7j
 F000:ED14							      ;	int_09+370j
 F000:ED14							      ;	int_09+37Dj
 F000:ED14							      ;	int_09+382j
 F000:ED14		  sub	  al, 46h ; 'F'
-F000:ED16		  call	  sub_FEDE7
+F000:ED16		  call	  scancode_to_ascii
 F000:ED19		  cmp	  al, 0FFh
 F000:ED1B		  jnz	  short	l79
-F000:ED1D		  jmp	  l29
+F000:ED1D		  jmp	  update_status_flag_and_exit
 F000:ED20 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:ED20
 F000:ED20 l79:							      ;	CODE XREF: int_09+394j
-F000:ED20		  cmp	  bx, offset byte_FEF1D
+F000:ED20		  cmp	  bx, offset keypad_scancode_to_ascii_default
 F000:ED24		  jnz	  short	l81
 F000:ED26		  cmp	  al, 50h ; 'P'
 F000:ED28		  jz	  short	l82
@@ -6242,38 +6240,38 @@ F000:ED38		  jz	  short	l82
 F000:ED3A		  cmp	  al, 99h ; '™'
 F000:ED3C		  jz	  short	l82
 F000:ED3E
-F000:ED3E l80:							      ;	CODE XREF: int_09+3BCj
+F000:ED3E try_intl_xlat_0:					      ;	CODE XREF: int_09+3BCj
 F000:ED3E							      ;	int_09+3C0j
 F000:ED3E							      ;	int_09+3C4j
 F000:ED3E							      ;	int_09+3C8j
 F000:ED3E							      ;	int_09+3CCj
 F000:ED3E							      ;	int_09+3D0j ...
-F000:ED3E		  jmp	  l27
+F000:ED3E		  jmp	  try_intl_xlat
 F000:ED41 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:ED41
 F000:ED41 l81:							      ;	CODE XREF: int_09+39Dj
 F000:ED41		  cmp	  al, 5Ch ; '\'
-F000:ED43		  jz	  short	l80
+F000:ED43		  jz	  short	try_intl_xlat_0
 F000:ED45		  cmp	  al, 7Ch ; '|'
-F000:ED47		  jz	  short	l80
+F000:ED47		  jz	  short	try_intl_xlat_0
 F000:ED49		  cmp	  al, 7Eh ; '~'
-F000:ED4B		  jz	  short	l80
+F000:ED4B		  jz	  short	try_intl_xlat_0
 F000:ED4D		  cmp	  al, 60h ; '`'
-F000:ED4F		  jz	  short	l80
+F000:ED4F		  jz	  short	try_intl_xlat_0
 F000:ED51		  cmp	  al, 0Dh
-F000:ED53		  jz	  short	l80
+F000:ED53		  jz	  short	try_intl_xlat_0
 F000:ED55		  cmp	  al, 5Eh ; '^'
-F000:ED57		  jz	  short	l80
+F000:ED57		  jz	  short	try_intl_xlat_0
 F000:ED59		  cmp	  al, 3Ch ; '<'
-F000:ED5B		  jz	  short	l80
+F000:ED5B		  jz	  short	try_intl_xlat_0
 F000:ED5D		  cmp	  al, 23h ; '#'
-F000:ED5F		  jz	  short	l80
+F000:ED5F		  jz	  short	try_intl_xlat_0
 F000:ED61		  cmp	  al, 7Bh ; '{'
-F000:ED63		  jz	  short	l80
+F000:ED63		  jz	  short	try_intl_xlat_0
 F000:ED65		  cmp	  al, 7Dh ; '}'
-F000:ED67		  jz	  short	l80
+F000:ED67		  jz	  short	try_intl_xlat_0
 F000:ED69		  cmp	  al, 0Ah
-F000:ED6B		  jz	  short	l80
+F000:ED6B		  jz	  short	try_intl_xlat_0
 F000:ED6D
 F000:ED6D l82:							      ;	CODE XREF: int_09+3A1j
 F000:ED6D							      ;	int_09+3A5j
@@ -6281,10 +6279,10 @@ F000:ED6D							      ;	int_09+3A9j
 F000:ED6D							      ;	int_09+3ADj
 F000:ED6D							      ;	int_09+3B1j
 F000:ED6D							      ;	int_09+3B5j
-F000:ED6D		  jmp	  l26
+F000:ED6D		  jmp	  pre_put_ax_in_keyb_buffer
 F000:ED70 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:ED70
-F000:ED70 soft_reset:						      ;	CODE XREF: int_09+2C0j
+F000:ED70 ctrl_alt_del_pressed:					      ;	CODE XREF: int_09+2C0j
 F000:ED70							      ;	int_09+2D8j
 F000:ED70		  mov	  bx, p400.POST_reset_flag
 F000:ED73		  mov	  word ptr [bx], 1234h
@@ -6292,7 +6290,7 @@ F000:ED77		  call	  kbd_reset_and_ack_int
 F000:ED7A		  jmp	  reset_entry
 F000:ED7D ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:ED7D
-F000:ED7D l83:							      ;	CODE XREF: int_09+2B4j
+F000:ED7D ctrl_break_pressed:					      ;	CODE XREF: int_09+2B4j
 F000:ED7D		  mov	  ax, ds:p400.keyb_buffer_start_offset_ptr
 F000:ED80		  mov	  ds:p400.keyb_buffer_head_ptr,	ax
 F000:ED83		  mov	  ds:p400.keyb_buffer_tail_ptr,	ax
@@ -6304,30 +6302,34 @@ F000:ED8F		  mov	  byte ptr [bx], 80h ; '€'
 F000:ED92		  pop	  ds
 F000:ED93		  int	  1Bh				      ;	CTRL-BREAK KEY
 F000:ED95		  xor	  ax, ax
-F000:ED97		  call	  sub_FEDAA
-F000:ED9A		  jmp	  l29
+F000:ED97		  call	  put_char_in_keyb_buffer
+F000:ED9A		  jmp	  update_status_flag_and_exit
 F000:ED9D ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:ED9D
-F000:ED9D l84:							      ;	CODE XREF: int_09+9Cj
+F000:ED9D print_screen_pressed:					      ;	CODE XREF: int_09+9Cj
 F000:ED9D		  call	  kbd_reset_and_ack_int
-F000:EDA0		  call	  sub_FEDCC
-F000:EDA3		  jb	  short	l85
+F000:EDA0		  call	  get_keyb_buffer_next_slot
+F000:EDA3		  jb	  short	exit_1
 F000:EDA5		  int	  5				      ;	 - PRINT-SCREEN	KEY
 F000:EDA5							      ;	automatically called by	keyboard scanner when print-screen key is pressed
 F000:EDA7
-F000:EDA7 l85:							      ;	CODE XREF: int_09+41Cj
-F000:EDA7		  jmp	  l33
+F000:EDA7 exit_1:						      ;	CODE XREF: int_09+41Cj
+F000:EDA7		  jmp	  pop_and_exit
 F000:EDA7 int_09	  endp
 F000:EDA7
 F000:EDAA
 F000:EDAA ; ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ S U	B R O U	T I N E	ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ
 F000:EDAA
+F000:EDAA ; Entry:
+F000:EDAA ;	AL = scancode to store in keyboard buffer
+F000:EDAA ;	AH = ascii to store in keyboard	buffer
+F000:EDAA ;
 F000:EDAA
-F000:EDAA sub_FEDAA	  proc near				      ;	CODE XREF: int_09:l28p
+F000:EDAA put_char_in_keyb_buffer proc near			      ;	CODE XREF: int_09:put_ax_in_keyb_bufferp
 F000:EDAA							      ;	int_09+410p
 F000:EDAA		  cli
-F000:EDAB		  call	  sub_FEDCC
-F000:EDAE		  jb	  short	l1
+F000:EDAB		  call	  get_keyb_buffer_next_slot
+F000:EDAE		  jb	  short	buffer_full
 F000:EDB0		  mov	  si, ds:p400.keyb_buffer_tail_ptr
 F000:EDB4		  mov	  [si],	ax
 F000:EDB6		  inc	  si
@@ -6336,71 +6338,74 @@ F000:EDB8		  cmp	  si, ds:p400.keyb_buffer_end_offset_ptr
 F000:EDBC		  jb	  short	l0
 F000:EDBE		  mov	  si, ds:p400.keyb_buffer_start_offset_ptr
 F000:EDC2
-F000:EDC2 l0:							      ;	CODE XREF: sub_FEDAA+12j
+F000:EDC2 l0:							      ;	CODE XREF: put_char_in_keyb_buffer+12j
 F000:EDC2		  mov	  ds:p400.keyb_buffer_tail_ptr,	si
 F000:EDC6		  retn
 F000:EDC7 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EDC7
-F000:EDC7 l1:							      ;	CODE XREF: sub_FEDAA+4j
+F000:EDC7 buffer_full:						      ;	CODE XREF: put_char_in_keyb_buffer+4j
 F000:EDC7		  sti
 F000:EDC8		  call	  play_bell_sound
 F000:EDCB		  retn
-F000:EDCB sub_FEDAA	  endp
+F000:EDCB put_char_in_keyb_buffer endp
 F000:EDCB
 F000:EDCC
 F000:EDCC ; ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ S U	B R O U	T I N E	ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ
 F000:EDCC
+F000:EDCC ; Returns:
+F000:EDCC ;	SI = Keyboard buffer next slot
+F000:EDCC ;	Carry =	Set if buffer is buffer	is full, Clear otherwise
 F000:EDCC
-F000:EDCC sub_FEDCC	  proc near				      ;	CODE XREF: int_09+419p
-F000:EDCC							      ;	sub_FEDAA+1p
+F000:EDCC get_keyb_buffer_next_slot proc near			      ;	CODE XREF: int_09+419p
+F000:EDCC							      ;	put_char_in_keyb_buffer+1p
 F000:EDCC		  mov	  si, ds:p400.keyb_buffer_tail_ptr
 F000:EDD0		  inc	  si
 F000:EDD1		  inc	  si
 F000:EDD2		  cmp	  si, ds:p400.keyb_buffer_end_offset_ptr
-F000:EDD6		  jb	  short	loc_FEDDC
+F000:EDD6		  jb	  short	l0
 F000:EDD8		  mov	  si, ds:p400.keyb_buffer_start_offset_ptr
 F000:EDDC
-F000:EDDC loc_FEDDC:						      ;	CODE XREF: sub_FEDCC+Aj
+F000:EDDC l0:							      ;	CODE XREF: get_keyb_buffer_next_slot+Aj
 F000:EDDC		  cmp	  si, ds:p400.keyb_buffer_head_ptr
-F000:EDE0		  jz	  short	loc_FEDE5
+F000:EDE0		  jz	  short	error
 F000:EDE2		  clc
-F000:EDE3		  jmp	  short	locret_FEDE6
+F000:EDE3		  jmp	  short	exit
 F000:EDE5 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:EDE5
-F000:EDE5 loc_FEDE5:						      ;	CODE XREF: sub_FEDCC+14j
+F000:EDE5 error:						      ;	CODE XREF: get_keyb_buffer_next_slot+14j
 F000:EDE5		  stc
 F000:EDE6
-F000:EDE6 locret_FEDE6:						      ;	CODE XREF: sub_FEDCC+17j
+F000:EDE6 exit:							      ;	CODE XREF: get_keyb_buffer_next_slot+17j
 F000:EDE6		  retn
-F000:EDE6 sub_FEDCC	  endp
+F000:EDE6 get_keyb_buffer_next_slot endp
 F000:EDE6
 F000:EDE7
 F000:EDE7 ; ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ S U	B R O U	T I N E	ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ
 F000:EDE7
 F000:EDE7
-F000:EDE7 sub_FEDE7	  proc near				      ;	CODE XREF: int_09:l21p
+F000:EDE7 scancode_to_ascii proc near				      ;	CODE XREF: int_09:l21p
 F000:EDE7							      ;	int_09+309p
 F000:EDE7							      ;	int_09+33Ep
 F000:EDE7							      ;	int_09+38Fp
 F000:EDE7		  push	  ds
 F000:EDE8		  push	  ax
 F000:EDE9		  mov	  ax, cs
-F000:EDEB		  mov	  ds, ax
+F000:EDEB		  mov	  ds, ax			      ;	ds = cs
 F000:EDED		  pop	  ax
-F000:EDEE		  dec	  al
-F000:EDF0		  xlat
+F000:EDEE		  dec	  al				      ;	al-- (?)
+F000:EDF0		  xlat					      ;	al = [ds:bx + al]
 F000:EDF1		  pop	  ds
 F000:EDF2		  retn
-F000:EDF2 sub_FEDE7	  endp
+F000:EDF2 scancode_to_ascii endp
 F000:EDF2
 F000:EDF3
 F000:EDF3 ; ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ S U	B R O U	T I N E	ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ
 F000:EDF3
 F000:EDF3
 F000:EDF3 kbd_reset_and_ack_int	proc near			      ;	CODE XREF: int_09:l10p
-F000:EDF3							      ;	int_09:l29p
+F000:EDF3							      ;	int_09:update_status_flag_and_exitp
 F000:EDF3							      ;	int_09+3F0p
-F000:EDF3							      ;	int_09:l84p
+F000:EDF3							      ;	int_09:print_screen_pressedp
 F000:EDF3		  cli
 F000:EDF4		  mov	  dx, 61h ; 'a'
 F000:EDF7		  in	  al, dx			      ;	PC/XT PPI port B bits:
@@ -6436,14 +6441,14 @@ F000:EE04		  retn
 F000:EE04 kbd_reset_and_ack_int	endp
 F000:EE04
 F000:EE04 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
-F000:EE05 byte_FEE05	  db 1Bh, 31h, 32h, 33h, 34h, 35h, 36h,	37h, 38h, 39h, 30h, 2Dh, 3Dh, 8, 9, 71h, 77h, 65h
+F000:EE05 tbl_scancode_to_ascii_default	db 1Bh,	31h, 32h, 33h, 34h, 35h, 36h, 37h, 38h,	39h, 30h, 2Dh, 3Dh, 8, 9, 71h, 77h, 65h
 F000:EE05							      ;	DATA XREF: int_09:l15o
 F000:EE05							      ;	int_09+CFo
 F000:EE05		  db 72h, 74h, 79h, 75h, 69h, 6Fh, 70h,	5Bh, 5Dh, 0Dh, 0FEh, 61h, 73h, 64h, 66h, 67h, 68h
 F000:EE05		  db 6Ah, 6Bh, 6Ch, 3Bh, 27h, 48h, 0FEh, 4Bh, 7Ah, 78h,	63h, 76h, 62h, 6Eh, 6Dh, 2Ch, 2Eh
 F000:EE05		  db 2Fh, 0FEh,	10h, 0FEh, 20h,	0FEh, 3Bh, 3Ch,	3Dh, 3Eh, 3Fh, 40h, 41h, 42h, 43h, 44h
 F000:EE05		  db 0FEh, 0FEh
-F000:EE4B byte_FEE4B	  db 1Bh, 21h, 40h, 23h, 24h, 25h, 5Eh,	26h, 2Ah, 28h, 29h, 5Fh, 2Bh, 8, 0Fh, 51h, 57h
+F000:EE4B tbl_scancode_to_ascii_shift db 1Bh, 21h, 40h,	23h, 24h, 25h, 5Eh, 26h, 2Ah, 28h, 29h,	5Fh, 2Bh, 8, 0Fh, 51h, 57h
 F000:EE4B							      ;	DATA XREF: int_09:l16o
 F000:EE4B							      ;	int_09+C9o
 F000:EE4B							      ;	int_09:l18o
@@ -6451,30 +6456,30 @@ F000:EE4B		  db 45h, 52h, 54h, 59h, 55h, 49h, 4Fh,	50h, 7Bh, 7Dh, 0Dh, 0FFh, 41h
 F000:EE4B		  db 48h, 4Ah, 4Bh, 4Ch, 3Ah, 22h, 85h,	0FFh, 87h, 5Ah,	58h, 43h, 56h, 42h, 4Eh, 4Dh, 3Ch
 F000:EE4B		  db 3Eh, 3Fh, 0FFh, 0FEh, 0FFh, 20h, 0FFh, 54h, 55h, 56h, 57h,	58h, 59h, 5Ah, 5Bh, 5Ch
 F000:EE4B		  db 5Dh, 0FFh,	0FEh
-F000:EE91 byte_FEE91	  db 1Bh, 0E1h,	3, 0E3h, 0E4h, 0E5h, 1Eh, 0E7h,	0E8h, 0E9h, 0E0h, 1Fh, 0F5h, 7Fh, 8Dh
+F000:EE91 tbl_scancode_to_ascii_ctrl db	1Bh, 0E1h, 3, 0E3h, 0E4h, 0E5h,	1Eh, 0E7h, 0E8h, 0E9h, 0E0h, 1Fh, 0F5h,	7Fh, 8Dh
 F000:EE91							      ;	DATA XREF: int_09+E9o
 F000:EE91		  db 11h, 17h, 5, 12h, 14h, 19h, 15h, 9, 0Fh, 10h, 1Bh,	1Dh, 0Ah, 0FFh,	1, 13h,	4, 6, 7
 F000:EE91		  db 8,	0Ah, 0Bh, 0Ch, 0F6h, 0F7h, 90h,	0FFh, 73h, 1Ah,	18h, 3,	16h, 2,	0Eh, 0Dh, 0F9h
 F000:EE91		  db 0FAh, 0FBh, 0FFh, 72h, 0FFh, 20h, 0FFh, 5Eh, 5Fh, 60h, 61h, 62h, 63h, 64h,	65h, 66h
 F000:EE91		  db 67h, 0FFh,	0FEh
-F000:EED7 byte_FEED7	  db 8Bh, 78h, 79h, 7Ah, 7Bh, 7Ch, 7Dh,	7Eh, 7Fh, 80h, 81h, 82h, 83h, 8Ch, 8Eh,	10h, 11h
+F000:EED7 tbl_scancode_to_ascii_alt db 8Bh, 78h, 79h, 7Ah, 7Bh,	7Ch, 7Dh, 7Eh, 7Fh, 80h, 81h, 82h, 83h,	8Ch, 8Eh, 10h, 11h
 F000:EED7							      ;	DATA XREF: int_09+DEo
 F000:EED7		  db 12h, 13h, 14h, 15h, 16h, 17h, 18h,	19h, 0EBh, 0F0h, 8Fh, 0FFh, 1Eh, 1Fh, 20h, 21h
 F000:EED7		  db 22h, 23h, 24h, 25h, 26h, 0F8h, 0F1h, 91h, 0FFh, 92h, 2Ch, 2Dh, 2Eh, 2Fh, 30h, 31h
 F000:EED7		  db 32h, 89h, 8Ah, 0F2h, 0FFh,	46h, 0FFh, 20h,	0FFh, 68h, 69h,	6Ah, 6Bh, 6Ch, 6Dh, 6Eh
 F000:EED7		  db 6Fh, 70h, 71h, 0FFh, 0FEh
-F000:EF1D byte_FEF1D	  db 37h, 38h, 39h, 50h, 34h, 35h, 36h,	4Dh, 31h, 32h, 33h, 30h, 2Dh, 0, 2Bh, 2Eh, 0Dh
+F000:EF1D keypad_scancode_to_ascii_default db 37h, 38h,	39h, 50h, 34h, 35h, 36h, 4Dh, 31h, 32h,	33h, 30h, 2Dh, 0, 2Bh, 2Eh, 0Dh
 F000:EF1D							      ;	DATA XREF: int_09+303o
 F000:EF1D							      ;	int_09:l77o
 F000:EF1D							      ;	int_09:l79o
 F000:EF1D		  db 47h, 98h, 99h, 5Eh, 3Eh, 40h, 5Bh,	5Dh
-F000:EF36 byte_FEF36	  db 5Ch, 7Eh, 49h, 86h, 7Ch, 0F3h, 0F4h, 88h, 4Fh, 60h, 51h, 9Bh, 53h,	0, 52h,	0A1h, 0Dh
+F000:EF36 keypad_scancode_to_ascii_shift db 5Ch, 7Eh, 49h, 86h,	7Ch, 0F3h, 0F4h, 88h, 4Fh, 60h,	51h, 9Bh, 53h, 0, 52h, 0A1h, 0Dh
 F000:EF36							      ;	DATA XREF: int_09:l74o
 F000:EF36		  db 4Ah, 0A2h,	0A3h, 5Eh, 3Ch,	23h, 7Bh, 7Dh
-F000:EF4F byte_FEF4F	  db 93h, 94h, 84h, 96h, 95h, 0FCh, 0FDh, 74h, 75h, 9Ah, 76h, 9Ch, 9Dh,	0, 9Fh,	0A4h, 0Ah
+F000:EF4F keypad_scancode_to_ascii_ctrl	db 93h,	94h, 84h, 96h, 95h, 0FCh, 0FDh,	74h, 75h, 9Ah, 76h, 9Ch, 9Dh, 0, 9Fh, 0A4h, 0Ah
 F000:EF4F							      ;	DATA XREF: int_09:l62o
 F000:EF4F		  db 77h, 0ACh,	0ADh, 0A7h, 0A8h, 0A9h,	0AAh, 0ABh
-F000:EF68 byte_FEF68	  db 0FEh, 0FEh, 0FEh, 97h, 0FEh, 0FEh,	0FEh, 0EAh, 0FEh, 0FEh,	0FEh, 0FEh, 9Eh, 0FEh
+F000:EF68 keypad_scancode_to_ascii_alt db 0FEh,	0FEh, 0FEh, 97h, 0FEh, 0FEh, 0FEh, 0EAh, 0FEh, 0FEh, 0FEh, 0FEh, 9Eh, 0FEh
 F000:EF68							      ;	DATA XREF: int_09:l69o
 F000:EF68		  db 0A0h, 0A5h, 8Fh, 0A6h, 0B6h, 0B7h,	0AEh, 0AFh, 45h, 4Ch, 4Eh, 0DEh, 0ADh, 0DEh, 0ADh
 F000:EF68		  db 0DEh, 0ADh, 0DEh, 0ADh, 0DEh, 0ADh, 0DEh, 0ADh, 0DEh, 0ADh, 0DEh, 0ADh, 0DEh, 0ADh
@@ -6482,28 +6487,12 @@ F000:EF68		  db 0DEh, 0ADh, 0DEh, 0ADh, 0DEh, 0ADh, 0DEh, 0ADh, 0DEh, 0ADh, 0DEh
 F000:EF68		  db 0DEh, 0ADh, 0DEh, 0ADh, 0DEh, 0ADh, 0DEh, 0ADh, 0DEh, 0ADh, 0DEh, 0ADh, 0DEh, 0ADh
 F000:EF68		  db 0DEh, 0ADh, 0DEh, 0ADh, 0DEh, 0ADh, 0DEh, 0ADh, 0DEh, 0ADh, 0DEh, 0ADh, 0DEh, 0ADh
 F000:EF68		  db 0DEh, 0ADh, 0DEh, 0ADh, 0DEh, 0ADh, 0DEh, 0ADh, 0DEh, 0ADh
-F000:EFC7
-F000:EFC7 ; ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ S U	B R O U	T I N E	ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ
-F000:EFC7
-F000:EFC7
-F000:EFC7 int_1e	  proc far				      ;	DATA XREF: F000:FF1Fo
-F000:EFC7		  iret
-F000:EFC7 int_1e	  endp
-F000:EFC7
-F000:EFC7 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
-F000:EFC8		  db	2
-F000:EFC9		  db  25h ; %
-F000:EFCA		  db	2
-F000:EFCB		  db	9
-F000:EFCC		  db  2Ah ; *
-F000:EFCD		  db 0FFh
-F000:EFCE		  db  50h ; P
-F000:EFCF		  db 0F6h ; ö
-F000:EFD0		  db  19h
-F000:EFD1		  db	4
+F000:EFC7 int_1e	  diskette_params <0CFh, 2, 25h, 2, 9, 2Ah, 0FFh, 50h, 0F6h, 19h, 4>
+F000:EFC7							      ;	DATA XREF: F000:FF1Fo
 F000:EFD2
 F000:EFD2 ; ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ S U	B R O U	T I N E	ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ
 F000:EFD2
+F000:EFD2 ; printer handler
 F000:EFD2
 F000:EFD2 int_17	  proc far				      ;	DATA XREF: F000:FF11o
 F000:EFD2		  call	  int_push_regs
@@ -6529,6 +6518,17 @@ F000:EFFB
 F000:EFFB exit0:						      ;	CODE XREF: int_17+Aj
 F000:EFFB		  jmp	  short	exit1
 F000:EFFD ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+F000:EFFD ;INT 17h,  00h (0)	    Send One Byte to Printer
+F000:EFFD ;
+F000:EFFD ;    Sends one character to the specified parallel printer and returns the
+F000:EFFD ;    current status of the printer.
+F000:EFFD ;
+F000:EFFD ;	  On entry:	 AH	    00h
+F000:EFFD ;			 AL	    Character to print
+F000:EFFD ;			 DX	    Parallel printer number (0 - LPT1, 1 - LPT2,
+F000:EFFD ;				    etc)
+F000:EFFD ;
+F000:EFFD ;	  Returns:	 AH	    Printer status (see	Service	02h)
 F000:EFFD
 F000:EFFD int_17_00:						      ;	CODE XREF: int_17+1Ej
 F000:EFFD							      ;	DATA XREF: int_17:int_17_jmp_tblo
@@ -6560,8 +6560,18 @@ F000:F018		  jnz	  short	l0
 F000:F01A		  loop	  l0
 F000:F01C		  mov	  ch, 1
 F000:F01E		  mov	  cl, ah
-F000:F020		  jmp	  short	l4
+F000:F020		  jmp	  short	get_status_and_exit
 F000:F022 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+F000:F022 ;INT 17h,  01h (1)	    Initialize Printer
+F000:F022 ;
+F000:F022 ;    Sends initialization control codes to the specified parallel printer
+F000:F022 ;    and returns the current status of the printer.
+F000:F022 ;
+F000:F022 ;	  On entry:	 AH	    01h
+F000:F022 ;			 DX	    Parallel printer number (0 = LPT1, 1 = LPT2,
+F000:F022 ;				    etc.)
+F000:F022 ;
+F000:F022 ;	  Returns:	 AH	    Printer status (See	service	02h)
 F000:F022
 F000:F022 int_17_01:						      ;	CODE XREF: int_17+1Ej
 F000:F022							      ;	DATA XREF: int_17+25o
@@ -6582,15 +6592,24 @@ F000:F033
 F000:F033 l3:							      ;	CODE XREF: int_17+43j
 F000:F033		  dec	  dx
 F000:F034		  xor	  ch, ch
-F000:F036		  jmp	  short	l4
+F000:F036		  jmp	  short	get_status_and_exit
 F000:F038 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+F000:F038 ;INT 17h,  02h (2)	    Get	Printer	Status
+F000:F038 ;
+F000:F038 ;    Returns status information about	the specified parallel printer.
+F000:F038 ;
+F000:F038 ;	  On entry:	 AH	    02h
+F000:F038 ;			 DX	    Parallel printer number (0 = LPT1, 1 = LPT2,
+F000:F038 ;				    etc.)
+F000:F038 ;
+F000:F038 ;	  Returns:	 AH	    Printer status
 F000:F038
 F000:F038 int_17_02:						      ;	CODE XREF: int_17+1Ej
 F000:F038							      ;	DATA XREF: int_17+27o
 F000:F038		  mov	  cl, al
 F000:F03A		  inc	  dx
 F000:F03B
-F000:F03B l4:							      ;	CODE XREF: int_17+4Ej
+F000:F03B get_status_and_exit:					      ;	CODE XREF: int_17+4Ej
 F000:F03B							      ;	int_17+64j
 F000:F03B		  in	  al, dx
 F000:F03C		  and	  al, 0F8h
@@ -7410,7 +7429,7 @@ F000:F501		  jle	  short	l1
 F000:F503		  xor	  al, al
 F000:F505
 F000:F505 l1:							      ;	CODE XREF: scroll_up_or_down+14j
-F000:F505		  call	  is_graphics_mode
+F000:F505		  call	  is_text_mode
 F000:F508		  jnb	  short	is_text_mode
 F000:F50A		  jmp	  scroll_graphics_up_or_down
 F000:F50D ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
@@ -7486,14 +7505,14 @@ F000:F57F		  cmp	  si, [bp+0]
 F000:F582		  jz	  short	l9
 F000:F584		  pop	  di
 F000:F585		  pop	  si
-F000:F586		  call	  sub_FDB09
+F000:F586		  call	  add_or_sub_bytes_per_row
 F000:F589		  jmp	  short	l8
 F000:F58B ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:F58B
 F000:F58B l9:							      ;	CODE XREF: scroll_up_or_down+95j
 F000:F58B		  pop	  di
 F000:F58C		  pop	  si
-F000:F58D		  call	  sub_FDB09
+F000:F58D		  call	  add_or_sub_bytes_per_row
 F000:F590
 F000:F590 l10:							      ;	CODE XREF: scroll_up_or_down+5Fj
 F000:F590							      ;	scroll_up_or_down+82j
@@ -7510,7 +7529,7 @@ F000:F59D		  cmp	  di, [bp+0]
 F000:F5A0		  jz	  short	l11
 F000:F5A2		  pop	  di
 F000:F5A3		  pop	  si
-F000:F5A4		  call	  sub_FDB09
+F000:F5A4		  call	  add_or_sub_bytes_per_row
 F000:F5A7		  jmp	  short	l10
 F000:F5A9 ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:F5A9
@@ -7568,7 +7587,7 @@ F000:F5BC ;	   Registers destroyed:	     AX, SP, BP, SI, DI
 F000:F5BC
 F000:F5BC int_10_08	  proc far				      ;	CODE XREF: int_10+Dj
 F000:F5BC							      ;	DATA XREF: int_10+22o
-F000:F5BC		  call	  is_graphics_mode
+F000:F5BC		  call	  is_text_mode
 F000:F5BF		  jnb	  short	text_mode
 F000:F5C1		  xor	  bl, bl
 F000:F5C3		  call	  get_cursor_row_cols_for_page
@@ -7633,7 +7652,7 @@ F000:F5DD display_chars:					      ;	CODE XREF: int_10_09+2j
 F000:F5DD		  or	  cx, cx
 F000:F5DF		  jz	  short	exit
 F000:F5E1		  mov	  ah, bl
-F000:F5E3		  call	  is_graphics_mode
+F000:F5E3		  call	  is_text_mode
 F000:F5E6		  jnb	  short	display_chars_text_mode
 F000:F5E8		  xor	  bl, bl
 F000:F5EA		  call	  get_cursor_row_cols_for_page
@@ -7982,7 +8001,7 @@ F000:F79D		  cmp	  dh, 18h
 F000:F7A0		  jnz	  short	l8
 F000:F7A2
 F000:F7A2 l5:							      ;	CODE XREF: int_10_0e+90j
-F000:F7A2		  call	  is_graphics_mode
+F000:F7A2		  call	  is_text_mode
 F000:F7A5		  jnb	  short	text_mode
 F000:F7A7		  mov	  ah, 0
 F000:F7A9		  jmp	  short	do_scroll_up
@@ -8473,7 +8492,7 @@ F000:F99A ; Returns:
 F000:F99A ;    Carry set if in graphics	mode
 F000:F99A ;    Carry clear if in text mode
 F000:F99A
-F000:F99A is_graphics_mode proc	near				      ;	CODE XREF: scroll_up_or_down:l1p
+F000:F99A is_text_mode	  proc near				      ;	CODE XREF: scroll_up_or_down:l1p
 F000:F99A							      ;	int_10_08p
 F000:F99A							      ;	int_10_0a+8p
 F000:F99A							      ;	int_10_0e:l5p
@@ -8485,16 +8504,16 @@ F000:F9A8		  stc
 F000:F9A9		  retn
 F000:F9AA ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:F9AA
-F000:F9AA ok:							      ;	CODE XREF: is_graphics_mode+5j
-F000:F9AA							      ;	is_graphics_mode+Cj
+F000:F9AA ok:							      ;	CODE XREF: is_text_mode+5j
+F000:F9AA							      ;	is_text_mode+Cj
 F000:F9AA		  clc
 F000:F9AB		  retn
-F000:F9AB is_graphics_mode endp
+F000:F9AB is_text_mode	  endp
 F000:F9AB
 F000:F9AB ; ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 F000:F9AC		  db 0C2h dup(0)
 F000:FA6E int_44_charset_0_127 db 8 dup(0), 7Eh, 81h, 0A5h, 81h, 0BDh, 99h, 81h, 2 dup(7Eh), 0FFh, 0DBh, 0FFh, 0C3h
-F000:FA6E							      ;	DATA XREF: F000:tbl_int_44o
+F000:FA6E							      ;	DATA XREF: F000:int_44_tblo
 F000:FA6E		  db 0E7h, 0FFh, 7Eh, 36h, 3 dup(7Fh), 3Eh, 1Ch, 8, 0, 8, 1Ch, 3Eh, 7Fh, 3Eh, 1Ch, 8, 0
 F000:FA6E		  db 1Ch, 3Eh, 1Ch, 2 dup(7Fh),	3Eh, 1Ch, 3Eh, 2 dup(8), 1Ch, 3Eh, 7Fh,	3Eh, 1Ch, 3Eh
 F000:FA6E		  db 2 dup(0), 18h, 2 dup(3Ch),	18h, 2 dup(0), 2 dup(0FFh), 0E7h, 2 dup(0C3h), 0E7h, 2 dup(0FFh)
@@ -8582,7 +8601,7 @@ F000:FF2B		  dw offset nullsub_1			      ;	int 4
 F000:FF2D		  dw offset int_05			      ;	int 5
 F000:FF2F		  dw offset nullsub_1			      ;	int 6
 F000:FF31		  dw offset nullsub_1			      ;	int 7
-F000:FF33 tbl_int_44	  dw offset int_44_charset_0_127	      ;	DATA XREF: reset+93o
+F000:FF33 int_44_tbl	  dw offset int_44_charset_0_127	      ;	DATA XREF: reset+93o
 F000:FF33							      ;	int 0x44
 F000:FF35 value_0040	  dw 40h				      ;	DATA XREF: int_1a+1r
 F000:FF35							      ;	int_08+5r
