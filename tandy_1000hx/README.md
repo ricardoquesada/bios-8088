@@ -2,22 +2,7 @@
 
 ## What is this
 
-Long story short:
-
-- The Tandy 1000 HX BIOS disassembled
-
-
-Long story long:
-
-I received a Tandy 1000 HX. I had no idea what it was. I googled it. I found
-it interesting, mostly because it has an 8088, propietary joystick plugs and
-rare graphics video modes.
-
-I decided to port the UniJoystiCle to the Tandy. In order to do that I
-needed to know in more detail how the Tandy rare video modes worked. I started
-disassembling the `mov ax,0000h; int 10h` BIOS handler. And after that I
-continued with other parts of the BIOS, mostly out of curiosity, and because I
-forgot how to code for Intel 80x86.
+The Tandy 1000hx BIOS disassembled.
 
 This is still WIP.
 
@@ -36,6 +21,87 @@ This is still WIP.
 
 - Open the [.lst file][5] with a text editor
 - Or open the [.idb][6] file with [IDA Pro][3] (I used the [freeware version][4])
+
+
+## EEPROM
+
+There are 4 words (1 word == 2 bytes) to store data.
+
+word 0
+
+15:
+14:
+13:
+12:
+11:
+10:
+9:
+8:
+7:
+6:
+5:
+4:
+3: 0=7.16 Mhz.  1=4.77 Mhz.
+2: Should be 0, otherwise "word_1019f" is 0xffff
+1: Drive B: 0=3 1/2, 1=5 1/4 (or the other way round?)
+0: Drive A: 0=3 1/2, 1=5 1/4 (or the other way round?)
+
+word 1
+
+15:
+14:
+13:
+12:
+11:
+10:
+9:
+8:
+7:
+6:
+5:
+4:
+3:
+2:
+1:
+0: video card: 0=color, 1=monochrome
+
+word 2
+
+15:
+14:
+13:
+12:
+11:
+10:
+9:
+8:
+7:
+6:
+5:
+4:
+3:
+2:
+0,1: number of diskettes installed minus 1
+
+
+word 3
+
+15:
+14:
+13:
+12:
+11:
+10:
+9:
+8:
+7:
+6:
+5:
+4:
+3:
+2:
+1:
+0:
 
 
 ## References
