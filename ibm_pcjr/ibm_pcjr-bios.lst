@@ -18428,63 +18428,63 @@ F000:ED5E		  sti			  ; interrupts back on
 F000:ED5F		  or	  al, 80h	  ; no reset, turn on motor
 F000:ED61		  out	  0F2h,	al
 F000:ED63 ;------ wait for motor both read and write
-F000:ED63		  mov	  bl, 14h
+F000:ED63		  mov	  bl, 14h	  ; get	motor start time
 F000:ED65		  call	  get_parm
-F000:ED68		  or	  ah, ah
-F000:ED6A j12:					  ; CODE XREF: rw_opn+2Ej
-F000:ED6A		  jz	  short	j14
-F000:ED6C		  sub	  cx, cx
+F000:ED68		  or	  ah, ah	  ; test for no	wait
+F000:ED6A j12_test_wait_time:			  ; CODE XREF: rw_opn+2Ej
+F000:ED6A		  jz	  short	j14	  ; exit with time expired
+F000:ED6C		  sub	  cx, cx	  ; set	up 1/8 second loop time
 F000:ED6E j13:					  ; CODE XREF: rw_opn:j13j
-F000:ED6E		  loop	  j13
-F000:ED70		  dec	  ah
-F000:ED72		  jmp	  short	j12
+F000:ED6E		  loop	  j13		  ; wait for the required time
+F000:ED70		  dec	  ah		  ; decrement time value
+F000:ED72		  jmp	  short	j12_test_wait_time ; are we done yet ?
 F000:ED74 j14:					  ; CODE XREF: rw_opn+Fj
-F000:ED74					  ; rw_opn:j12j
-F000:ED74		  sti
+F000:ED74					  ; rw_opn:j12_test_wait_timej
+F000:ED74		  sti			  ; interrupts back on for bypass wait
 F000:ED75		  pop	  cx
 F000:ED76 ;------ do the seek operation
-F000:ED76		  call	  seek
-F000:ED79		  pop	  ax
-F000:ED7A		  mov	  bh, ah
-F000:ED7C		  mov	  dh, 0
-F000:ED7E		  jnb	  short	j14_1
-F000:ED80		  jmp	  j17
+F000:ED76		  call	  seek		  ; move to correct track
+F000:ED79		  pop	  ax		  ; recover command
+F000:ED7A		  mov	  bh, ah	  ; save command in bh
+F000:ED7C		  mov	  dh, 0		  ; set	no sectors read	in case	of error
+F000:ED7E		  jnb	  short	j14_1	  ; if no error	continue, jump around jmp
+F000:ED80		  jmp	  j17		  ; carry set jump to motor wait
 F000:ED83 j14_1:				  ; CODE XREF: rw_opn+3Aj
-F000:ED83		  mov	  si, offset j17
-F000:ED86		  push	  si
+F000:ED83		  mov	  si, offset j17  ; dummy return on stack for nec_output
+F000:ED86		  push	  si		  ;  so	it will	return to motor	off location
 F000:ED87 ;------ send out the parameters to the controller
-F000:ED87		  call	  nec_output
-F000:ED8A		  mov	  ah, [bp+1]
-F000:ED8D		  shl	  ah, 1
+F000:ED87		  call	  nec_output	  ; output the operation command
+F000:ED8A		  mov	  ah, [bp+1]	  ; get	the current head number
+F000:ED8D		  shl	  ah, 1		  ; move it to bit 2
 F000:ED8F		  shl	  ah, 1
-F000:ED91		  and	  ah, 4
-F000:ED94		  or	  ah, dl
+F000:ED91		  and	  ah, 4		  ; isolate that bit
+F000:ED94		  or	  ah, dl	  ; or in drive	number
 F000:ED96		  call	  nec_output
 F000:ED99 ;------ test for format command
-F000:ED99		  cmp	  bh, 4Dh ; 'M'   ; format?
-F000:ED9C		  jnz	  short	j15
-F000:ED9E		  jmp	  short	j10
+F000:ED99		  cmp	  bh, 4Dh ; 'M'   ; is this a format operation?
+F000:ED9C		  jnz	  short	j15	  ; no.	continue with r/w/v
+F000:ED9E		  jmp	  short	j10	  ; if so, handle special
 F000:EDA0 j15:					  ; CODE XREF: rw_opn+58j
-F000:EDA0		  mov	  ah, ch
+F000:EDA0		  mov	  ah, ch	  ; cylinder number
 F000:EDA2		  call	  nec_output
-F000:EDA5		  mov	  ah, [bp+1]
+F000:EDA5		  mov	  ah, [bp+1]	  ; head number	from stack
 F000:EDA8		  call	  nec_output
-F000:EDAB		  mov	  ah, cl
+F000:EDAB		  mov	  ah, cl	  ; sector number
 F000:EDAD		  call	  nec_output
-F000:EDB0		  mov	  bl, 7
-F000:EDB2		  call	  get_parm
-F000:EDB5		  mov	  bl, 8
-F000:EDB7		  call	  get_parm
-F000:EDBA		  add	  cl, [bp+0Eh]
-F000:EDBD		  dec	  cl
-F000:EDBF		  mov	  ah, cl
+F000:EDB0		  mov	  bl, 7		  ; bytes/sector parm from block
+F000:EDB2		  call	  get_parm	  ;  to	the nec
+F000:EDB5		  mov	  bl, 8		  ; eot	parm from block
+F000:EDB7		  call	  get_parm	  ;  returned in ah
+F000:EDBA		  add	  cl, [bp+0Eh]	  ; add	current	sector to number in transfer
+F000:EDBD		  dec	  cl		  ; current sector + n_sectors - 1
+F000:EDBF		  mov	  ah, cl	  ; eot	parameter is the calculated one
 F000:EDC1		  call	  nec_output
-F000:EDC4		  mov	  bl, 0Bh
-F000:EDC6		  call	  get_parm
-F000:EDC9		  mov	  bx, 0Dh
-F000:EDCC		  push	  bx
+F000:EDC4		  mov	  bl, 0Bh	  ; gap	length parm from block
+F000:EDC6		  call	  get_parm	  ;  to	the nec
+F000:EDC9		  mov	  bx, 0Dh	  ; dtl	parm from block
+F000:EDCC		  push	  bx		  ; save index to disk parameter on stack
 F000:EDCD j16:					  ; CODE XREF: rw_opn-Aj
-F000:EDCD		  cld
+F000:EDCD		  cld			  ; forward direction
 F000:EDCE ;----- start timer1 with initial value of ffff
 F000:EDCE		  mov	  al, 1110000b	  ; select timer1, lsb-msb, mode 0, binary counter
 F000:EDCE					  ; (tim1, lsb/msb, interrupt on terminal count, binary)
@@ -18497,103 +18497,133 @@ F000:EDD8		  push	  ax
 F000:EDD9		  pop	  ax		  ; wait
 F000:EDDA		  out	  41h, al	  ; output most	significant byte
 F000:EDDC ;----- initialize cx for jump	after last parameter is	passed to nec
-F000:EDDC		  mov	  al, [bp+0Fh]
-F000:EDDF		  test	  al, 1
-F000:EDE1		  jz	  short	j16_1
+F000:EDDC		  mov	  al, [bp+0Fh]	  ; retreive command parameter
+F000:EDDF		  test	  al, 1		  ; is this and	odd numbered function
+F000:EDE1		  jz	  short	j16_1	  ; jump if not	odd numbered
 F000:EDE3		  mov	  cx, offset write_loop
 F000:EDE6		  jmp	  short	j16_3
 F000:EDE8 j16_1:				  ; CODE XREF: rw_opn+9Dj
-F000:EDE8		  cmp	  al, 2
-F000:EDEA		  jnz	  short	j16_2
+F000:EDE8		  cmp	  al, 2		  ; is this a read?
+F000:EDEA		  jnz	  short	j16_2	  ; jump if verify
 F000:EDEC		  mov	  cx, offset read_loop
 F000:EDEF		  jmp	  short	j16_3
 F000:EDF1 j16_2:				  ; CODE XREF: rw_opn+A6j
 F000:EDF1		  mov	  cx, offset verify_loop
 F000:EDF4 ;----- finish	initialization
+F000:EDF4
+F000:EDF4 ;----------------------------------------------------------------
+F000:EDF4 ;***note***
+F000:EDF4 ;	   all interrupts are about to be disabled. there is a potential
+F000:EDF4 ;	   that	this time period will be long enough to	miss time of
+F000:EDF4 ;	   day interrupts. for this reason, timer1 will	be used	to
+F000:EDF4 ;	   keep	track of the number of time of day interrupts which
+F000:EDF4 ;	   will	be missed. this	information is used after the diskette
+F000:EDF4 ;	   operation to	update the time	of day.
+F000:EDF4 ;----------------------------------------------------------------
+F000:EDF4
 F000:EDF4 j16_3:				  ; CODE XREF: rw_opn+A2j
 F000:EDF4					  ; rw_opn+ABj
 F000:EDF4		  mov	  al, 10h	  ; disable nmi
 F000:EDF6		  out	  0A0h,	al	  ; no keyboad interrupt
 F000:EDF8		  call	  clock_wait	  ; wait if timer0 is about to interrupt
 F000:EDFB ;----- enable	watchdog timer
-F000:EDFB		  call	  get_drive
-F000:EDFE		  mov	  dx, 0F2h ; 'ò'
-F000:EE01		  or	  al, 0E0h
-F000:EE03		  out	  dx, al
-F000:EE04		  and	  al, 0A7h
-F000:EE06		  out	  dx, al
-F000:EE07		  mov	  dx, 0F4h ; 'ô'
+F000:EDFB
+F000:EDFB ;----------------------------------------------------------------
+F000:EDFB ;***note***
+F000:EDFB ;	   given the current system configuration a method is needed
+F000:EDFB ;	   to pull the nec out of "fatal error"	situations. a timer
+F000:EDFB ;	   on the adapter card is provided which will perform this
+F000:EDFB ;	   function. the watchdog timer	on the adapter card is enabled
+F000:EDFB ;	   and strobed before the 8259 interrupt 6 line	is enabled.
+F000:EDFB ;	   this	is because of a	glitch on the line large enough	to
+F000:EDFB ;	   trigger and interrupt.
+F000:EDFB ;----------------------------------------------------------------
+F000:EDFB
+F000:EDFB		  call	  get_drive	  ; get	bit mask for drive
+F000:EDFE		  mov	  dx, 0F2h ; 'ò'  ; control port to nec
+F000:EE01		  or	  al, 11100000b	  ; fdc_reset +	wd_enable + wd_strobe
+F000:EE03		  out	  dx, al	  ; output control info	for watchdog (wd) enable
+F000:EE04		  and	  al, 10100111b	  ; fdc_reset +	wd_enable + 0x07
+F000:EE06		  out	  dx, al	  ; output control info	to strobe watchdog
+F000:EE07		  mov	  dx, 0F4h ; 'ô'  ; port to nec status
 F000:EE0A		  mov	  al, 100000b	  ; select timer1 input	from timer0 output
 F000:EE0C		  out	  0A0h,	al
 F000:EE0E ;------ read timer1 now and save the initial value
-F000:EE0E		  call	  read_time
-F000:EE11		  mov	  [bp+12h], ax
-F000:EE14		  call	  disable
+F000:EE0E		  call	  read_time	  ; get	timer1 value
+F000:EE11		  mov	  [bp+12h], ax	  ; save initial value for clock
+F000:EE11					  ; update in temporary	storage
+F000:EE14		  call	  disable	  ; disable all	interrupts
 F000:EE17 ;------ nec begins operation when when nec receives last parameter
-F000:EE17		  pop	  bx
-F000:EE18		  call	  get_parm
-F000:EE1B		  pop	  ax
+F000:EE17		  pop	  bx		  ; get	parameter from stack
+F000:EE18		  call	  get_parm	  ; output last	parameter to the nec
+F000:EE1B		  pop	  ax		  ; can	now discard that dummy return address
 F000:EE1C		  push	  es
-F000:EE1D		  pop	  ds
-F000:EE1E		  jmp	  cx
+F000:EE1D		  pop	  ds		  ; initialize ds for write
+F000:EE1E		  jmp	  cx		  ; jump to appropriate	r/w/v loop
+F000:EE20 ;----------------------------------------------------------------
+F000:EE20 ;***note***
+F000:EE20 ;	   data	is transferred using polling algorithms. these loops
+F000:EE20 ;	   transfer a data byte	at a time while	polling	nec for
+F000:EE20 ;	   next	data byte and completitios status
+F000:EE20 ;----------------------------------------------------------------
 F000:EE20 verify_loop:				  ; CODE XREF: rw_opn+DFj
 F000:EE20					  ; DATA XREF: rw_opn:j16_2o
-F000:EE20		  in	  al, dx
-F000:EE21		  test	  al, 20h
-F000:EE23		  jz	  short	verify_loop
+F000:EE20		  in	  al, dx	  ; read status
+F000:EE21		  test	  al, 20h	  ; has	nec entered execution phase yet? (busy_bit)
+F000:EE23		  jz	  short	verify_loop ; no, continue sampling
 F000:EE25 j22_2:				  ; CODE XREF: rw_opn+E8j
 F000:EE25					  ; rw_opn+F2j
-F000:EE25		  test	  al, 80h
-F000:EE27		  jnz	  short	j22_4
-F000:EE29		  in	  al, dx
-F000:EE2A		  test	  al, 20h
-F000:EE2C		  jnz	  short	j22_2
-F000:EE2E		  jmp	  short	op_end
+F000:EE25		  test	  al, 80h	  ; is data ready? (rqm)
+F000:EE27		  jnz	  short	j22_4	  ; jump if data transfer is ready
+F000:EE29		  in	  al, dx	  ; read status	port
+F000:EE2A		  test	  al, 20h	  ; are	we done	? (busy_bit)
+F000:EE2C		  jnz	  short	j22_2	  ; jump if more transfers
+F000:EE2E		  jmp	  short	op_end	  ; transfer done
 F000:EE30 j22_4:				  ; CODE XREF: rw_opn+E3j
-F000:EE30		  inc	  dx
-F000:EE31		  in	  al, dx
-F000:EE32		  dec	  dx
-F000:EE33		  in	  al, dx
-F000:EE34		  test	  al, 20h
-F000:EE36		  jnz	  short	j22_2
-F000:EE38		  jmp	  short	op_end
+F000:EE30		  inc	  dx		  ; point at nec data register
+F000:EE31		  in	  al, dx	  ; read data
+F000:EE32		  dec	  dx		  ; point at nec status	register
+F000:EE33		  in	  al, dx	  ; read status	port
+F000:EE34		  test	  al, 20h	  ; are	we done	? (busy_bit)
+F000:EE36		  jnz	  short	j22_2	  ; continue
+F000:EE38		  jmp	  short	op_end	  ; we are done
 F000:EE3A ;------ read operation
 F000:EE3A read_loop:				  ; CODE XREF: rw_opn+F9j
 F000:EE3A					  ; DATA XREF: rw_opn+A8o
-F000:EE3A		  in	  al, dx
-F000:EE3B		  test	  al, 20h
-F000:EE3D		  jz	  short	read_loop
+F000:EE3A		  in	  al, dx	  ; read status	register
+F000:EE3B		  test	  al, 20h	  ; has	next started the execution phase? (busy_bit)
+F000:EE3D		  jz	  short	read_loop ; has	not started yet
 F000:EE3F j22_5:				  ; CODE XREF: rw_opn+102j
 F000:EE3F					  ; rw_opn+108j
-F000:EE3F		  in	  al, dx
-F000:EE40		  test	  al, 20h
-F000:EE42		  jz	  short	op_end
-F000:EE44		  test	  al, 80h
-F000:EE46		  jz	  short	j22_5
-F000:EE48		  inc	  dx
-F000:EE49		  in	  al, dx
-F000:EE4A		  stosb
-F000:EE4B		  dec	  dx
-F000:EE4C		  jmp	  short	j22_5
+F000:EE3F		  in	  al, dx	  ; read status	port
+F000:EE40		  test	  al, 20h	  ; has	nec completed execution	phase? (busy_bit)
+F000:EE42		  jz	  short	op_end	  ; jump if execution phase is over
+F000:EE44		  test	  al, 80h	  ; is data ready? (rqm)
+F000:EE46		  jz	  short	j22_5	  ; read the data
+F000:EE48		  inc	  dx		  ; point at nec_data
+F000:EE49		  in	  al, dx	  ; read data
+F000:EE4A		  stosb			  ; transfer data
+F000:EE4B		  dec	  dx		  ; point at nec_status
+F000:EE4C		  jmp	  short	j22_5	  ; continue with read operation
 F000:EE4E ;------ write	and format operation
 F000:EE4E write_loop:				  ; CODE XREF: rw_opn+10Dj
 F000:EE4E					  ; DATA XREF: rw_opn+9Fo
-F000:EE4E		  in	  al, dx
-F000:EE4F		  test	  al, 20h
-F000:EE51		  jz	  short	write_loop
-F000:EE53		  mov	  cx, 2080h
+F000:EE4E		  in	  al, dx	  ; read nec status port
+F000:EE4F		  test	  al, 20h	  ; has	nec entered execution phase yet? (busy_bit)
+F000:EE51		  jz	  short	write_loop ; no, continue looping
+F000:EE53		  mov	  cx, 2080h	  ; busy_bit * 256 + rqm
 F000:EE56 j22_7:				  ; CODE XREF: rw_opn+119j
 F000:EE56					  ; rw_opn+11Fj
-F000:EE56		  in	  al, dx
-F000:EE57		  test	  al, ch
-F000:EE59		  jz	  short	op_end
-F000:EE5B		  test	  al, cl
-F000:EE5D		  jz	  short	j22_7
-F000:EE5F		  inc	  dx
-F000:EE60		  lodsb
-F000:EE61		  out	  dx, al
-F000:EE62		  dec	  dx
-F000:EE63		  jmp	  short	j22_7
+F000:EE56		  in	  al, dx	  ; read status	port
+F000:EE57		  test	  al, ch	  ; is the fec still in	execution phase?
+F000:EE59		  jz	  short	op_end	  ; jump if execution phase is done
+F000:EE5B		  test	  al, cl	  ; is the data	port ready for the transfer?
+F000:EE5D		  jz	  short	j22_7	  ; jump to write data
+F000:EE5F		  inc	  dx		  ; point at data register
+F000:EE60		  lodsb			  ; transfer byte
+F000:EE61		  out	  dx, al	  ; write the byte on the diskette
+F000:EE62		  dec	  dx		  ; point at the status	register
+F000:EE63		  jmp	  short	j22_7	  ; continue with write	or format
 F000:EE65 ;------ transfer process is over
 F000:EE65 op_end:				  ; CODE XREF: rw_opn+EAj
 F000:EE65					  ; rw_opn+F4j	rw_opn+FEj
